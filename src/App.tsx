@@ -12,6 +12,8 @@ import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 import Curso from "./pages/Curso";
 import ModuleView from "./components/module-view";
+import Login from "./pages/Login";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -20,20 +22,23 @@ const App = () => (
     <ThemeProvider defaultTheme="light" storageKey="fitness-edu-theme">
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-right" />
         <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/curso" element={<Curso />} />
-              {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
-              <Route path="/curso/:courseId" element={<ModuleView />} />
-              <Route path="/teoria" element={<Theory />} />
-              <Route path="/teoria/:contentId" element={<TheoryDetail />} />
-              <Route path="/busqueda" element={<Search />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
+          <AuthProvider>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/curso" element={<Curso />} />
+                <Route path="/login" element={<Login />} />
+                {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
+                <Route path="/curso/:courseId" element={<ModuleView />} />
+                <Route path="/teoria" element={<Theory />} />
+                <Route path="/teoria/:contentId" element={<TheoryDetail />} />
+                <Route path="/busqueda" element={<Search />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Layout>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

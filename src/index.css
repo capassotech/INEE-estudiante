@@ -4,100 +4,98 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;              /* Fondo blanco */
-    --foreground: 0 0% 10%;                /* Casi negro */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 39 16% 82%;
-    --card-foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 39 16% 82%;
-    --popover-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 353 42% 38%;                /* Color vino del logo */
-    --primary-foreground: 0 0% 100%;       /* Texto blanco sobre primary */
+    --primary: 353 42% 38%;
+    /* Color principal consistente */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 42 61% 56%;               /* Mostaza del logo */
-    --secondary-foreground: 0 0% 10%;      /* Texto oscuro sobre mostaza */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 39 16% 82%;
-    --muted-foreground: 0 0% 30%;          /* Gris oscuro */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 42 61% 56%;                  /* Igual que secundario (mostaza) */
-    --accent-foreground: 0 0% 10%;
+    --accent: 353 57% 35%;
+    /* Color de acento ajustado para el nuevo gradiente */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 45% 49%;              /* Rojo oscuro */
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 0 0% 75%;                    /* Gris medio para bordes */
-    --input: 0 0% 75%;
-    --ring: 42 61% 56%;                    /* Mostaza (accent) */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 353 57% 35%;
+    /* Ring color ajustado */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 39 16% 90%;      /* Un poco más claro que fondo */
-    --sidebar-foreground: 0 0% 10%;
-
-    --sidebar-primary: 353 42% 38%;
-    --sidebar-primary-foreground: 0 0% 100%;
-
-    --sidebar-accent: 42 61% 56%;
-    --sidebar-accent-foreground: 0 0% 10%;
-
-    --sidebar-border: 0 0% 75%;
-    --sidebar-ring: 42 61% 56%;
+    /* Gradientes personalizados para modo claro - AJUSTADOS */
+    --gradient-hero-from: 345 60% 18%;
+    /* #40171f convertido a HSL */
+    --gradient-hero-to: 353 42% 38%;
+    /* #8b3740 convertido a HSL */
+    --gradient-btn-from: 345 60% 18%;
+    /* #40171f convertido a HSL */
+    --gradient-btn-to: 353 42% 38%;
+    /* #8b3740 convertido a HSL */
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 100%;
+    --background: 0 0% 8%;
+    --foreground: 0 0% 98%;
 
     --card: 0 0% 10%;
-    --card-foreground: 0 0% 100%;
+    --card-foreground: 0 0% 98%;
 
     --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 100%;
+    --popover-foreground: 0 0% 98%;
 
     --primary: 353 42% 38%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 1% 30%;               /* Gris oscuro (para contrastar) */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 240 3% 11%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 42 61% 56%;
-    --accent-foreground: 0 0% 10%;
+    --accent: 353 57% 35%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 45% 49%;
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 25%;
-    --input: 0 0% 25%;
-    --ring: 42 61% 56%;
+    --border: 0 0% 20%;
+    --input: 0 0% 16%;
+    --ring: 353 57% 35%;
 
-    --sidebar-background: 0 0% 15%;
-    --sidebar-foreground: 0 0% 100%;
+    /* Gradientes personalizados para modo oscuro - AJUSTADOS */
+    --gradient-hero-from: 345 60% 12%;
+    /* Versión más oscura de #40171f */
+    --gradient-hero-to: 353 42% 25%;
+    /* Versión más oscura de #8b3740 */
+    --gradient-btn-from: 345 60% 18%;
+    /* #40171f para botones en oscuro */
+    --gradient-btn-to: 353 42% 35%;
+    /* Ligeramente más claro que #8b3740 */
+
+    /* Variables específicas para sidebar si las usas */
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 353 42% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 1% 30%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 25%;
-    --sidebar-ring: 42 61% 56%;
-  }
-
-  .light {
-    --primary: 353 42% 38%;
-    --primary-foreground: 0 0% 100%;
-
-    --accent: 42 61% 56%;
-    --accent-foreground: 0 0% 10%;
-
-    --destructive: 0 45% 49%;
-    --destructive-foreground: 0 0% 100%;
-
-    --ring: 42 61% 56%;
-    --sidebar-ring: 42 61% 56%;
+    --sidebar-accent: 240 3% 16%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 353 57% 35%;
   }
 }
 
@@ -108,5 +106,157 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Mejoras para formularios */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    @apply transition-all duration-200;
+  }
+
+  [data-state="checked"] {
+    @apply transition-colors duration-200;
+  }
+
+  button {
+    @apply transition-all duration-200;
+  }
+
+  ::placeholder {
+    @apply text-muted-foreground;
+    opacity: 0.7;
+  }
+
+  input:focus-visible,
+  button:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+/* Utilidades personalizadas */
+@layer utilities {
+
+  /* Gradiente para el fondo hero - modo claro */
+  .bg-gradient-hero {
+    background: linear-gradient(to bottom,
+        hsl(var(--gradient-hero-from)) 0%,
+        hsl(var(--gradient-hero-to)) 100%);
+  }
+
+  /* Gradiente para el fondo hero - modo oscuro */
+  .dark .bg-gradient-hero-dark,
+  .bg-gradient-hero {
+    background: linear-gradient(to bottom,
+        hsl(var(--gradient-hero-from)) 0%,
+        hsl(var(--gradient-hero-to)) 100%);
+  }
+
+  /* Gradiente para botón - modo claro */
+  .btn-gradient {
+    background: linear-gradient(to bottom,
+        hsl(var(--gradient-btn-from)) 0%,
+        hsl(var(--gradient-btn-to)) 100%);
+    color: hsl(var(--primary-foreground));
+    border: none;
+  }
+
+  /* Gradiente para botón - modo oscuro */
+  .dark .btn-gradient-dark,
+  .dark .btn-gradient {
+    background: linear-gradient(to bottom,
+        hsl(var(--gradient-btn-from)) 0%,
+        hsl(var(--gradient-btn-to)) 100%);
+    color: hsl(var(--primary-foreground));
+    border: none;
+  }
+
+  /* Hover effects para botones con gradiente */
+  .btn-gradient:hover,
+  .dark .btn-gradient:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px -8px hsl(var(--gradient-btn-from) / 0.4);
+  }
+
+  .theme-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+
+  .form-label {
+    @apply text-foreground font-medium;
+  }
+
+  .form-error {
+    @apply text-destructive text-sm font-medium;
+  }
+
+  .card-gradient {
+    @apply bg-card/95 backdrop-blur-sm border-border shadow-2xl;
+  }
+
+  .dark .card-gradient {
+    @apply bg-card/90 backdrop-blur-sm;
+  }
+
+  /* Efecto glassmorphism para elementos sobre gradientes */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .glass-effect {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Gradientes adicionales que puedes usar */
+  .bg-gradient-primary {
+    background: linear-gradient(to bottom,
+        hsl(var(--primary)) 0%,
+        hsl(var(--accent)) 100%);
+  }
+
+  .bg-gradient-secondary {
+    background: linear-gradient(135deg,
+        hsl(var(--secondary)) 0%,
+        hsl(var(--muted)) 100%);
+  }
+
+  /* Texto con gradiente - AJUSTADO */
+  .text-gradient {
+    background: linear-gradient(to bottom,
+        hsl(var(--gradient-btn-from)) 0%,
+        hsl(var(--gradient-btn-to)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Clase adicional para usar directamente el gradiente exacto que pediste */
+  .bg-custom-gradient {
+    background: linear-gradient(to bottom, #40171f, #8b3740);
   }
 }
