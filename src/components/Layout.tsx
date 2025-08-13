@@ -1,9 +1,10 @@
 
 import BottomNavigation from "./BottomNavigation";
 import Header from "./Header";
+import { Outlet } from "react-router-dom";
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
@@ -11,7 +12,7 @@ const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <main className="pb-20 md:pb-8">
-        {children}
+        {children ?? <Outlet />}
       </main>
       {/* <BottomNavigation /> */}
     </div>

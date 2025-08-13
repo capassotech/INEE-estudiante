@@ -9,6 +9,7 @@ import Theory from "./pages/Theory";
 import Search from "./pages/Search";
 import TheoryDetail from "./pages/TheoryDetail";
 import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import Curso from "./pages/Curso";
 import ModuleView from "./components/module-view";
@@ -26,20 +27,22 @@ const App = () => (
         <Sonner position="top-right" />
         <BrowserRouter>
           <AuthProvider>
-            <Layout>
-              <Routes>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/curso" element={<Curso />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/registro" element={<Register />} />
-                {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
-                <Route path="/curso/:courseId" element={<ModuleView />} />
-                <Route path="/teoria" element={<Theory />} />
-                <Route path="/teoria/:contentId" element={<TheoryDetail />} />
-                <Route path="/busqueda" element={<Search />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/curso" element={<Curso />} />
+                  {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
+                  <Route path="/curso/:courseId" element={<ModuleView />} />
+                  <Route path="/teoria" element={<Theory />} />
+                  <Route path="/teoria/:contentId" element={<TheoryDetail />} />
+                  <Route path="/busqueda" element={<Search />} />
+                </Route>
+
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Layout>
+              </Route>
+            </Routes>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
