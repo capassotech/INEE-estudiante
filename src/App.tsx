@@ -15,6 +15,7 @@ import Curso from "./pages/Curso";
 import ModuleView from "./components/module-view";
 import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
                   <Route path="/teoria/:contentId" element={<TheoryDetail />} />
                   <Route path="/busqueda" element={<Search />} />
                 </Route>
+
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
