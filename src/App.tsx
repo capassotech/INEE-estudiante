@@ -16,6 +16,7 @@ import ModuleView from "./components/module-view";
 import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -38,8 +39,8 @@ const App = () => (
                   <Route path="/teoria" element={<Theory />} />
                   <Route path="/teoria/:contentId" element={<TheoryDetail />} />
                   <Route path="/busqueda" element={<Search />} />
+                  <Route path="/perfil" element={<Profile />} />
                 </Route>
-
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

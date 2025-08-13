@@ -104,6 +104,7 @@ const Header = () => {
 
 export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => void }) => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -115,7 +116,7 @@ export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => v
     <>
       <SheetHeader className="pb-4 border-b border-[#D8D3CA]">
         <SheetTitle className="text-[#8B3740] dark:text-[#D8D3CA] font-bold tracking-wide text-xl">
-          Menu de usuario
+          Ajustes de usuario
         </SheetTitle>
       </SheetHeader>
 
@@ -123,7 +124,10 @@ export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => v
         <Button
           variant="ghost"
           className="justify-start gap-4 p-4 rounded-md text-[#4B4B4C] dark:text-[#D8D3CA] hover:bg-[#8B3740] hover:text-white font-medium text-lg transition-colors duration-200"
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false);
+            navigate("/perfil");
+          }}
         >
           <User className="w-8 h-8" strokeWidth={1.5} />
           <span>Perfil</span>
