@@ -14,6 +14,7 @@ import Curso from "./pages/Curso";
 import ModuleView from "./components/module-view";
 import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/curso" element={<Curso />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/registro" element={<Register />} />
                 {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
                 <Route path="/curso/:courseId" element={<ModuleView />} />
                 <Route path="/teoria" element={<Theory />} />
