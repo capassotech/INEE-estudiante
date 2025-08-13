@@ -69,7 +69,7 @@ const Header = () => {
           <div className="flex items-center space-x-2">
             {isAuthenticated ? (
               <Sheet open={open} onOpenChange={setOpen}>
-                <SheetTrigger>
+                <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
                     <User className="h-5 w-5 text-gray-700 dark:text-white" />
                   </Button>
