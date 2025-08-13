@@ -32,8 +32,8 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />
               <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
                 <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={<Index />} />
                   <Route path="/curso" element={<Curso />} />
                   {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
                   <Route path="/curso/:courseId" element={<ModuleView />} />
@@ -41,8 +41,8 @@ const App = () => (
                   <Route path="/teoria/:contentId" element={<TheoryDetail />} />
                   <Route path="/busqueda" element={<Search />} />
                   <Route path="/perfil" element={<Profile />} />
+                  <Route path="*" element={<NotFound />} />
                 </Route>
-                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
           </AuthProvider>
