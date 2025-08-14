@@ -10,6 +10,7 @@ import Search from "./pages/Search";
 import TheoryDetail from "./pages/TheoryDetail";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AuthRedirectRoute from "./components/AuthRedirectRoute";
 import NotFound from "./pages/NotFound";
 import Curso from "./pages/Curso";
 import ModuleView from "./components/module-view";
@@ -29,11 +30,13 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/registro" element={<Register />} />
+              <Route element={<AuthRedirectRoute />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/registro" element={<Register />} />
+              </Route>
               <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
                 <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={<Index />} />
                   <Route path="/curso" element={<Curso />} />
                   {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
                   <Route path="/curso/:courseId" element={<ModuleView />} />
@@ -41,8 +44,8 @@ const App = () => (
                   <Route path="/teoria/:contentId" element={<TheoryDetail />} />
                   <Route path="/busqueda" element={<Search />} />
                   <Route path="/perfil" element={<Profile />} />
+                  <Route path="*" element={<NotFound />} />
                 </Route>
-                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
           </AuthProvider>
