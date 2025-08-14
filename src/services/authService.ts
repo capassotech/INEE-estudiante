@@ -86,11 +86,7 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
-        const customError = new Error(error.response.data.error || "Error en el registro");
-        (customError as any).details = error.response.data.details;
-        (customError as any).error = error.response.data.error;
-        (customError as any).originalData = error.response.data;
-        throw customError;
+        throw error.response.data;
       }
       throw new Error("Error de conexión. Verifica tu conexión a internet.");
     }
@@ -121,11 +117,7 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
-        const customError = new Error(error.response.data.error || "Error en el login");
-        (customError as any).details = error.response.data.details;
-        (customError as any).error = error.response.data.error;
-        (customError as any).originalData = error.response.data;
-        throw customError;
+        throw error.response.data;
       }
       throw new Error("Error de conexión. Verifica tu conexión a internet.");
     }
