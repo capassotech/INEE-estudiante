@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       // Los datos ya se guardaron en localStorage en el servicio
-
+      setIsLoading(false);
       return response; // Retornar respuesta para usar en el componente
     } catch (error) {
       setIsLoading(false);

@@ -30,6 +30,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   const { login, register, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -39,7 +40,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     acceptTerms: false,
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -54,9 +54,21 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     // Validar contraseña
     if (!formData.password) {
       newErrors.password = "La contraseña es requerida";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "La contraseña debe tener al menos 6 caracteres";
-    }
+    } else {
+      const passwordErrors: string[] = [];
+      
+      if (formData.password.length < 8) {
+        passwordErrors.push("• Debe tener al menos 8 caracteres");
+      }
+      
+      if (!/[A-Z]/.test(formData.password)) {
+        passwordErrors.push("• Debe contener al menos una letra mayúscula");
+      }
+      
+      if (passwordErrors.length > 0) {
+        newErrors.password = passwordErrors.join("\n");
+      }
+    } 
 
     if (!isLogin) {
       // Validar nombre
@@ -92,6 +104,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (!validateForm()) {
       toast.error("Por favor, corrige los errores en el formulario");
@@ -102,7 +115,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
 
     try {
       if (isLogin) {
-        const response = await login(formData.email, formData.password);
+        await login(formData.email, formData.password);
 
         const studentData = authService.getStudentDataFromStorage();
         const userName = studentData?.nombre || "Usuario";
@@ -116,7 +129,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           navigate("/");
         }, 1000);
       } else {
-        const response = await register(formData);
+        await register(formData);
 
         const studentData = authService.getStudentDataFromStorage();
         const userName = studentData?.nombre || "Usuario";
@@ -130,9 +143,24 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           navigate("/");
         }, 1000);
       }
-    } catch (error: any) {
-      console.error("Error en autenticación:", error);
-      toast.error(error.message || "Ocurrió un error. Inténtalo de nuevo.");
+    } catch (error: unknown) {      
+      const errorObj = error as { details?: string[] | string; message?: string };
+
+      if (errorObj?.details && Array.isArray(errorObj.details)) {
+        errorObj.details.forEach((detail: string) => {
+          toast.error(detail);
+        });
+
+      } else if (errorObj?.details) {
+        toast.error(String(errorObj.details));
+
+      } else if (errorObj?.message) {
+        toast.error(errorObj.message);
+        
+      } else {
+        toast.error("Ocurrió un error. Inténtalo de nuevo.");
+      }
+
     } finally {
       setIsSubmitting(false);
     }
@@ -216,7 +244,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="space-y-4">
               {!isLogin && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -356,7 +384,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="form-error">{errors.password}</p>
+                  <p className="form-error whitespace-pre-line">{errors.password}</p>
                 )}
               </div>
 
@@ -396,7 +424,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin = false }) => {
               )}
 
               <Button
-                type="submit"
+                type="button"
+                onClick={(e) => handleSubmit(e as React.FormEvent)}
                 className="w-full btn-gradient dark:btn-gradient-dark hover:opacity-90 transition-all duration-200 font-medium"
                 disabled={isSubmitting}
               >
