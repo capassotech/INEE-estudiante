@@ -28,66 +28,57 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   });
 
 
+  const getPasswordRequirements = (password: string) => {
+    return {
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+    };
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Validar email
     if (!formData.email) {
       newErrors.email = "El email es requerido";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "El formato del email es inválido";
     }
 
-    // Validar contraseña
     if (!formData.password) {
       newErrors.password = "La contraseña es requerida";
     } else {
-      const passwordErrors: string[] = [];
+      const requirements = getPasswordRequirements(formData.password);
+      const allRequirementsMet = requirements.minLength && 
+                                requirements.hasUppercase && 
+                                requirements.hasSpecialChar && 
+                                requirements.hasNumber;
       
-      if (formData.password.length < 8) {
-        passwordErrors.push("• La contraseña debe tener al menos 8 caracteres");
-      }
-      
-      if (!/[A-Z]/.test(formData.password)) {
-        passwordErrors.push("• La contraseña debe contener al menos una letra mayúscula");
-      }
-      
-      if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password)) {
-        passwordErrors.push("• La contraseña debe contener al menos un carácter especial");
-      }
-      
-      if (!/[0-9]/.test(formData.password)) {
-        passwordErrors.push("• La contraseña debe contener al menos un número");
-      }
-      
-      if (passwordErrors.length > 0) {
-        newErrors.password = passwordErrors.join("\n");
+      if (!allRequirementsMet) {
+        newErrors.password = "La contraseña no cumple con todos los requisitos";
       }
     } 
 
     if (!isLogin) {
-      // Validar nombre
       if (!formData.firstName.trim()) {
         newErrors.firstName = "El nombre es requerido";
       } else if (formData.firstName.trim().length < 2) {
         newErrors.firstName = "El nombre debe tener al menos 2 caracteres";
       }
 
-      // Validar apellido
       if (!formData.lastName.trim()) {
         newErrors.lastName = "El apellido es requerido";
       } else if (formData.lastName.trim().length < 2) {
         newErrors.lastName = "El apellido debe tener al menos 2 caracteres";
       }
 
-      // Validar DNI
       if (!formData.dni) {
         newErrors.dni = "El DNI es requerido";
       } else if (!/^\d{7,8}$/.test(formData.dni)) {
         newErrors.dni = "El DNI debe tener entre 7 y 8 dígitos";
       }
 
-      // Validar términos
       if (!formData.acceptTerms) {
         newErrors.acceptTerms = "Debes aceptar los términos y condiciones";
       }
@@ -138,8 +129,8 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           navigate("/");
         }, 1000);
       }
-    } catch (error: unknown) {      
-      console.error(error);
+    } catch (error: any) {      
+      toast.error(error.error);
     } finally {
       setIsSubmitting(false);
     }
@@ -168,6 +159,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
       isSubmitting={isSubmitting}
       showPassword={showPassword}
       setShowPassword={setShowPassword}
+      passwordRequirements={getPasswordRequirements(formData.password as string || '')}
     />
   );
 };
