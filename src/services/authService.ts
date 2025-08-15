@@ -86,7 +86,7 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
-        throw new Error(error.response.data.error || "Error en el registro");
+        throw error.response.data;
       }
       throw new Error("Error de conexión. Verifica tu conexión a internet.");
     }
@@ -117,7 +117,7 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
-        throw new Error(error.response.data.error || "Error en el login");
+        throw error.response.data;
       }
       throw new Error("Error de conexión. Verifica tu conexión a internet.");
     }
