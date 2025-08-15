@@ -92,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: any) => {
     try {
       setIsLoading(true);
+      
       const response = await authService.register({
         email: userData.email,
         password: userData.password,
@@ -102,7 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       // Los datos ya se guardaron en localStorage en el servicio
-
+      setIsLoading(false);
       return response; // Retornar respuesta para usar en el componente
     } catch (error) {
       setIsLoading(false);
