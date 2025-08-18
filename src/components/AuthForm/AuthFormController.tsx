@@ -18,6 +18,8 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -133,21 +135,43 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           navigate("/");
         }, 1000);
       }
-    } catch (error: any) {      
-      toast.error(error.error);
+    } catch (error: unknown) {      
+      const errorMessage = error instanceof Error ? error.message : "Ocurrió un error";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleAuth = async () => {
+    // if (isLogin) {
+    //   try {
+    //     const response = await googleLogin();
+    //     console.log("response", response);
+
+    //     toast.success("¡Bienvenido de vuelta!", {
+    //       description: "Has iniciado sesión exitosamente",
+    //       duration: 4000,
+    //     });
+
+    //     setTimeout(() => {
+    //       navigate("/");
+    //     }, 2000);
+    //     return;
+    //   } catch (error: unknown) {
+    //     const errorMessage = error instanceof Error ? error.message : "Error en el login con Google";
+    //     toast.error(errorMessage);
+    //     return;
+    //   }
+    // }
+
     if (!validateForm(true)) {
       toast.error("Por favor, corrige los errores en el formulario");
       return;
     }
 
     try {
-      await googleRegister(formData.dni, formData.acceptTerms);
+      await googleRegister(formData.firstName, formData.lastName, formData.dni, formData.acceptTerms);
 
       toast.success("¡Bienvenido a INEE!", {
         description: "Tu cuenta ha sido creada exitosamente",
@@ -157,26 +181,42 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
       setTimeout(() => {
         navigate("/");
       }, 2000);
-    } catch (error: any) {
-      console.log("Mensaje:", error.message);
-      toast.error(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Error en el registro con Google";
+      console.log("Mensaje:", errorMessage);
+      toast.error(errorMessage);
     }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
+  const handleStepChange = (step: number) => {
+    setCurrentStep(step);
+    setErrors({});
+    if (step !== 2) {
+      setShowEmailForm(false);
+    }
+  };
+
+  const handleEmailMethodSelect = () => {
+    setShowEmailForm(true);
+  };
+
   return (
     <AuthFormView
       isLogin={isLogin}
+      currentStep={currentStep}
+      showEmailForm={showEmailForm}
       onSubmit={handleSubmit}
       onGoogleAuth={handleGoogleAuth}
       onInputChange={handleInputChange}
+      onStepChange={handleStepChange}
+      onEmailMethodSelect={handleEmailMethodSelect}
       errors={errors}
       formData={formData}
       isSubmitting={isSubmitting}

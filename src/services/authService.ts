@@ -56,21 +56,42 @@ class AuthService {
     }
   }
 
-  async googleRegister(dni: string, acceptTerms: boolean): Promise<void> {
+
+  // async googleLogin() {
+  //   try {
+  //     const googleProvider = new GoogleAuthProvider();
+  //     const auth = getAuth();
+
+  //     const result = await signInWithPopup(auth, googleProvider);
+  //     const user = result.user;
+
+  //     const profile = await this.getProfile();
+  //     console.log("profile", profile);
+  //     if (profile) {
+  //       throw new Error("El usuario ya está registrado");
+  //     }
+      
+  //     const idToken = await user.getIdToken();
+  //     return { idToken, user };
+  //   } catch (error: any) {
+  //     throw new Error(error.message);
+  //   }
+  // }
+
+  async googleRegister(firstName: string, lastName: string, dni: string, acceptTerms: boolean): Promise<void> {
     try {
       const googleProvider = new GoogleAuthProvider();
       const auth = getAuth();
   
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      const [firstName, ...lastNameParts] = user.displayName.split(" ");
       const idToken = await user.getIdToken();
   
       const response = await api.post("/auth/google-register", {
         idToken, 
         email: user.email,
         nombre: firstName,
-        apellido: lastNameParts.join(" "),
+        apellido: lastName,
         dni: dni,
         aceptaTerminos: acceptTerms,
       });
@@ -79,7 +100,7 @@ class AuthService {
         uid: user.uid,
         email: user.email,
         nombre: firstName,
-        apellido: lastNameParts.join(" "),
+        apellido: lastName,
         role: "student",
         registrationTime: new Date().toISOString(),
       };
