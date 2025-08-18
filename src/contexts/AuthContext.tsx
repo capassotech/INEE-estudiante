@@ -22,7 +22,8 @@ interface AuthContextType {
   register: (userData: any) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  googleRegister: (dni: string, acceptTerms: boolean) => Promise<any>;
+  googleRegister: (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => Promise<any>;
+  // googleLogin: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -117,11 +118,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const googleRegister = async (dni: string, acceptTerms: boolean) => {
+  const googleRegister = async (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => {
     try {
       setIsLoading(true);
 
-      const response = await authService.googleRegister(dni, acceptTerms);
+      const response = await authService.googleRegister(firstName, lastName, dni, acceptTerms);
 
       setIsLoading(false);
       return response;
@@ -130,6 +131,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     }
   };
+
+  // const googleLogin = async () => {
+  //   try {
+  //     setIsLoading(true);
+  //     const response = await authService.googleLogin();
+  //     setIsLoading(false);
+  //     return response;
+  //   } catch (error) {
+  //     setIsLoading(false);
+  //     throw error;
+  //   }
+  // };
 
   const logout = async () => {
     try {
@@ -170,6 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     googleRegister,
+    // googleLogin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
