@@ -14,7 +14,7 @@ interface AuthFormProps {
 
 const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, googleRegister } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,40 +37,44 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     };
   };
 
-  const validateForm = () => {
+  const validateForm = (googleAuth: boolean = false) => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.email) {
-      newErrors.email = "El email es requerido";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "El formato del email es inválido";
+    
+    if (!googleAuth) {
+      if (!formData.email) {
+        newErrors.email = "El email es requerido";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "El formato del email es inválido";
+      }
+  
+      if (!formData.password) {
+        newErrors.password = "La contraseña es requerida";
+      } else {
+        const requirements = getPasswordRequirements(formData.password);
+        const allRequirementsMet = requirements.minLength && 
+                                  requirements.hasUppercase && 
+                                  requirements.hasSpecialChar && 
+                                  requirements.hasNumber;
+        
+        if (!allRequirementsMet) {
+          newErrors.password = "La contraseña no cumple con todos los requisitos";
+        }
+      } 
     }
 
-    if (!formData.password) {
-      newErrors.password = "La contraseña es requerida";
-    } else {
-      const requirements = getPasswordRequirements(formData.password);
-      const allRequirementsMet = requirements.minLength && 
-                                requirements.hasUppercase && 
-                                requirements.hasSpecialChar && 
-                                requirements.hasNumber;
-      
-      if (!allRequirementsMet) {
-        newErrors.password = "La contraseña no cumple con todos los requisitos";
-      }
-    } 
-
     if (!isLogin) {
-      if (!formData.firstName.trim()) {
-        newErrors.firstName = "El nombre es requerido";
-      } else if (formData.firstName.trim().length < 2) {
-        newErrors.firstName = "El nombre debe tener al menos 2 caracteres";
-      }
-
-      if (!formData.lastName.trim()) {
-        newErrors.lastName = "El apellido es requerido";
-      } else if (formData.lastName.trim().length < 2) {
-        newErrors.lastName = "El apellido debe tener al menos 2 caracteres";
+      if (!googleAuth) {
+        if (!formData.firstName.trim()) {
+          newErrors.firstName = "El nombre es requerido";
+        } else if (formData.firstName.trim().length < 2) {
+          newErrors.firstName = "El nombre debe tener al menos 2 caracteres";
+        }
+  
+        if (!formData.lastName.trim()) {
+          newErrors.lastName = "El apellido es requerido";
+        } else if (formData.lastName.trim().length < 2) {
+          newErrors.lastName = "El apellido debe tener al menos 2 caracteres";
+        }
       }
 
       if (!formData.dni) {
@@ -136,8 +140,27 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     }
   };
 
-  const handleGoogleAuth = () => {
-    toast.info("Autenticación con Google próximamente disponible");
+  const handleGoogleAuth = async () => {
+    if (!validateForm(true)) {
+      toast.error("Por favor, corrige los errores en el formulario");
+      return;
+    }
+
+    try {
+      await googleRegister(formData.dni, formData.acceptTerms);
+
+      toast.success("¡Bienvenido a INEE!", {
+        description: "Tu cuenta ha sido creada exitosamente",
+        duration: 4000,
+      });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (error: any) {
+      console.log("Mensaje:", error.message);
+      toast.error(error.message);
+    }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {

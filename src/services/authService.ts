@@ -1,6 +1,7 @@
 import axios from "axios";
-import { signInWithCustomToken, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, signInWithCredential } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
+import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -23,43 +24,6 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  nombre: string;
-  apellido: string;
-  dni: string;
-  aceptaTerminos: boolean;
-}
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  message: string;
-  user: {
-    uid: string;
-    email: string;
-    nombre: string;
-    apellido: string;
-    role: string;
-  };
-  customToken?: string;
-}
-
-export interface UserProfile {
-  uid: string;
-  email: string;
-  nombre: string;
-  apellido: string;
-  dni: string;
-  role: string;
-  fechaRegistro: string;
-  aceptaTerminos: boolean;
-}
 
 class AuthService {
   async register(userData: RegisterData): Promise<AuthResponse> {
@@ -89,6 +53,43 @@ class AuthService {
         throw error.response.data;
       }
       throw new Error("Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
+
+  async googleRegister(dni: string, acceptTerms: boolean): Promise<void> {
+    try {
+      const googleProvider = new GoogleAuthProvider();
+      const auth = getAuth();
+  
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const [firstName, ...lastNameParts] = user.displayName.split(" ");
+      const idToken = await user.getIdToken();
+  
+      const response = await api.post("/auth/google-register", {
+        idToken, 
+        email: user.email,
+        nombre: firstName,
+        apellido: lastNameParts.join(" "),
+        dni: dni,
+        aceptaTerminos: acceptTerms,
+      });
+  
+      const studentData = {
+        uid: user.uid,
+        email: user.email,
+        nombre: firstName,
+        apellido: lastNameParts.join(" "),
+        role: "student",
+        registrationTime: new Date().toISOString(),
+      };
+
+      localStorage.setItem("studentData", JSON.stringify(studentData));
+  
+      return response.data;
+    } catch (error: any) {
+      console.error("Error en googleLogin: ", error.response?.data?.error);
+      throw new Error(error.response?.data?.error || error.message);
     }
   }
 
