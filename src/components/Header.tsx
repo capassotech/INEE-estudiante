@@ -103,7 +103,7 @@ const Header = () => {
 
 
 export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => void }) => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -116,7 +116,7 @@ export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => v
     <>
       <SheetHeader className="pb-4 border-b border-[#D8D3CA]">
         <SheetTitle className="text-[#8B3740] dark:text-[#D8D3CA] font-bold tracking-wide text-xl">
-          Ajustes de usuario
+          {user?.nombre} {user?.apellido}
         </SheetTitle>
       </SheetHeader>
 
