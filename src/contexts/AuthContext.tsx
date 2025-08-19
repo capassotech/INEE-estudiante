@@ -1,4 +1,3 @@
-"use client";
 
 import type React from "react";
 import {
@@ -23,7 +22,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   googleRegister: (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => Promise<any>;
-  // googleLogin: () => Promise<any>;
+  googleLogin: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (firebaseUser) {
         try {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Si hay un usuario de Firebase, obtener su perfil del backend
           const profile = await authService.getProfile();
@@ -132,17 +131,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // const googleLogin = async () => {
-  //   try {
-  //     setIsLoading(true);
-  //     const response = await authService.googleLogin();
-  //     setIsLoading(false);
-  //     return response;
-  //   } catch (error) {
-  //     setIsLoading(false);
-  //     throw error;
-  //   }
-  // };
+  const googleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const response = await authService.googleLogin();
+      setIsLoading(false);
+      return response;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
 
   const logout = async () => {
     try {
@@ -183,7 +182,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     googleRegister,
-    // googleLogin
+    googleLogin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

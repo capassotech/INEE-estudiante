@@ -57,45 +57,51 @@ class AuthService {
   }
 
 
-  // async googleLogin() {
-  //   try {
-  //     const googleProvider = new GoogleAuthProvider();
-  //     const auth = getAuth();
-
-  //     const result = await signInWithPopup(auth, googleProvider);
-  //     const user = result.user;
-
-  //     const profile = await this.getProfile();
-  //     console.log("profile", profile);
-  //     if (profile) {
-  //       throw new Error("El usuario ya está registrado");
-  //     }
-      
-  //     const idToken = await user.getIdToken();
-  //     return { idToken, user };
-  //   } catch (error: any) {
-  //     throw new Error(error.message);
-  //   }
-  // }
-
-  async googleRegister(firstName: string, lastName: string, dni: string, acceptTerms: boolean): Promise<void> {
+  async googleLogin() {
     try {
       const googleProvider = new GoogleAuthProvider();
       const auth = getAuth();
-  
+
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+
+      const userExists = await this.userExists(user.uid);
+      if (!userExists) {
+        await this.logout();
+        throw new Error("El usuario no está registrado");
+      }
+
       const idToken = await user.getIdToken();
-  
+      return { idToken, user };
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
+  }
+
+  async googleRegister(firstName: string, lastName: string, dni: string, acceptTerms: boolean): Promise<void> {
+    const googleProvider = new GoogleAuthProvider();
+    const auth = getAuth();
+
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    const idToken = await user.getIdToken();
+
+    const userExists = await this.userExists(user.uid);
+    if (userExists) {
+      await this.logout();
+      throw new Error("El usuario ya está registrado");
+    }
+
+    try {
       const response = await api.post("/auth/google-register", {
-        idToken, 
+        idToken,
         email: user.email,
         nombre: firstName,
         apellido: lastName,
         dni: dni,
         aceptaTerminos: acceptTerms,
       });
-  
+
       const studentData = {
         uid: user.uid,
         email: user.email,
@@ -106,7 +112,7 @@ class AuthService {
       };
 
       localStorage.setItem("studentData", JSON.stringify(studentData));
-  
+
       return response.data;
     } catch (error: any) {
       console.error("Error en googleLogin: ", error.response?.data?.error);
@@ -142,6 +148,29 @@ class AuthService {
         throw error.response.data;
       }
       throw new Error("Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
+
+  async getUserById(uid: string): Promise<UserProfile> {
+    try {
+      const response = await api.get(`/auth/user/${uid}`);
+      console.log(response.data)
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al obtener el usuario");
+    }
+  }
+
+  async userExists(uid: string): Promise<boolean> {
+    try {
+      await api.get(`/auth/user/${uid}`);
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return false;
+      }
+      // Si es otro tipo de error (500, 401, etc.), lo lanzamos
+      throw new Error(error.response?.data?.error || "Error al verificar el usuario");
     }
   }
 

@@ -1,4 +1,3 @@
-"use client";
 
 import type React from "react";
 import { useState } from "react";
@@ -14,7 +13,7 @@ interface AuthFormProps {
 
 const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   const navigate = useNavigate();
-  const { login, register, googleRegister } = useAuth();
+  const { login, register, googleRegister, googleLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -144,26 +143,26 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   };
 
   const handleGoogleAuth = async () => {
-    // if (isLogin) {
-    //   try {
-    //     const response = await googleLogin();
-    //     console.log("response", response);
+    if (isLogin) {
+      try {
+        const response = await googleLogin();
+        console.log("response", response);
 
-    //     toast.success("¡Bienvenido de vuelta!", {
-    //       description: "Has iniciado sesión exitosamente",
-    //       duration: 4000,
-    //     });
+        toast.success("¡Bienvenido de vuelta!", {
+          description: "Has iniciado sesión exitosamente",
+          duration: 4000,
+        });
 
-    //     setTimeout(() => {
-    //       navigate("/");
-    //     }, 2000);
-    //     return;
-    //   } catch (error: unknown) {
-    //     const errorMessage = error instanceof Error ? error.message : "Error en el login con Google";
-    //     toast.error(errorMessage);
-    //     return;
-    //   }
-    // }
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+        return;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Error en el login con Google";
+        toast.error(errorMessage);
+        return;
+      }
+    }
 
     if (!validateForm(true)) {
       toast.error("Por favor, corrige los errores en el formulario");
