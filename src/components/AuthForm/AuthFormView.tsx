@@ -488,9 +488,9 @@ export default function AuthFormView({
                     )}
                   </button>
                 </div>
-                {errors.password && (
+                {/* {errors.password && (
                   <p className="form-error whitespace-pre-line">{errors.password}</p>
-                )}
+                )} */}
               </div>
 
               <Button
