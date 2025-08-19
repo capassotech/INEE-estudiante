@@ -96,8 +96,9 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
 
-    if (!validateForm()) {
+    if (!isLogin && !validateForm()) {
       toast.error("Por favor, corrige los errores en el formulario");
       return;
     }
@@ -134,9 +135,8 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           navigate("/");
         }, 1000);
       }
-    } catch (error: unknown) {      
-      const errorMessage = error instanceof Error ? error.message : "Ocurrió un error";
-      toast.error(errorMessage);
+    } catch (error: any) {     
+      toast.error(error.error);
     } finally {
       setIsSubmitting(false);
     }
@@ -145,8 +145,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   const handleGoogleAuth = async () => {
     if (isLogin) {
       try {
-        const response = await googleLogin();
-        console.log("response", response);
+        await googleLogin();
 
         toast.success("¡Bienvenido de vuelta!", {
           description: "Has iniciado sesión exitosamente",
@@ -182,7 +181,6 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
       }, 2000);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Error en el registro con Google";
-      console.log("Mensaje:", errorMessage);
       toast.error(errorMessage);
     }
   };
