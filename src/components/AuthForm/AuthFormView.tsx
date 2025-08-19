@@ -16,6 +16,7 @@ import {
     Check,
     X,
 } from "lucide-react";
+import { PasswordRequirements } from "../PasswordRequirements";
 
 
 export default function AuthFormView({
