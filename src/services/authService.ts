@@ -1,9 +1,10 @@
 import axios from "axios";
-import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, signInWithCredential } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, signInWithCredential, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
 import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -171,6 +172,25 @@ class AuthService {
       }
       // Si es otro tipo de error (500, 401, etc.), lo lanzamos
       throw new Error(error.response?.data?.error || "Error al verificar el usuario");
+    }
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      const result = await sendPasswordResetEmail(auth, email, {
+        url: `${FRONTEND_URL}/recuperar-contrasena`,
+      });
+      console.log("result", result);
+    } catch (error: any) {
+      throw new Error(error.message || "Error al recuperar contraseña");
+    }
+  }
+
+  async changePassword(oobCode: string, password: string): Promise<void> {
+    try {
+      await confirmPasswordReset(auth, oobCode, password);
+    } catch (error: any) {
+      throw new Error(error.message || "Error al cambiar contraseña");
     }
   }
 
