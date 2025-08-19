@@ -14,7 +14,6 @@ export default function ForgotPasswordComponent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
 
   const { forgotPassword, changePassword } = useAuth();
@@ -24,10 +23,10 @@ export default function ForgotPasswordComponent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
     setIsSubmitting(true);
 
     try {
+      // Validamos si esta en la ruta de retorno de firebase
       if (oobCode) {
         await changePassword(oobCode, password);
 
@@ -38,19 +37,21 @@ export default function ForgotPasswordComponent() {
         navigate("/login");
       } else {
         await forgotPassword(email);
-
+        
         setEmailSent(true);
         toast.success("¡Email enviado!", {
           description: "Revisa tu bandeja de entrada para las instrucciones de recuperación."
         });
       }
-    } catch (error: any) {
-      console.error("Error al enviar email de recuperación:", error);
+    } catch (error: any) {      
+      const userExists = error.exists;
+      
       toast.error("Error al enviar el email", {
-        description: "Por favor, verifica que el email esté registrado e intenta nuevamente."
+        description: userExists 
+          ? "Hubo un problema técnico. Intenta nuevamente en unos minutos."
+          : "El email no está registrado en nuestro sistema."
       });
 
-      setErrors({ email: "Error al enviar el email de recuperación" });
     } finally {
       setIsSubmitting(false);
     }
@@ -151,9 +152,7 @@ export default function ForgotPasswordComponent() {
                     id={oobCode ? "password" : "email"}
                     type={oobCode ? (showPassword ? "text" : "password") : "email"}
                     placeholder={oobCode ? "Nueva Contraseña" : "tu@email.com"}
-                    className={`pl-10 form-input ${
-                      errors.email ? "border-destructive ring-destructive" : ""
-                    }`}
+                    className="pl-10 form-input"
                     value={oobCode ? password : email}
                     onChange={(e) => oobCode ? setPassword(e.target.value) : setEmail(e.target.value)}
                     disabled={isSubmitting}
@@ -170,9 +169,6 @@ export default function ForgotPasswordComponent() {
                     </button>
                   )}
                 </div>
-                {errors.email && (
-                  <p className="form-error">{errors.email}</p>
-                )}
               </div>
 
               <Button
