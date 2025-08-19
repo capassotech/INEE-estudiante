@@ -82,12 +82,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await authService.login({ email, password });
-
+      
       // Los datos ya se guardaron en localStorage en el servicio
-
-      console.log("response", response);
-
+      const response = await authService.login({ email, password });
       return response; // Retornar respuesta para usar en el componente
     } catch (error) {
       setIsLoading(false);
