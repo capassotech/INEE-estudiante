@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Mail, Loader2, ArrowLeft, CheckCircle, Lock, EyeOff, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { PasswordRequirements } from "./PasswordRequirements";
 
 export default function ForgotPasswordComponent() {
   const [email, setEmail] = useState("");
@@ -20,6 +21,17 @@ export default function ForgotPasswordComponent() {
 
   const params = new URLSearchParams(window.location.search);
   const oobCode = params.get("oobCode");
+
+  const getPasswordRequirements = (password: string) => {
+    return {
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+    };
+  };
+
+  const passwordRequirements = getPasswordRequirements(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,17 +49,17 @@ export default function ForgotPasswordComponent() {
         navigate("/login");
       } else {
         await forgotPassword(email);
-        
+
         setEmailSent(true);
         toast.success("¡Email enviado!", {
           description: "Revisa tu bandeja de entrada para las instrucciones de recuperación."
         });
       }
-    } catch (error: any) {      
+    } catch (error: any) {
       const userExists = error.exists;
-      
+
       toast.error("Error al enviar el email", {
-        description: userExists 
+        description: userExists
           ? "Hubo un problema técnico. Intenta nuevamente en unos minutos."
           : "El email no está registrado en nuestro sistema."
       });
@@ -169,6 +181,9 @@ export default function ForgotPasswordComponent() {
                     </button>
                   )}
                 </div>
+                {(password as string)?.length > 0 && (
+                  <PasswordRequirements passwordRequirements={passwordRequirements} />
+                )}
               </div>
 
               <Button
