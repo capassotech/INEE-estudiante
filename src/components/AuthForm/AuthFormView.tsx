@@ -248,7 +248,7 @@ export default function AuthFormView({
                     className="w-full btn-gradient dark:btn-gradient-dark hover:opacity-90 transition-all duration-200 font-medium"
                     disabled={isSubmitting}
                 >
-                    Registrarme con Email
+                    Registrarme con Email y Contraseña
                 </Button>
             ) : (
                 <div className="space-y-4 bg-muted/30 p-4 rounded-lg border animate-in slide-in-from-top-2 duration-300">
@@ -376,7 +376,7 @@ export default function AuthFormView({
                                 Creando cuenta...
                             </>
                         ) : (
-                            "Crear Cuenta"
+                            "Registrarse"
                         )}
                     </Button>
                 </div>
@@ -555,7 +555,7 @@ export default function AuthFormView({
                         {isLogin ? renderLogin() : 
                          currentStep === 1 ? renderStep1() :
                          currentStep === 2 ? renderStep2() :
-                         renderStep1() // fallback
+                         renderStep1() 
                         }
 
             <div className="text-center">
