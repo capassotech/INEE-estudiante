@@ -174,8 +174,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const forgotPassword = async (email: string) => {
     try {
       await authService.forgotPassword(email);
-    } catch (error) {
-      console.error("Error al recuperar contraseña:", error);
+      console.log("Email de recuperación enviado exitosamente");
+    } catch (error: any) {
+      console.log("Error al recuperar contraseña:", error.message);
+      console.log("Usuario existe:", error.exists);
+      
+      throw error;
     }
   };
 

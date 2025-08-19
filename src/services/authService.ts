@@ -177,12 +177,19 @@ class AuthService {
 
   async forgotPassword(email: string): Promise<void> {
     try {
+      // Validar si el usuario existe en la db
+      await api.get(`/auth/check-email/${email}`);
+
       const result = await sendPasswordResetEmail(auth, email, {
         url: `${FRONTEND_URL}/recuperar-contrasena`,
       });
       console.log("result", result);
+      
     } catch (error: any) {
-      throw new Error(error.message || "Error al recuperar contraseña");
+      const customError = new Error(error.response?.data?.error || "Error al enviar email de recuperación");
+      (customError as any).exists = error.response?.data?.exists || false;
+      
+      throw customError;
     }
   }
 
