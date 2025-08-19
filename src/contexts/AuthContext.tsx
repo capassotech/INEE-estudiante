@@ -1,4 +1,3 @@
-"use client";
 
 import type React from "react";
 import {
@@ -10,7 +9,8 @@ import {
 } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
-import authService, { type UserProfile } from "../services/authService";
+import authService from "../services/authService";
+import { UserProfile } from "../types/types";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -21,6 +21,8 @@ interface AuthContextType {
   register: (userData: any) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  googleRegister: (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => Promise<any>;
+  googleLogin: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,6 +53,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (firebaseUser) {
         try {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
           // Si hay un usuario de Firebase, obtener su perfil del backend
           const profile = await authService.getProfile();
           setUser(profile);
@@ -82,6 +86,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Los datos ya se guardaron en localStorage en el servicio
 
+      console.log("response", response);
+
       return response; // Retornar respuesta para usar en el componente
     } catch (error) {
       setIsLoading(false);
@@ -105,6 +111,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Los datos ya se guardaron en localStorage en el servicio
       setIsLoading(false);
       return response; // Retornar respuesta para usar en el componente
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const googleRegister = async (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => {
+    try {
+      setIsLoading(true);
+
+      const response = await authService.googleRegister(firstName, lastName, dni, acceptTerms);
+
+      setIsLoading(false);
+      return response;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const googleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const response = await authService.googleLogin();
+      setIsLoading(false);
+      return response;
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -149,6 +181,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshUser,
+    googleRegister,
+    googleLogin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
