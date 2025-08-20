@@ -18,6 +18,7 @@ import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route element={<AuthRedirectRoute />}>
                 <Route path="/login" element={<Login />} />
                 <Route path="/registro" element={<Register />} />
+                <Route path="/recuperar-contrasena" element={<ForgotPassword />} />
               </Route>
               <Route element={<Layout />}>
                 <Route element={<ProtectedRoute />}>
