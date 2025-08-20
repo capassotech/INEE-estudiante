@@ -23,6 +23,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   googleRegister: (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => Promise<any>;
   googleLogin: () => Promise<any>;
+  forgotPassword: (email: string) => Promise<void>;
+  changePassword: (oobCode: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -169,6 +171,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      await authService.forgotPassword(email);
+      console.log("Email de recuperación enviado exitosamente");
+    } catch (error: any) {
+      console.log("Error al recuperar contraseña:", error.message);
+      console.log("Usuario existe:", error.exists);
+      
+      throw error;
+    }
+  };
+
+  const changePassword = async (oobCode: string, password: string) => {
+    try {
+      await authService.changePassword(oobCode, password);
+    } catch (error) {
+      console.error("Error al cambiar contraseña:", error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     firebaseUser,
@@ -179,7 +201,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     googleRegister,
-    googleLogin
+    googleLogin,
+    forgotPassword,
+    changePassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
