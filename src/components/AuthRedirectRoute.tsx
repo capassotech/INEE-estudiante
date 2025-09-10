@@ -1,9 +1,9 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AuthRedirectRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -15,9 +15,8 @@ const AuthRedirectRoute = () => {
     );
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/perfil" replace />;
-  }
+  if (isAuthenticated && user.ruta_aprendizaje !== undefined) return <Navigate to="/perfil" replace />;
+  if (isAuthenticated && user.ruta_aprendizaje === undefined) return <Navigate to="/test-vocacional" replace />;
 
   return <Outlet />;
 };

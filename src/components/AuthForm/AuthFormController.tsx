@@ -117,9 +117,9 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           duration: 4000,
         });
 
-        setTimeout(() => {
-          navigate("/");
-        }, 1000);
+        // setTimeout(() => {
+        //   navigate("/test-vocacional");
+        // }, 1000);
       } else {
         await register(formData);
 
@@ -131,9 +131,9 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
           duration: 4000,
         });
 
-        setTimeout(() => {
-          navigate("/");
-        }, 1000);
+        // setTimeout(() => {
+        //   navigate("/test-vocacional");
+        // }, 1000);
       }
     } catch (error: any) {     
       toast.error(error.error);

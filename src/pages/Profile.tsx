@@ -44,11 +44,13 @@ export default function Profile() {
             <p className="text-sm text-[#4B4B4C] dark:text-zinc-300">
               DNI: {user.dni}
             </p>
+            <p className="text-sm text-[#4B4B4C] font-semibold dark:text-zinc-300">
+              Ruta de aprendizaje: {user.ruta_aprendizaje}
+            </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          {/* Por ahora dejamos los inputs en disable hasta tener la funcionalidad de editar el perfil */}
           <div>
             <label className="block text-sm font-medium text-[#4B4B4C] dark:text-zinc-200">
               Nombre completo
@@ -61,7 +63,6 @@ export default function Profile() {
             />
           </div>
 
-          {/* Por ahora dejamos los inputs en disable hasta tener la funcionalidad de editar el perfil */}
           <div>
             <label className="block text-sm font-medium text-[#4B4B4C] dark:text-zinc-200">
               Correo electrónico
