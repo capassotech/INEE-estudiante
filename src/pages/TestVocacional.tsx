@@ -1,10 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { useAuth } from '../contexts/AuthContext'
+import { toast } from "sonner";
 
 export default function TestVocacional() {
+    const { user } = useAuth()
     const [answers, setAnswers] = useState<string[]>(["", "", "", "", ""])
+    const [isLoading, setIsLoading] = useState(false)
+    const navigate = useNavigate()
 
     const questions = [
         {
@@ -62,9 +67,33 @@ export default function TestVocacional() {
         })
     }
 
-    const handleSubmit = () => {
-        console.log('Respuestas:', answers)
-        // Aquí puedes agregar la lógica para procesar las respuestas
+    const handleSubmit = async () => {
+        setIsLoading(true)
+        try {
+            const response = await fetch(`http://localhost:3000/api/users/test-vocacional`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ uid: user.uid, responses: answers })
+            })
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            
+            const data = await response.json()
+            if (data.success) {
+                toast.success('Respuestas enviadas correctamente')
+                navigate('/perfil')
+            } else {
+                toast.error('Error al enviar las respuestas')
+            }
+        } catch (error) {
+            console.error('Error al procesar las respuestas:', error)
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const isComplete = answers.every(answer => answer !== "")
@@ -109,7 +138,7 @@ export default function TestVocacional() {
                                                 className="text-blue-600 focus:ring-blue-500"
                                             />
                                             <span className="text-gray-700">
-                                                <strong>{key})</strong> {value}
+                                                <strong>{key}</strong> {value}
                                             </span>
                                         </label>
                                     ))}
@@ -120,15 +149,16 @@ export default function TestVocacional() {
                         <div className="pt-6 border-t w-full flex items-center gap-4 justify-center">
                             <Button
                                 onClick={handleSubmit}
-                                disabled={!isComplete}
+                                disabled={!isComplete || isLoading}
                                 className="w-3/4 py-3 text-lg"
                             >
-                                {isComplete ? 'Ver Resultados' : `Responde todas las preguntas (${answers.filter(a => a !== "").length}/${questions.length})`}
+                                {isComplete ? isLoading ? 'Enviando...' : 'Enviar Resultados' : `Responde todas las preguntas (${answers.filter(a => a !== "").length}/${questions.length})`}
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={() => setAnswers(["", "", "", "", ""])}
                                 asChild
+                                disabled={isLoading}
                                 className="w-1/4 py-3 text-lg"
                             >
                                 <Link to="/perfil">Omitir</Link>

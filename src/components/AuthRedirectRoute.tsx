@@ -15,13 +15,8 @@ const AuthRedirectRoute = () => {
     );
   }
 
-  console.log(user?.ruta_aprendizaje);
-
-  if (isAuthenticated && user.ruta_aprendizaje !== undefined) {
-    return <Navigate to="/perfil" replace />;
-  } else if (isAuthenticated && user.ruta_aprendizaje === undefined) {
-    return <Navigate to="/test-vocacional" replace />;
-  }
+  if (isAuthenticated && user.ruta_aprendizaje !== undefined) return <Navigate to="/perfil" replace />;
+  if (isAuthenticated && user.ruta_aprendizaje === undefined) return <Navigate to="/test-vocacional" replace />;
 
   return <Outlet />;
 };
