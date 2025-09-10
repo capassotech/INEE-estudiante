@@ -191,6 +191,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // const registerVocationalTest = async (vocationalPath: string) => {
+  //   try {
+  //     await authService.registerVocationalTest(vocationalPath);
+  //   } catch (error) {
+  //     console.error("Error al registrar test vocacional:", error);
+  //   }
+  // };
+
   const value: AuthContextType = {
     user,
     firebaseUser,

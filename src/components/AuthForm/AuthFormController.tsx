@@ -132,7 +132,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
         });
 
         setTimeout(() => {
-          navigate("/");
+          navigate("/test-vocacional");
         }, 1000);
       }
     } catch (error: any) {     
