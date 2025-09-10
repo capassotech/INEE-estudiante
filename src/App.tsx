@@ -19,6 +19,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
+import TestVocacional from "./pages/TestVocacional";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route element={<Layout />}>
                 <Route element={<ProtectedRoute />}>
                   <Route path="/" element={<Index />} />
+                  <Route path="/test-vocacional" element={<TestVocacional />} />
                   <Route path="/curso" element={<Curso />} />
                   {/* Nueva ruta simplificada - reemplaza a Classes y ClassDetail */}
                   <Route path="/curso/:courseId" element={<ModuleView />} />
