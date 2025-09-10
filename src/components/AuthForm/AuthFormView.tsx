@@ -541,8 +541,8 @@ export default function AuthFormView({
                                         <div
                                             key={step}
                                             className={`w-2 h-2 rounded-full ${step <= currentStep
-                                                    ? 'bg-primary'
-                                                    : 'bg-muted-foreground/30'
+                                                ? 'bg-primary'
+                                                : 'bg-muted-foreground/30'
                                                 }`}
                                         />
                                     ))}

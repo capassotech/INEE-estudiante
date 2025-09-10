@@ -35,6 +35,7 @@ export interface UserProfile {
     role: string;
     fechaRegistro: string;
     aceptaTerminos: boolean;
+    ruta_aprendizaje: string | null;
 }
 
 
