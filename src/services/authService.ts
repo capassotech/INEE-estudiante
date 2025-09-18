@@ -3,7 +3,8 @@ import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWith
 import { auth } from "../../config/firebase-client";
 import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = "http://localhost:3000";
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
 
 const api = axios.create({
@@ -267,6 +268,31 @@ class AuthService {
       localStorage.setItem("studentData", JSON.stringify(updatedData));
     } catch (error) {
       console.error("Error al actualizar datos del estudiante:", error);
+    }
+  }
+
+  async loadQuestion(id: string): Promise<void> {
+    try {
+      const response = await api.get(`/test-vocacional/preguntas/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al cargar la pregunta");
+    }
+  }
+
+  async savePartialAnswers(uid: string, responses: string[]): Promise<void> {
+    try {
+      await api.post(`/test-vocacional/${uid}`, { responses });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al guardar las respuestas parciales");
+    }
+  }
+
+  async testVocacional(uid: string, responses: string[]): Promise<void> {
+    try {
+      await api.post(`/test-vocacional`, { uid, responses });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al realizar el test vocacional");
     }
   }
 }

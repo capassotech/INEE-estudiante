@@ -25,6 +25,8 @@ interface AuthContextType {
   googleLogin: () => Promise<any>;
   forgotPassword: (email: string) => Promise<void>;
   changePassword: (oobCode: string, password: string) => Promise<void>;
+  testVocacional: (responses: string[]) => Promise<void>;
+  loadQuestion: (id: string) => Promise<{ texto: string, orden: number, respuestas: any[] }[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -191,6 +193,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loadQuestion = async (id: string) => {
+    try {
+      const question = await authService.loadQuestion(id);
+      return question;
+    } catch (error) {
+      console.error("Error al cargar la pregunta:", error);
+      return null;
+    }
+  };
+
+  const savePartialAnswers = async (responses: string[]) => {
+    try {
+      await authService.savePartialAnswers(user.uid, responses);
+    } catch (error) {
+      console.error("Error al guardar las respuestas parciales:", error);
+    }
+  };
+
+  const testVocacional = async (responses: string[]) => {
+    try {
+      await authService.testVocacional(user.uid, responses);
+    } catch (error) {
+      console.error("Error al realizar el test vocacional:", error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     firebaseUser,
@@ -203,7 +231,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     googleRegister,
     googleLogin,
     forgotPassword,
-    changePassword
+    changePassword,
+    testVocacional,
+    loadQuestion,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
