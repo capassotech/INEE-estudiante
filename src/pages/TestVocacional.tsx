@@ -1,102 +1,94 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress"
+
 
 export default function TestVocacional() {
-    const { user } = useAuth()
-    const [answers, setAnswers] = useState<string[]>(["", "", "", "", ""])
+    const { testVocacional, loadQuestion } = useAuth()
+    const [answers, setAnswers] = useState<{[key: string]: string}>({}) 
+    const [currentQuestionData, setCurrentQuestionData] = useState<{
+        id?: string,
+        texto: string,
+        respuestas: any[]
+    } | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isLoadingQuestion, setIsLoadingQuestion] = useState(false)
+    const [currentStep, setCurrentStep] = useState(1)
+    const [totalQuestions] = useState(5) 
     const navigate = useNavigate()
 
-    const questions = [
-        {
-            id: 1,
-            question: "Cuando pienso en mi futuro profesional, me motiva más…",
-            options: {
-                A: "Crear y escalar mi propio negocio.",
-                B: "Acompañar a otras organizaciones a resolver problemas estratégicos.",
-                C: "Inspirar y guiar equipos para que den lo mejor de sí."
-            }
-        },
-        {
-            id: 2,
-            question: "En mi día a día disfruto más…",
-            options: {
-                A: "Analizar datos, diagnosticar y diseñar planes de acción.",
-                B: "Detectar oportunidades de negocio e innovar con nuevas ideas.",
-                C: "Motivar a otros, comunicarme y generar impacto en las personas.  "
-            }
-        },
-        {
-            id: 3,
-            question: "Cuando surge un problema complejo…",
-            options: {
-                A: "Pienso cómo transformarlo en una oportunidad para crecer.",
-                B: "Busco cómo alinear al equipo y mantener la motivación.",
-                C: "Analizo la raíz del problema y propongo soluciones prácticas."
-            }
-        },
-        {
-            id: 4,
-            question: "Si pudiera elegir un rol mañana mismo, sería…",
-            options: {
-                A: "Consultor/a estratégico que asesora a empresas y líderes.",
-                B: "Director/a de un equipo que lidera proyectos desafiantes.",
-                C: "Fundador/a de una startup innovadora."
-            }
-        },
-        {
-            id: 5,
-            question: "Lo que más me gustaría aprender en INEE es…",
-            options: {
-                A: "Cómo analizar mejor distintas situaciones, interpretar datos y tomar decisiones con fundamento.",
-                B: "Formas de motivar a las personas, gestionar procesos de cambio y fortalecer culturas de trabajo.",
-                C: "Métodos para convertir ideas en proyectos concretos, validarlos y darles proyección de crecimiento."
-            }
-        }
-    ]
+    const progress = (Object.keys(answers).length / totalQuestions) * 100
 
-    const handleAnswerChange = (questionIndex: number, answer: string) => {
-        setAnswers(prev => {
-            const newAnswers = [...prev]
-            newAnswers[questionIndex] = answer.toLowerCase()
-            return newAnswers
-        })
+    const loadCurrentQuestion = useCallback(async (step: number) => {
+        setIsLoadingQuestion(true)
+        try {
+            const questionData = await loadQuestion(`p${step}`)
+            const question = Array.isArray(questionData) ? questionData[0] : questionData
+            const formattedData = {
+                id: `p${step}`, 
+                texto: question?.texto || '',
+                respuestas: question?.respuestas
+            }
+
+            setCurrentQuestionData(formattedData)
+        } catch (error) {
+            console.error('Error cargando pregunta:', error)
+            toast.error('Error al cargar la pregunta')
+        } finally {
+            setIsLoadingQuestion(false)
+        }
+    }, [loadQuestion])
+
+    useEffect(() => {
+        loadCurrentQuestion(currentStep)
+    }, [currentStep, loadCurrentQuestion])
+
+    const handleAnswerChange = (answer: string) => {
+        if (currentQuestionData) {
+            setAnswers(prev => ({
+                ...prev,
+                [currentQuestionData.id || `p${currentStep}`]: answer.toLowerCase()
+            }))
+        }
     }
+
+    const handleNext = async () => {
+        if (currentStep < totalQuestions) {
+            const nextStep = currentStep + 1
+            setCurrentStep(nextStep)
+            await loadCurrentQuestion(nextStep)
+        }
+    }
+
+    const handlePrevious = async () => {
+        if (currentStep > 1) {
+            const prevStep = currentStep - 1
+            setCurrentStep(prevStep)
+            await loadCurrentQuestion(prevStep)
+        }
+    }
+
+    const getCurrentQuestionId = () => currentQuestionData?.id || `p${currentStep}`
+    const isCurrentQuestionAnswered = answers[getCurrentQuestionId()] !== undefined
+    const isLastQuestion = currentStep === totalQuestions
 
     const handleSubmit = async () => {
         setIsLoading(true)
         try {
-            const response = await fetch(`http://localhost:3000/api/users/test-vocacional`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ uid: user.uid, responses: answers })
-            })
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            
-            const data = await response.json()
-            if (data.success) {
-                toast.success('Respuestas enviadas correctamente')
-                navigate('/perfil')
-            } else {
-                toast.error('Error al enviar las respuestas')
-            }
+            const answersArray = Object.values(answers)
+            await testVocacional(answersArray)
+            toast.success('Respuestas enviadas correctamente')
+            navigate('/perfil')
         } catch (error) {
             console.error('Error al procesar las respuestas:', error)
         } finally {
             setIsLoading(false)
         }
     }
-
-    const isComplete = answers.every(answer => answer !== "")
 
     return (
         <div className="min-h-screen bg-gradient-hero dark:bg-gradient-hero-dark py-12 px-4 sm:px-6 lg:px-8">
@@ -112,57 +104,97 @@ export default function TestVocacional() {
                     <h1 className="text-3xl font-bold text-white mb-4">Test Vocacional</h1>
                     <p className="text-white/80">Responde las siguientes preguntas para descubrir tu orientación vocacional</p>
                 </div>
-
+                
                 <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
                     <CardHeader>
                         <CardTitle className="text-center text-gray-800">Cuestionario Vocacional</CardTitle>
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>Pregunta {currentStep} de {totalQuestions}</span>
+                                <span>{Math.round(progress)}%</span>
+                            </div>
+                            <Progress value={progress} className="h-2 bg-zinc-300" />
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {questions.map((question, index) => (
-                            <div key={question.id} className="space-y-3">
-                                <h3 className="font-semibold text-gray-800">
-                                    {index + 1}. {question.question}
+                        {isLoadingQuestion ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                <p className="text-gray-600 mt-4">Cargando pregunta...</p>
+                            </div>
+                        ) : currentQuestionData ? (
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-800 text-lg">
+                                    {currentQuestionData.texto}
                                 </h3>
-                                <div className="space-y-2">
-                                    {Object.entries(question.options).map(([key, value]) => (
-                                        <label
-                                            key={key}
-                                            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                                        >
-                                            <input
-                                                type="radio"
-                                                name={`question-${question.id}`}
-                                                value={key}
-                                                checked={answers[index] === key.toLowerCase()}
-                                                onChange={() => handleAnswerChange(index, key)}
-                                                className="text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <span className="text-gray-700">
-                                                <strong>{key}</strong> {value}
-                                            </span>
-                                        </label>
-                                    ))}
+                                <div className="space-y-3">
+                                    {currentQuestionData.respuestas && currentQuestionData.respuestas.map((respuesta: string, index: number) => {
+                                        const optionKey = String.fromCharCode(65 + index);
+                                        return (
+                                            <label
+                                                key={index}
+                                                className="flex items-center space-x-3 p-4 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-gray-200 hover:border-blue-300"
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name={`question-${currentStep}`}
+                                                    value={optionKey}
+                                                    checked={answers[getCurrentQuestionId()] === optionKey.toLowerCase()}
+                                                    onChange={() => handleAnswerChange(optionKey)}
+                                                    className="text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-gray-700">
+                                                    <strong>{optionKey}.</strong> {respuesta.texto}
+                                                </span>
+                                            </label>
+                                        )
+                                    })}
                                 </div>
                             </div>
-                        ))}
+                        ) : (
+                            <div className="text-center py-8">
+                                <p className="text-gray-600">Error al cargar la pregunta</p>
+                            </div>
+                        )}
 
-                        <div className="pt-6 border-t w-full flex items-center gap-4 justify-center">
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={!isComplete || isLoading}
-                                className="w-3/4 py-3 text-lg"
-                            >
-                                {isComplete ? isLoading ? 'Enviando...' : 'Enviar Resultados' : `Responde todas las preguntas (${answers.filter(a => a !== "").length}/${questions.length})`}
-                            </Button>
+                        <div className="pt-6 border-t flex items-center justify-between">
                             <Button
                                 variant="outline"
-                                onClick={() => setAnswers(["", "", "", "", ""])}
-                                asChild
-                                disabled={isLoading}
-                                className="w-1/4 py-3 text-lg"
+                                onClick={handlePrevious}
+                                disabled={currentStep === 1 || isLoadingQuestion}
+                                className="px-6 py-2"
                             >
-                                <Link to="/perfil">Omitir</Link>
+                                Anterior
                             </Button>
+                            
+                            <div className="flex gap-3">
+                                {!isLastQuestion ? (
+                                    <Button
+                                        onClick={handleNext}
+                                        disabled={!isCurrentQuestionAnswered || isLoadingQuestion}
+                                        className="px-6 py-2"
+                                    >
+                                        {isLoadingQuestion ? 'Cargando...' : 'Continuar'}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={handleSubmit}
+                                        disabled={!isCurrentQuestionAnswered || isLoading || isLoadingQuestion}
+                                        className="px-6 py-2"
+                                    >
+                                        {isLoading ? 'Enviando...' : 'Enviar Resultados'}
+                                    </Button>
+                                )}
+                                
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    disabled={isLoading || isLoadingQuestion}
+                                    className="px-6 py-2"
+                                >
+                                    <Link to="/perfil">Omitir</Link>
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
