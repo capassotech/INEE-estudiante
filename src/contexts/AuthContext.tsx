@@ -210,6 +210,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("Usuario no autenticado");
       }
       await authService.savePartialAnswer(user.uid, questionId, answer);
+      
+      await refreshUser();
     } catch (error) {
       console.error("Error al guardar la respuesta parcial:", error);
       throw error;

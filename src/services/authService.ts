@@ -3,8 +3,8 @@ import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWith
 import { auth } from "../../config/firebase-client";
 import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-// const API_BASE_URL = "http://localhost:3000";
+// const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = "http://localhost:3000";
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
 
 const api = axios.create({
@@ -279,20 +279,12 @@ class AuthService {
       throw new Error(error.response?.data?.error || "Error al cargar la pregunta");
     }
   }
-
-  async savePartialAnswers(uid: string, responses: string[]): Promise<void> {
-    try {
-      await api.post(`/test-vocacional/${uid}`, { responses });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || "Error al guardar las respuestas parciales");
-    }
-  }
-
+  
   async savePartialAnswer(uid: string, questionId: string, answer: string): Promise<void> {
     try {
       await api.post(`/test-vocacional/enviar-respuesta-parcial/${uid}`, { 
         id_pregunta: questionId, 
-        letra_respuesta: answer 
+        letra_respuesta: answer.toUpperCase()
       });
     } catch (error: any) {
       throw new Error(error.response?.data?.error || "Error al guardar la respuesta parcial");
