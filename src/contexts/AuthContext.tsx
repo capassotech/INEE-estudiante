@@ -27,6 +27,7 @@ interface AuthContextType {
   changePassword: (oobCode: string, password: string) => Promise<void>;
   testVocacional: (responses: string[]) => Promise<void>;
   loadQuestion: (id: string) => Promise<{ texto: string, orden: number, respuestas: any[] }[]>;
+  savePartialAnswers: (questionId: string, answer: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -203,11 +204,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const savePartialAnswers = async (responses: string[]) => {
+  const savePartialAnswers = async (questionId: string, answer: string) => {
     try {
-      await authService.savePartialAnswers(user.uid, responses);
+      if (!user?.uid) {
+        throw new Error("Usuario no autenticado");
+      }
+      await authService.savePartialAnswer(user.uid, questionId, answer);
     } catch (error) {
-      console.error("Error al guardar las respuestas parciales:", error);
+      console.error("Error al guardar la respuesta parcial:", error);
+      throw error;
     }
   };
 
@@ -234,6 +239,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     changePassword,
     testVocacional,
     loadQuestion,
+    savePartialAnswers,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
