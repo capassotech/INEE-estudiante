@@ -8,12 +8,12 @@ import { Progress } from "@/components/ui/progress"
 
 
 export default function TestVocacional() {
-    const { testVocacional, loadQuestion } = useAuth()
+    const { testVocacional, loadQuestion, savePartialAnswers } = useAuth()
     const [answers, setAnswers] = useState<{[key: string]: string}>({}) 
     const [currentQuestionData, setCurrentQuestionData] = useState<{
         id?: string,
         texto: string,
-        respuestas: any[]
+        respuestas: { texto: string }[] | string[]
     } | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [isLoadingQuestion, setIsLoadingQuestion] = useState(false)
@@ -58,6 +58,20 @@ export default function TestVocacional() {
 
     const handleNext = async () => {
         if (currentStep < totalQuestions) {
+            const currentQuestionId = getCurrentQuestionId()
+            const currentAnswer = answers[currentQuestionId]
+            
+            if (currentAnswer) {
+                try {
+                    await savePartialAnswers(currentQuestionId, currentAnswer)
+                    toast.success('Respuesta guardada')
+                } catch (error) {
+                    console.error('Error al guardar respuesta parcial:', error)
+                    toast.error('Error al guardar la respuesta')
+                    return 
+                }
+            }
+            
             const nextStep = currentStep + 1
             setCurrentStep(nextStep)
             await loadCurrentQuestion(nextStep)
@@ -79,6 +93,7 @@ export default function TestVocacional() {
     const handleSubmit = async () => {
         setIsLoading(true)
         try {
+            await savePartialAnswers(getCurrentQuestionId(), answers[getCurrentQuestionId()])
             const answersArray = Object.values(answers)
             await testVocacional(answersArray)
             toast.success('Respuestas enviadas correctamente')
@@ -128,7 +143,7 @@ export default function TestVocacional() {
                                     {currentQuestionData.texto}
                                 </h3>
                                 <div className="space-y-3">
-                                    {currentQuestionData.respuestas && currentQuestionData.respuestas.map((respuesta: string, index: number) => {
+                                    {currentQuestionData.respuestas && currentQuestionData.respuestas.map((respuesta: { texto: string } | string, index: number) => {
                                         const optionKey = String.fromCharCode(65 + index);
                                         return (
                                             <label
@@ -144,7 +159,7 @@ export default function TestVocacional() {
                                                     className="text-blue-600 focus:ring-blue-500"
                                                 />
                                                 <span className="text-gray-700">
-                                                    <strong>{optionKey}.</strong> {respuesta.texto}
+                                                    <strong>{optionKey}.</strong> {typeof respuesta === 'string' ? respuesta : respuesta.texto}
                                                 </span>
                                             </label>
                                         )
