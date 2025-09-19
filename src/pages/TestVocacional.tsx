@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress"
 
 
 export default function TestVocacional() {
-    const { testVocacional, loadQuestion, savePartialAnswers } = useAuth()
+    const { testVocacional, loadQuestion, savePartialAnswers, user } = useAuth()
     const [answers, setAnswers] = useState<{[key: string]: string}>({}) 
     const [currentQuestionData, setCurrentQuestionData] = useState<{
         id?: string,
@@ -21,7 +21,7 @@ export default function TestVocacional() {
     const [totalQuestions] = useState(5) 
     const navigate = useNavigate()
 
-    const progress = (Object.keys(answers).length / totalQuestions) * 100
+    const progress = (currentStep / totalQuestions) * 100
 
     const loadCurrentQuestion = useCallback(async (step: number) => {
         setIsLoadingQuestion(true)
@@ -36,12 +36,42 @@ export default function TestVocacional() {
 
             setCurrentQuestionData(formattedData)
         } catch (error) {
-            console.error('Error cargando pregunta:', error)
             toast.error('Error al cargar la pregunta')
         } finally {
             setIsLoadingQuestion(false)
         }
     }, [loadQuestion])
+
+    const convertResponseIdToLetter = (responseId: string): string => {
+        const number = parseInt(responseId.replace('r', ''))
+        const letterIndex = (number - 1) % 3  
+        return String.fromCharCode(97 + letterIndex)
+    }
+
+    useEffect(() => {
+        if (user?.respuestas_test_vocacional && user.respuestas_test_vocacional.length > 0) {
+            console.log('Respuestas cargadas desde Firebase:', user.respuestas_test_vocacional)
+            
+            const savedAnswers: {[key: string]: string} = {}
+            user.respuestas_test_vocacional.forEach(respuesta => {
+                savedAnswers[respuesta.id_pregunta] = convertResponseIdToLetter(respuesta.id_respuesta)
+            })
+            
+            setAnswers(savedAnswers)
+            
+            let nextStep = 1
+            for (let i = 1; i <= totalQuestions; i++) {
+                if (!savedAnswers[`p${i}`]) {
+                    nextStep = i
+                    break
+                }
+                if (i === totalQuestions) {
+                    nextStep = totalQuestions 
+                }
+            }
+            setCurrentStep(nextStep)
+        }
+    }, [user, totalQuestions])
 
     useEffect(() => {
         loadCurrentQuestion(currentStep)
@@ -62,13 +92,23 @@ export default function TestVocacional() {
             const currentAnswer = answers[currentQuestionId]
             
             if (currentAnswer) {
-                try {
-                    await savePartialAnswers(currentQuestionId, currentAnswer)
-                    toast.success('Respuesta guardada')
-                } catch (error) {
-                    console.error('Error al guardar respuesta parcial:', error)
-                    toast.error('Error al guardar la respuesta')
-                    return 
+                const existingResponse = user?.respuestas_test_vocacional?.find(
+                    respuesta => respuesta.id_pregunta === currentQuestionId
+                )
+                
+                const shouldSave = !existingResponse || 
+                    convertResponseIdToLetter(existingResponse.id_respuesta) !== currentAnswer
+                
+                if (shouldSave) {
+                    try {
+                        await savePartialAnswers(currentQuestionId, currentAnswer)
+                    } catch (error) {
+                        console.error('Error al guardar respuesta parcial:', error)
+                        toast.error('Error al guardar la respuesta')
+                        return 
+                    }
+                } else {
+                    console.log(`Pregunta ${currentQuestionId} tiene la misma respuesta, saltando guardado`)
                 }
             }
             
