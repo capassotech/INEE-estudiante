@@ -7,6 +7,8 @@ export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  console.log(user)
+
   return (
     <div className="font-sans container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 min-h-screen text-[#4B4B4C]">
       <div className="flex items-center gap-4 border-b border-gray-200 dark:border-gray-700 pb-4 mb-8">
@@ -44,9 +46,11 @@ export default function Profile() {
             <p className="text-sm text-[#4B4B4C] dark:text-zinc-300">
               DNI: {user.dni}
             </p>
-            <p className="text-sm text-[#4B4B4C] font-semibold dark:text-zinc-300">
-              Ruta de aprendizaje: {user.ruta_aprendizaje}
-            </p>
+            {user.ruta_aprendizaje && (
+              <p className="text-sm text-[#4B4B4C] font-semibold dark:text-zinc-300">
+                Ruta de aprendizaje: {user.ruta_aprendizaje}
+              </p>
+            )}
           </div>
         </div>
 
