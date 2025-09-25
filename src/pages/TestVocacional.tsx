@@ -17,13 +17,15 @@ export default function TestVocacional() {
     } | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [isLoadingQuestion, setIsLoadingQuestion] = useState(false)
-    const [currentStep, setCurrentStep] = useState(1)
+    const [currentStep, setCurrentStep] = useState(null)
     const [totalQuestions] = useState(5) 
     const navigate = useNavigate()
 
     const progress = (currentStep / totalQuestions) * 100
 
     const loadCurrentQuestion = useCallback(async (step: number) => {
+        if (step === null) return
+
         setIsLoadingQuestion(true)
         try {
             const questionData = await loadQuestion(`p${step}`)
@@ -50,7 +52,6 @@ export default function TestVocacional() {
 
     useEffect(() => {
         if (user?.respuestas_test_vocacional && user.respuestas_test_vocacional.length > 0) {
-            console.log('Respuestas cargadas desde Firebase:', user.respuestas_test_vocacional)
             
             const savedAnswers: {[key: string]: string} = {}
             user.respuestas_test_vocacional.forEach(respuesta => {
@@ -69,13 +70,14 @@ export default function TestVocacional() {
                     nextStep = totalQuestions 
                 }
             }
+
             setCurrentStep(nextStep)
+        } else {
+            setCurrentStep(1)
         }
     }, [user, totalQuestions])
 
-    useEffect(() => {
-        loadCurrentQuestion(currentStep)
-    }, [currentStep, loadCurrentQuestion])
+    useEffect(() => { loadCurrentQuestion(currentStep) }, [currentStep, loadCurrentQuestion])
 
     const handleAnswerChange = (answer: string) => {
         if (currentQuestionData) {
@@ -114,19 +116,17 @@ export default function TestVocacional() {
             
             const nextStep = currentStep + 1
             setCurrentStep(nextStep)
-            await loadCurrentQuestion(nextStep)
         }
     }
 
-    const handlePrevious = async () => {
+    const handlePrevious = () => {
         if (currentStep > 1) {
             const prevStep = currentStep - 1
             setCurrentStep(prevStep)
-            await loadCurrentQuestion(prevStep)
         }
     }
 
-    const getCurrentQuestionId = () => currentQuestionData?.id || `p${currentStep}`
+    const getCurrentQuestionId = () => `p${currentStep}`
     const isCurrentQuestionAnswered = answers[getCurrentQuestionId()] !== undefined
     const isLastQuestion = currentStep === totalQuestions
 
@@ -172,7 +172,7 @@ export default function TestVocacional() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {isLoadingQuestion ? (
+                        {isLoadingQuestion || isLoading ? (
                             <div className="text-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                                 <p className="text-gray-600 mt-4">Cargando pregunta...</p>
