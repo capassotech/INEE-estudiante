@@ -211,7 +211,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       await authService.savePartialAnswer(user.uid, questionId, answer);
       
-      await refreshUser();
+      // Actualizar solo la parte relevante del usuario en lugar de hacer refresh completo
+      if (user) {
+        const updatedAnswers = [...(user.respuestas_test_vocacional || [])];
+        const existingIndex = updatedAnswers.findIndex(resp => resp.id_pregunta === questionId);
+        
+        const newAnswer = {
+          id_pregunta: questionId,
+          id_respuesta: `r${((answer.toUpperCase().charCodeAt(0) - 65) + 1)}`,
+          letra_respuesta: answer.toUpperCase()
+        };
+        
+        if (existingIndex >= 0) {
+          updatedAnswers[existingIndex] = newAnswer;
+        } else {
+          updatedAnswers.push(newAnswer);
+        }
+        
+        setUser({
+          ...user,
+          respuestas_test_vocacional: updatedAnswers
+        });
+      }
     } catch (error) {
       console.error("Error al guardar la respuesta parcial:", error);
       throw error;

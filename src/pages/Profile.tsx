@@ -1,13 +1,54 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const [rutaAprendizaje, setRutaAprendizaje] = useState<string | null>(null);
+  const [isLoadingRuta, setIsLoadingRuta] = useState(true);
 
-  console.log(user)
+  useEffect(() => {
+    if (user) {
+      if (user.ruta_aprendizaje) {
+        setRutaAprendizaje(user.ruta_aprendizaje);
+        setIsLoadingRuta(false);
+      } else {
+        const timeout = setTimeout(() => {
+          setIsLoadingRuta(false);
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [user?.ruta_aprendizaje, user]);
+
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (!rutaAprendizaje && user && refreshUser) {
+        try {
+          await refreshUser();
+        } catch (error) {
+          console.error('Error al refrescar usuario:', error);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [rutaAprendizaje, user, refreshUser]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="font-sans container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 min-h-screen text-[#4B4B4C]">
@@ -46,10 +87,40 @@ export default function Profile() {
             <p className="text-sm text-[#4B4B4C] dark:text-zinc-300">
               DNI: {user.dni}
             </p>
-            {user.ruta_aprendizaje && (
+            {isLoadingRuta ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+                <p className="text-sm text-gray-400 dark:text-zinc-500">
+                  Cargando ruta de aprendizaje...
+                </p>
+              </div>
+            ) : rutaAprendizaje ? (
               <p className="text-sm text-[#4B4B4C] font-semibold dark:text-zinc-300">
-                Ruta de aprendizaje: {user.ruta_aprendizaje}
+                Ruta de aprendizaje: {rutaAprendizaje}
               </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-400 dark:text-zinc-500 italic">
+                  Completa el test vocacional para conocer tu ruta de aprendizaje
+                </p>
+                <Button
+                  onClick={async () => {
+                    setIsLoadingRuta(true);
+                    try {
+                      await refreshUser();
+                    } catch (error) {
+                      console.error('Error al refrescar:', error);
+                    } finally {
+                      setTimeout(() => setIsLoadingRuta(false), 1000);
+                    }
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs px-3 py-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+                >
+                  Refrescar datos
+                </Button>
+              </div>
             )}
           </div>
         </div>
