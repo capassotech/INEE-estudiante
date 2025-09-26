@@ -25,6 +25,9 @@ interface AuthContextType {
   googleLogin: () => Promise<any>;
   forgotPassword: (email: string) => Promise<void>;
   changePassword: (oobCode: string, password: string) => Promise<void>;
+  testVocacional: (responses: string[]) => Promise<void>;
+  loadQuestion: (id: string) => Promise<{ texto: string, orden: number, respuestas: any[] }[]>;
+  savePartialAnswers: (questionId: string, answer: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -191,6 +194,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loadQuestion = async (id: string) => {
+    try {
+      const question = await authService.loadQuestion(id);
+      return question;
+    } catch (error) {
+      console.error("Error al cargar la pregunta:", error);
+      return null;
+    }
+  };
+
+  const savePartialAnswers = async (questionId: string, answer: string) => {
+    try {
+      if (!user?.uid) {
+        throw new Error("Usuario no autenticado");
+      }
+      await authService.savePartialAnswer(user.uid, questionId, answer);
+      
+      // Actualizar solo la parte relevante del usuario en lugar de hacer refresh completo
+      if (user) {
+        const updatedAnswers = [...(user.respuestas_test_vocacional || [])];
+        const existingIndex = updatedAnswers.findIndex(resp => resp.id_pregunta === questionId);
+        
+        const newAnswer = {
+          id_pregunta: questionId,
+          id_respuesta: `r${((answer.toUpperCase().charCodeAt(0) - 65) + 1)}`,
+          letra_respuesta: answer.toUpperCase()
+        };
+        
+        if (existingIndex >= 0) {
+          updatedAnswers[existingIndex] = newAnswer;
+        } else {
+          updatedAnswers.push(newAnswer);
+        }
+        
+        setUser({
+          ...user,
+          respuestas_test_vocacional: updatedAnswers
+        });
+      }
+    } catch (error) {
+      console.error("Error al guardar la respuesta parcial:", error);
+      throw error;
+    }
+  };
+
+  const testVocacional = async (responses: string[]) => {
+    try {
+      await authService.testVocacional(user.uid, responses);
+    } catch (error) {
+      console.error("Error al realizar el test vocacional:", error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     firebaseUser,
@@ -203,7 +259,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     googleRegister,
     googleLogin,
     forgotPassword,
-    changePassword
+    changePassword,
+    testVocacional,
+    loadQuestion,
+    savePartialAnswers,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

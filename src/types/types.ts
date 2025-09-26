@@ -36,6 +36,10 @@ export interface UserProfile {
     fechaRegistro: string;
     aceptaTerminos: boolean;
     ruta_aprendizaje: string | null;
+    respuestas_test_vocacional?: Array<{
+        id_pregunta: string;
+        id_respuesta: string;
+    }>;
 }
 
 
