@@ -269,6 +269,34 @@ class AuthService {
       console.error("Error al actualizar datos del estudiante:", error);
     }
   }
+
+  async loadQuestion(id: string): Promise<{ texto: string, orden: number, respuestas: any[] }[]> {
+    try {
+      const response = await api.get(`/test-vocacional/preguntas/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al cargar la pregunta");
+    }
+  }
+  
+  async savePartialAnswer(uid: string, questionId: string, answer: string): Promise<void> {
+    try {
+      await api.post(`/test-vocacional/enviar-respuesta-parcial/${uid}`, { 
+        id_pregunta: questionId, 
+        letra_respuesta: answer.toUpperCase()
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al guardar la respuesta parcial");
+    }
+  }
+
+  async testVocacional(uid: string, responses: string[]): Promise<void> {
+    try {
+      await api.post(`/test-vocacional`, { uid, responses });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al realizar el test vocacional");
+    }
+  }
 }
 
 const authService = new AuthService();
