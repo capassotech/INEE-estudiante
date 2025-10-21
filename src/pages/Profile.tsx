@@ -116,7 +116,7 @@ export default function Profile() {
                   }}
                   size="sm"
                   variant="outline"
-                  className="text-xs px-3 py-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+                  className="text-xs px-3 py-1 border-gray-300 text-gray-600"
                 >
                   Refrescar datos
                 </Button>
