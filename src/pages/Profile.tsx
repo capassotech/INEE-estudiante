@@ -3,12 +3,15 @@ import { ArrowLeft, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import RutasAprendizajeModal from "@/components/RutasAprendizajeModal";
+import { toast } from "sonner";
 
 export default function Profile() {
-  const { user, isLoading, refreshUser } = useAuth();
+  const { user, isLoading, refreshUser, updateRouteUser } = useAuth();
   const navigate = useNavigate();
   const [rutaAprendizaje, setRutaAprendizaje] = useState<string | null>(null);
   const [isLoadingRuta, setIsLoadingRuta] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -39,6 +42,13 @@ export default function Profile() {
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [rutaAprendizaje, user, refreshUser]);
+
+
+  const onSelectRoute = async (routeName: string) => {
+    setRutaAprendizaje(routeName);
+    toast.success("Ruta de aprendizaje actualizada correctamente");
+    await updateRouteUser(routeName);
+  }
 
   if (isLoading || !user) {
     return (
@@ -95,8 +105,8 @@ export default function Profile() {
                 </p>
               </div>
             ) : rutaAprendizaje ? (
-              <p className="text-sm text-[#4B4B4C] font-semibold dark:text-zinc-300">
-                Ruta de aprendizaje: {rutaAprendizaje}
+              <p className="bg-gradient-to-r bg-clip-text text-transparent from-zinc-800/80 to-primary font-semibold dark:text-zinc-300">
+                Ruta de aprendizaje: <span className="text-primary">{rutaAprendizaje}</span>
               </p>
             ) : (
               <div className="space-y-2">
@@ -122,6 +132,14 @@ export default function Profile() {
                 </Button>
               </div>
             )}
+            <Button 
+              onClick={() => setIsOpen(true)} 
+              size="sm" 
+              variant="outline" 
+              className="text-xs px-3 border-gray-300 mt-1"
+              >
+                Ver mas formaciones
+            </Button>
           </div>
         </div>
 
@@ -160,6 +178,12 @@ export default function Profile() {
           </Button>
         </div>
       </section>
+      <RutasAprendizajeModal 
+        isOpen={isOpen} 
+        onClose={() => setIsOpen(false)} 
+        perfilActual={user.ruta_aprendizaje || ''} 
+        onSelectRoute={onSelectRoute} 
+      />
     </div>
   );
 }

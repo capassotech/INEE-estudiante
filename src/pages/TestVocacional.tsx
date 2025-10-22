@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress"
+import Swal from 'sweetalert2'
+import confetti from 'canvas-confetti';
 
 
 export default function TestVocacional() {
     const { testVocacional, loadQuestion, savePartialAnswers, user } = useAuth()
-    const [answers, setAnswers] = useState<{[key: string]: string}>({}) 
+    const [answers, setAnswers] = useState<{ [key: string]: string }>({})
     const [currentQuestionData, setCurrentQuestionData] = useState<{
         id?: string,
         texto: string,
@@ -18,7 +20,7 @@ export default function TestVocacional() {
     const [isLoading, setIsLoading] = useState(false)
     const [isLoadingQuestion, setIsLoadingQuestion] = useState(false)
     const [currentStep, setCurrentStep] = useState(null)
-    const [totalQuestions] = useState(5) 
+    const [totalQuestions] = useState(5)
     const navigate = useNavigate()
 
     const progress = (currentStep / totalQuestions) * 100
@@ -31,7 +33,7 @@ export default function TestVocacional() {
             const questionData = await loadQuestion(`p${step}`)
             const question = Array.isArray(questionData) ? questionData[0] : questionData
             const formattedData = {
-                id: `p${step}`, 
+                id: `p${step}`,
                 texto: question?.texto || '',
                 respuestas: question?.respuestas
             }
@@ -46,20 +48,20 @@ export default function TestVocacional() {
 
     const convertResponseIdToLetter = (responseId: string): string => {
         const number = parseInt(responseId.replace('r', ''))
-        const letterIndex = (number - 1) % 3  
+        const letterIndex = (number - 1) % 3
         return String.fromCharCode(97 + letterIndex)
     }
 
     useEffect(() => {
         if (user?.respuestas_test_vocacional && user.respuestas_test_vocacional.length > 0) {
-            
-            const savedAnswers: {[key: string]: string} = {}
+
+            const savedAnswers: { [key: string]: string } = {}
             user.respuestas_test_vocacional.forEach(respuesta => {
                 savedAnswers[respuesta.id_pregunta] = convertResponseIdToLetter(respuesta.id_respuesta)
             })
-            
+
             setAnswers(savedAnswers)
-            
+
             let nextStep = 1
             for (let i = 1; i <= totalQuestions; i++) {
                 if (!savedAnswers[`p${i}`]) {
@@ -67,7 +69,7 @@ export default function TestVocacional() {
                     break
                 }
                 if (i === totalQuestions) {
-                    nextStep = totalQuestions 
+                    nextStep = totalQuestions
                 }
             }
 
@@ -92,28 +94,28 @@ export default function TestVocacional() {
         if (currentStep < totalQuestions) {
             const currentQuestionId = getCurrentQuestionId()
             const currentAnswer = answers[currentQuestionId]
-            
+
             if (currentAnswer) {
                 const existingResponse = user?.respuestas_test_vocacional?.find(
                     respuesta => respuesta.id_pregunta === currentQuestionId
                 )
-                
-                const shouldSave = !existingResponse || 
+
+                const shouldSave = !existingResponse ||
                     convertResponseIdToLetter(existingResponse.id_respuesta) !== currentAnswer
-                
+
                 if (shouldSave) {
                     try {
                         await savePartialAnswers(currentQuestionId, currentAnswer)
                     } catch (error) {
                         console.error('Error al guardar respuesta parcial:', error)
                         toast.error('Error al guardar la respuesta')
-                        return 
+                        return
                     }
                 } else {
                     console.log(`Pregunta ${currentQuestionId} tiene la misma respuesta, saltando guardado`)
                 }
             }
-            
+
             const nextStep = currentStep + 1
             setCurrentStep(nextStep)
         }
@@ -136,10 +138,30 @@ export default function TestVocacional() {
             await savePartialAnswers(getCurrentQuestionId(), answers[getCurrentQuestionId()])
             const answersArray = Object.values(answers)
             await testVocacional(answersArray)
-            toast.success('Respuestas enviadas correctamente')
             navigate('/perfil')
+            setTimeout(() => {
+                Swal.fire({
+                    title: "¡RESULTADO LISTO!",
+                    text: "¡Lo lograste! Ahora conoce tu perfil predominante para comenzar a formarte.",
+                    icon: "success"
+                });
+            }, 500)
+            confetti({
+                angle: 60,
+                spread: 80,
+                particleCount: 200,
+                origin: { x: 0 }
+            });
+        
+            confetti({
+                angle: 120,
+                spread: 80,
+                particleCount: 200,
+                origin: { x: 1 }
+            });
         } catch (error) {
             console.error('Error al procesar las respuestas:', error)
+            toast.error('Error al procesar las respuestas del test')
         } finally {
             setIsLoading(false)
         }
@@ -159,10 +181,10 @@ export default function TestVocacional() {
                     <h1 className="text-3xl font-bold text-white mb-4">Test Vocacional</h1>
                     <p className="text-white/80">Responde las siguientes preguntas para descubrir tu orientación vocacional</p>
                 </div>
-                
+
                 <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
                     <CardHeader>
-                        <CardTitle className="text-center text-gray-800">Cuestionario Vocacional</CardTitle>
+                        <CardTitle className="text-center text-gray-800">¿Cuál es mi perfil predominante?</CardTitle>
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm text-gray-600">
                                 <span>Pregunta {currentStep} de {totalQuestions}</span>
@@ -221,7 +243,7 @@ export default function TestVocacional() {
                             >
                                 Anterior
                             </Button>
-                            
+
                             <div className="flex gap-3">
                                 {!isLastQuestion ? (
                                     <Button
@@ -240,7 +262,7 @@ export default function TestVocacional() {
                                         {isLoading ? 'Enviando...' : 'Enviar Resultados'}
                                     </Button>
                                 )}
-                                
+
                                 <Button
                                     variant="outline"
                                     asChild

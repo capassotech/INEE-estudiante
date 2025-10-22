@@ -297,6 +297,14 @@ class AuthService {
       throw new Error(error.response?.data?.error || "Error al realizar el test vocacional");
     }
   }
+
+  async updateRouteUser(uid: string, newUser: UserProfile): Promise<void> {
+    try {
+      await api.put(`/users/${uid}`, newUser);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al actualizar la ruta de aprendizaje");
+    }
+  }
 }
 
 const authService = new AuthService();
