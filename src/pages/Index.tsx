@@ -1,11 +1,16 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { allCourses } from "@/lib/coursesMock";
+import userService from "@/services/userService";
+import { useAuth } from "@/contexts/AuthContext";
+import { Course } from "@/types/types";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const banners = [
     "https://universidad.gruposuperior.com.co/wp-content/uploads/2021/05/BANNER-PROMOCIONAL-1.png",
@@ -22,23 +27,16 @@ const Index = () => {
       );
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [banners.length]);
 
-  const getActualProgress = (course: any) => {
-    const totalContents = course.modules.reduce(
-      (acc: number, module: any) => acc + module.contents.length,
-      0
-    );
-    const completedContents = course.modules.reduce(
-      (acc: number, module: any) =>
-        acc +
-        module.contents.filter((content: any) => content.completed).length,
-      0
-    );
-    return totalContents > 0
-      ? Math.round((completedContents / totalContents) * 100)
-      : 0;
-  };
+  useEffect(() => {
+    const fetchCourses = async () => {
+      const courses = await userService.getCoursesPerUser(user.uid);
+      setCourses(courses);
+      setIsLoading(false);
+    };
+    fetchCourses();
+  }, [user.uid]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
@@ -52,6 +50,7 @@ const Index = () => {
             <div key={index} className="w-full flex-shrink-0">
               <img
                 src={
+                  // eslint-disable-next-line no-constant-binary-expression
                   banner ||
                   "/placeholder.svg?height=200&width=800&query=course banner" ||
                   "/placeholder.svg"
@@ -67,9 +66,8 @@ const Index = () => {
           {banners.map((_, index) => (
             <button
               key={index}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === currentBannerIndex ? "bg-white" : "bg-white/50"
-              }`}
+              className={`w-2 h-2 rounded-full transition-colors ${index === currentBannerIndex ? "bg-white" : "bg-white/50"
+                }`}
               onClick={() => setCurrentBannerIndex(index)}
               aria-label={`Ir a banner ${index + 1}`}
             />
@@ -99,12 +97,19 @@ const Index = () => {
           Mis formaciones
         </h2>
         <div className="grid grid-cols-1 gap-4">
-          {allCourses.map((course) => {
-            const actualProgress = getActualProgress(course);
-            const totalContents = course.modules.reduce(
-              (acc, module) => acc + module.contents.length,
-              0
-            );
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 animate-spin" />
+            </div>
+          ) : courses.map((course) => {
+            if (courses.length === 0) {
+              return (
+                <div className="flex justify-center items-center h-full">
+                  <p className="text-gray-500">No hay formaciones disponibles</p>
+                </div>
+              );
+            }
+
             return (
               <Card
                 key={course.id}
@@ -112,54 +117,38 @@ const Index = () => {
                 onClick={() => navigate(`/curso/${course.id}`)}
               >
                 <CardContent className="p-0 flex flex-col sm:flex-row">
-                  {/* Imagen del curso */}
                   <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
                     <img
                       src={
-                        course.image ||
+                        // eslint-disable-next-line no-constant-binary-expression
+                        course.imagen ||
                         "/placeholder.svg?height=160&width=240&query=course image" ||
                         "/placeholder.svg"
                       }
-                      alt={course.title}
+                      alt={course.titulo}
                       className="object-cover w-full h-full transition-transform hover:scale-105"
                     />
                   </div>
-                  {/* Contenido del curso */}
                   <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
                     <div className="mb-3 sm:mb-4">
                       <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100 break-words">
-                        {course.title}
+                        {course.titulo}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 break-words">
-                        {course.description}
+                        {course.descripcion}
                       </p>
                     </div>
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                           <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full whitespace-nowrap">
-                            {course.level}
+                            {course.nivel}
                           </span>
                           <span className="text-xs whitespace-nowrap">
-                            {course.modules.length} módulos
-                          </span>
-                          <span className="text-xs whitespace-nowrap">
-                            {totalContents} elementos
+                            {course.id_modulos.length} módulos
                           </span>
                         </div>
                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 self-end sm:self-center" />
-                      </div>
-                      {/* Barra de progreso */}
-                      <div className="flex items-center gap-2 mt-3 sm:mt-4">
-                        <div className="h-1 w-full bg-gray-100 dark:bg-gray-700 rounded">
-                          <div
-                            className="h-1 bg-primary rounded transition-all duration-300"
-                            style={{ width: `${actualProgress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-500 min-w-[2.5rem] text-right">
-                          {actualProgress}%
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -170,7 +159,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Botón para adquirir más cursos */}
       <a
         href="https://inee-beta.web.app/formaciones"
         target="_blank"

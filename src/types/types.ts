@@ -42,33 +42,38 @@ export interface UserProfile {
     }>;
 }
 
-
 export interface ContentItem {
-    id: string;
-    type: "VIDEO" | "PDF" | "QUIZ" | "DOCX" | "IMAGE";
-    title: string;
-    description: string;
-    url: string;
-    order: number;
-    thumbnail?: string;
-    duration: string;
-    completed: boolean;
-    topics?: string[];
+    descripcion: string;
+    duracion: string;
+    titulo: string;
+    tipo_contenido: "VIDEO" | "PDF" | "DOCX" | "QUIZ" | "IMAGE";
+    url_contenido: string;
+    url_miniatura: string;
 }
 
 export interface Module {
     id: string;
-    title: string;
-    description: string;
-    contents: ContentItem[];
+    titulo: string;
+    descripcion: string;
+    contenido: ContentItem[];
+    fechaActualizacion?: string;
+    fechaCreacion?: string;
+    id_curso: string;
+    temas: string[];
 }
 
 export interface Course {
+    titulo: string;
+    imagen: string;
+    descripcion: string;
+    nivel: string;
+    duracion: number;
+    estado: string;
     id: string;
-    title: string;
-    description: string;
-    image: string;
-    level: string;
-    progress: number;
-    modules: Module[];
+    id_modulos: string[];
+    id_profesor: string;
+    modalidad: string;
+    pilar: string;
+    precio: number;
+    tags: string[];
 }
