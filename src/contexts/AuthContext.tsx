@@ -28,6 +28,7 @@ interface AuthContextType {
   testVocacional: (responses: string[]) => Promise<void>;
   loadQuestion: (id: string) => Promise<{ texto: string, orden: number, respuestas: any[] }[]>;
   savePartialAnswers: (questionId: string, answer: string) => Promise<void>;
+  updateRouteUser: (routeName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -242,8 +243,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const testVocacional = async (responses: string[]) => {
     try {
       await authService.testVocacional(user.uid, responses);
+      // Actualizar el perfil del usuario después del test para obtener la ruta_aprendizaje
+      await refreshUser();
     } catch (error) {
       console.error("Error al realizar el test vocacional:", error);
+      throw error;
+    }
+  };
+
+  const updateRouteUser = async (routeName: string) => {
+    try {
+      const newUser = {
+        ...user,
+        ruta_aprendizaje: routeName
+      };
+      await authService.updateRouteUser(user.uid, newUser);
+    } catch (error) {
+      console.error("Error al actualizar la ruta de aprendizaje:", error);
+      throw error;
     }
   };
 
@@ -263,6 +280,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     testVocacional,
     loadQuestion,
     savePartialAnswers,
+    updateRouteUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
