@@ -68,10 +68,22 @@ const ContentItem = ({
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
       <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
         <button
-          onClick={() => onToggleComplete(content.titulo + " " + content.descripcion)}
-          className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 transition-colors flex-shrink-0">
-          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+          onClick={() =>
+            onToggleComplete(content.id || content.titulo + " " + content.descripcion)
+          }
+          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 transition-colors flex-shrink-0 
+    ${content.completed
+              ? "border-green-500 bg-green-500 text-white"
+              : "border-gray-400 text-gray-400 hover:border-green-400"
+            }`}
+        >
+          {content.completed ? (
+            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+          ) : (
+            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-transparent" />
+          )}
         </button>
+
         <div className="flex-shrink-0">
           {content.tipo_contenido === "VIDEO" && content.url_miniatura ? (
             <div
@@ -119,7 +131,7 @@ const ContentItem = ({
           )}
         </div>
       </div>
-      
+
       <div className="flex justify-end sm:justify-start">
         <Button
           variant="outline"
