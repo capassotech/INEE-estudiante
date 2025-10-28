@@ -160,27 +160,27 @@ const CourseDetail = () => {
 
       {/* PANEL DE PROGRESO GENERAL */}
       {totalContents > 0 && (
-        <Card className="bg-gradient-to-r from-primary to-primary/80 text-white">
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg sm:text-xl break-words">
+                <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
                   Progreso del Curso
                 </CardTitle>
-                <p className="text-white/80 mt-1 text-sm sm:text-base">
+                <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
                   {completedCount} de {totalContents} elementos completados
                 </p>
               </div>
               <div className="text-center sm:text-right flex-shrink-0">
-                <div className="text-2xl sm:text-3xl font-bold">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                   {progressPercentage}%
                 </div>
-                <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mt-2" />
+                <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mt-2 text-primary" />
               </div>
             </div>
             <Progress
               value={progressPercentage}
-              className="mt-4 bg-white/20 h-2 sm:h-3"
+              className="mt-4 h-2 sm:h-3 [&>div]:bg-primary"
             />
           </CardHeader>
         </Card>
@@ -222,13 +222,13 @@ const CourseDetail = () => {
           modules.map((module) => {
             const moduleCompletedCount = module.contenido
               ? module.contenido.filter((c) =>
-                  completedContents.includes(c.id || c.titulo)
-                ).length
+                completedContents.includes(c.id || c.titulo)
+              ).length
               : 0;
             const moduleProgress = module.contenido
               ? Math.round(
-                  (moduleCompletedCount / module.contenido.length) * 100
-                )
+                (moduleCompletedCount / module.contenido.length) * 100
+              )
               : 0;
 
             return (
