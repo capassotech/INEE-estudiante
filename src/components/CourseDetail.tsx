@@ -77,7 +77,14 @@ const CourseDetail = () => {
   const completedCount = completedContents.length;
   const progressPercentage =
     totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
-
+  useEffect(() => {
+    if (progressPercentage === 100 && courseData) {
+      const timer = setTimeout(() => {
+        navigate(`/course/${courseId}/review`, { state: { course: courseData } });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [progressPercentage, courseData, courseId, navigate]);
   if (isLoadingCourse) {
     return (
       <div className="container mx-auto px-4 py-6 text-center flex justify-center items-center h-screen">
