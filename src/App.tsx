@@ -21,6 +21,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import TestVocacional from "./pages/TestVocacional";
+import Memberships from "./pages/Memberships";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
                   <Route path="/course/:courseId/review" element={<CourseReview />} /> 
                   <Route path="/teoria" element={<Theory />} />
                   <Route path="/teoria/:contentId" element={<TheoryDetail />} />
+                  <Route path="/membresias" element={<Memberships />} />
                   <Route path="/busqueda" element={<Search />} />
                   <Route path="/perfil" element={<Profile />} />
                   <Route path="*" element={<NotFound />} />

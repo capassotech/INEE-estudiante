@@ -1,9 +1,8 @@
 import axios from "axios";
 import { auth } from "../../config/firebase-client";
-import { Course } from "@/types/types";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,

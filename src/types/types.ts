@@ -35,6 +35,7 @@ export interface UserProfile {
     role: string;
     fechaRegistro: string;
     aceptaTerminos: boolean;
+    membresia: string | null;
     ruta_aprendizaje: string | null;
     respuestas_test_vocacional?: Array<{
         id_pregunta: string;
@@ -78,4 +79,14 @@ export interface Course {
     pilar: string;
     precio: number;
     tags: string[];
+}
+
+
+export interface Membership {
+    nombre: string;
+    descripcion: string;
+    precio: number;
+    estado: string;
+    fecha_alta: string;
+    old_price: number;
 }
