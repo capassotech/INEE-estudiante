@@ -43,12 +43,14 @@ export interface UserProfile {
 }
 
 export interface ContentItem {
+    id: string;
     descripcion: string;
     duracion: string;
     titulo: string;
     tipo_contenido: "VIDEO" | "PDF" | "DOCX" | "QUIZ" | "IMAGE";
     url_contenido: string;
     url_miniatura: string;
+    completed?: boolean;
 }
 
 export interface Module {
