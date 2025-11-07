@@ -24,16 +24,7 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-class UserService {
-  async getCoursesPerUser(uid: string) {
-    try {
-      const response = await api.get(`/formaciones/user/${uid}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error getting courses:", error);
-    }
-  }
-
+class MembershipService {
   async getMembresia(membresiaId: string) {
     try {
       const response = await api.get(`/membership/${membresiaId}`);
@@ -42,7 +33,16 @@ class UserService {
       console.error("Error getting membresia:", error);
     }
   }
+
+  async getMembresias() {
+    try {
+      const response = await api.get(`/membership`);
+      return response.data;
+    } catch (error) {
+      console.error("Error getting membresias:", error);
+    }
+  }
 }
 
-const userService = new UserService();
-export default userService;
+const membershipService = new MembershipService();
+export default membershipService;

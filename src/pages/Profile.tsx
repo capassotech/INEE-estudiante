@@ -1,16 +1,20 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Loader2, LogOut } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import RutasAprendizajeModal from "@/components/RutasAprendizajeModal";
 import { toast } from "sonner";
+import { Membership } from "@/types/types";
+import membershipService from "@/services/membershipService";
 
 export default function Profile() {
   const { user, isLoading, refreshUser, updateRouteUser } = useAuth();
   const navigate = useNavigate();
   const [rutaAprendizaje, setRutaAprendizaje] = useState<string | null>(null);
   const [isLoadingRuta, setIsLoadingRuta] = useState(true);
+  const [membresia, setMembresia] = useState<Membership | null>(null);
+  const [isLoadingMembresia, setIsLoadingMembresia] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -27,6 +31,20 @@ export default function Profile() {
       }
     }
   }, [user?.ruta_aprendizaje, user]);
+
+  useEffect(() => {
+    if (user) {
+      if (user.membresia) {
+        setIsLoadingMembresia(true);
+        const fetchMembresia = async () => {
+          const membresiaResult = await membershipService.getMembresia(user.membresia || '');
+          setMembresia(membresiaResult.data);
+          setIsLoadingMembresia(false);
+        }
+        fetchMembresia();
+      }
+    }
+  }, [user?.membresia, user]);
 
   useEffect(() => {
     const handleFocus = async () => {
@@ -81,7 +99,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <section className=" rounded-xl shadow-lg p-6 space-y-6">
+      <section className="rounded-xl shadow-lg p-6 space-y-6">
         <div className="flex items-center gap-4">
           <div className="w-20 h-20 rounded-full bg-[#8B3740] flex items-center justify-center text-white text-xl font-bold">
             {user.nombre.charAt(0)}
@@ -169,15 +187,78 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4">
+        {/* <div className="flex justify-end gap-4">
           <Button
             variant="outline"
             className="px-6 py-3 bg-[#8B3740] dark:bg-zinc-700 text-white rounded-lg hover:bg-[#D8A848] transition-colors font-medium"
           >
             Guardar cambios
           </Button>
-        </div>
+        </div> */}
       </section>
+
+      <section className="rounded-xl shadow-lg p-6 space-y-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Crown className="w-6 h-6 text-[#D8A848]" />
+          <h2 className="text-xl font-semibold text-[#8B3740] dark:text-white">
+            Mi Membresía
+          </h2>
+        </div>
+        
+        {isLoadingMembresia ? ( 
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            <p className="text-sm text-gray-400 dark:text-zinc-500">
+              Cargando membresía...
+            </p>
+          </div>
+        ) : membresia !== null ? (
+          <div className="bg-gradient-to-br from-[#8B3740]/5 to-[#D8A848]/5 dark:from-[#8B3740]/10 dark:to-[#D8A848]/10 rounded-lg border border-[#8B3740]/20 dark:border-[#8B3740]/30 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-[#8B3740] dark:text-white">
+                    {membresia.nombre}
+                  </h3>
+                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                    membresia.estado === 'activo' 
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                  }`}>
+                    {membresia.estado === 'activo' ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : (
+                      <Clock className="w-3 h-3" />
+                    )}
+                    {membresia.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                  </div>
+                </div>
+                <p className="text-sm text-[#4B4B4C] dark:text-zinc-300 mb-3 leading-relaxed">
+                  {membresia.descripcion}
+                </p>
+                <div className="text-xs text-[#4B4B4C] dark:text-zinc-400">
+                  Fecha de alta: {new Date(membresia.fecha_alta).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Crown className="w-12 h-12 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
+            <p className="text-[#4B4B4C] dark:text-zinc-400 mb-4">
+              No tienes una membresía activa
+            </p>
+            <Button onClick={() => navigate("/membresias")} className="bg-[#8B3740] hover:bg-[#D8A848] text-white">
+              Explorar Membresías
+            </Button>
+          </div>
+        )}
+      </section>
+      
       <RutasAprendizajeModal 
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)} 
