@@ -1,10 +1,10 @@
 import axios from "axios";
 import { auth } from "../../config/firebase-client";
 
-const API_BASE_URL =  import.meta.env.VITE_API_URL || "http://localhost:3000";
-
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
 const api = axios.create({
-  baseURL: `${API_BASE_URL}`, 
+  baseURL: `${API_BASE_URL}`,
   headers: {
     "Content-Type": "application/json",
   },
@@ -26,7 +26,11 @@ api.interceptors.request.use(async (config) => {
 class ReviewService {
   async createReview(courseId: string, rating: number, comment?: string) {
     try {
-      const response = await api.post(`/api/reviews`, { courseId, rating, comment });
+      const response = await api.post(`/api/reviews`, {
+        courseId,
+        rating,
+        comment,
+      });
       return response.data;
     } catch (error) {
       console.error("Error creating review:", error);
@@ -40,6 +44,19 @@ class ReviewService {
       return response.data;
     } catch (error) {
       console.error("Error getting reviews:", error);
+      throw error;
+    }
+  }
+
+  async skipReview(userId: string, courseId: string) {
+    try {
+      const response = await api.post(`/api/reviews/reminder`, {
+        userId,
+        courseId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error skipping review:", error);
       throw error;
     }
   }
