@@ -1,9 +1,9 @@
 import axios from "axios";
-import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, signInWithCredential, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
 import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
 
 const api = axios.create({

@@ -31,9 +31,15 @@ const Index = () => {
 
   useEffect(() => {
     const fetchCourses = async () => {
-      const courses = await userService.getCoursesPerUser(user.uid);
-      setCourses(courses);
-      setIsLoading(false);
+      try {
+        const courses = await userService.getCoursesPerUser(user.uid);
+        setCourses(courses);
+      } catch (error) {
+        console.error("Error al cargar los cursos:", error);
+        setCourses([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchCourses();
   }, [user.uid]);
@@ -49,12 +55,7 @@ const Index = () => {
           {banners.map((banner, index) => (
             <div key={index} className="w-full flex-shrink-0">
               <img
-                src={
-                  // eslint-disable-next-line no-constant-binary-expression
-                  banner ||
-                  "/placeholder.svg?height=200&width=800&query=course banner" ||
-                  "/placeholder.svg"
-                }
+                src={banner.trim() || "/placeholder.svg?height=200&width=800&query=course banner"}
                 alt={`Banner ${index + 1}`}
                 className="w-full h-32 sm:h-48 md:h-56 lg:h-64 object-cover"
               />
@@ -66,8 +67,9 @@ const Index = () => {
           {banners.map((_, index) => (
             <button
               key={index}
-              className={`w-2 h-2 rounded-full transition-colors ${index === currentBannerIndex ? "bg-white" : "bg-white/50"
-                }`}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                index === currentBannerIndex ? "bg-white" : "bg-white/50"
+              }`}
               onClick={() => setCurrentBannerIndex(index)}
               aria-label={`Ir a banner ${index + 1}`}
             />
@@ -98,19 +100,17 @@ const Index = () => {
         </h2>
         <div className="grid grid-cols-1 gap-4">
           {isLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 animate-spin" />
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
             </div>
-          ) : courses.map((course) => {
-            if (courses.length === 0) {
-              return (
-                <div className="flex justify-center items-center h-full">
-                  <p className="text-gray-500">No hay formaciones disponibles</p>
-                </div>
-              );
-            }
-
-            return (
+          ) : courses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">
+                Aún no tienes cursos activos. Cuando adquieras una formación, aparecerá aquí.
+              </p>
+            </div>
+          ) : (
+            courses.map((course) => (
               <Card
                 key={course.id}
                 className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
@@ -119,12 +119,7 @@ const Index = () => {
                 <CardContent className="p-0 flex flex-col sm:flex-row">
                   <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
                     <img
-                      src={
-                        // eslint-disable-next-line no-constant-binary-expression
-                        course.imagen ||
-                        "/placeholder.svg?height=160&width=240&query=course image" ||
-                        "/placeholder.svg"
-                      }
+                      src={course.imagen || "/placeholder.svg?height=160&width=240&query=course image"}
                       alt={course.titulo}
                       className="object-cover w-full h-full transition-transform hover:scale-105"
                     />
@@ -154,8 +149,8 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })}
+            ))
+          )}
         </div>
       </div>
 
