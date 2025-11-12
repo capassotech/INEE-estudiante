@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import reviewService from "@/services/reviewService";
-import { toast } from "@/hooks/use-toast"; // ✅ Correcto
+import { toast } from "@/hooks/use-toast"; 
 
 const CourseReview = () => {
   const navigate = useNavigate();
@@ -14,9 +14,13 @@ const CourseReview = () => {
   const { user } = useAuth();
   const course = state?.course;
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const mail = searchParams.get('mail');
+
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingSkip, setLoadingSkip] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async () => {
@@ -37,7 +41,6 @@ const CourseReview = () => {
       toast({
         title: "¡Reseña enviada!",
         description: "Gracias por tu opinión. Serás redirigido al inicio.",
-        // variant: "success" → ❌ ShadCN no incluye "success" por defecto
       });
 
       setTimeout(() => navigate("/"), 2000);
@@ -46,13 +49,35 @@ const CourseReview = () => {
       toast({
         title: "Error",
         description: err.response?.data?.error || "No se pudo enviar la reseña.",
-        variant: "destructive", // ✅ Este SÍ existe en ShadCN
+        variant: "destructive",
       });
       setError(err.response?.data?.error || "Error al enviar la reseña");
     } finally {
       setLoading(false);
     }
   };
+
+  const skipReview = async () => {
+    try {
+      setLoadingSkip(true);
+      await reviewService.skipReview(user?.uid, course?.id);
+      toast({
+        title: "Reseña omitida",
+        description: "Muchas gracias por tu tiempo.",
+        variant: "default",
+      });
+      navigate('/');
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.error || "No se pudo omitir la reseña.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingSkip(false);
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-10 flex justify-center items-center min-h-screen bg-gray-50">
@@ -91,13 +116,15 @@ const CourseReview = () => {
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
           <div className="flex justify-between mt-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/")}
-              disabled={loading}
-            >
-              Omitir / Más tarde
-            </Button>
+            {!mail && (
+              <Button
+                variant="outline"
+                onClick={skipReview}
+                disabled={loadingSkip}
+              >
+                {loadingSkip ? "Omitiendo..." : "Omitir / Más tarde"}
+              </Button>
+            )}
             <Button onClick={handleSubmit} disabled={!rating || loading}>
               {loading ? "Enviando..." : "Enviar reseña"}
             </Button>
