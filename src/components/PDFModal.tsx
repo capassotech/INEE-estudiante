@@ -36,7 +36,6 @@ const PDFModal = ({ isOpen, onClose, pdfUrl, title }: PDFModalProps) => {
           </div>
         </DialogHeader>
 
-        {/* <h1>Hola</h1> */}
         
         <div className="h-full">
           <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
