@@ -16,7 +16,7 @@ const PDFModal = ({ isOpen, onClose, pdfUrl, title }: PDFModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[90vh] p-0">
+      <DialogContent className="max-w-4xl w-full h-[90vh] px-1 pt-0 pb-1 flex flex-col">
         <DialogHeader className="p-4 pb-2 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold truncate pr-4">
@@ -35,8 +35,10 @@ const PDFModal = ({ isOpen, onClose, pdfUrl, title }: PDFModalProps) => {
             </div>
           </div>
         </DialogHeader>
+
+        {/* <h1>Hola</h1> */}
         
-        <div className="flex-1 p-4">
+        <div className="h-full">
           <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
             <iframe
               src={pdfUrl}
