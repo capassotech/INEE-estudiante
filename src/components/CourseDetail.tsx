@@ -17,8 +17,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import ContentItemComponent from "@/components/content-item";
-import { Course, Module } from "@/types/types";
+import ContentItem from "@/components/content-item";
+import PDFModal from "@/components/PDFModal";
+import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 
 const CourseDetail = () => {
@@ -29,9 +30,10 @@ const CourseDetail = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<string[]>([]);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<ContentItemType | null>(null);
   const navigate = useNavigate();
 
-  // === Fetch curso ===
   useEffect(() => {
     const fetchCourse = async () => {
       const course = await courseService.getCourseById(courseId);
@@ -41,7 +43,6 @@ const CourseDetail = () => {
     fetchCourse();
   }, [courseId]);
 
-  // === Fetch módulos ===
   useEffect(() => {
     if (courseData) {
       const fetchModules = async () => {
@@ -56,7 +57,11 @@ const CourseDetail = () => {
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
       const newSet = new Set(prev);
-      newSet.has(moduleId) ? newSet.delete(moduleId) : newSet.add(moduleId);
+      if (newSet.has(moduleId)) {
+        newSet.delete(moduleId);
+      } else {
+        newSet.add(moduleId);
+      }
       return newSet;
     });
   };
@@ -69,7 +74,20 @@ const CourseDetail = () => {
     );
   };
 
-  // === Cálculo del progreso general ===
+  const handleContentClick = (content: ContentItemType) => {
+    if (content.tipo_contenido.toUpperCase() === "PDF") {
+      setSelectedContent(content);
+      setPdfModalOpen(true);
+    } else {
+      console.log(content);
+    }
+  };
+
+  const closePdfModal = () => {
+    setPdfModalOpen(false);
+    setSelectedContent(null);
+  };
+
   const totalContents = modules.reduce(
     (acc, m) => acc + (m.contenido?.length || 0),
     0
@@ -143,6 +161,7 @@ const CourseDetail = () => {
       <div className="relative h-40 sm:h-48 md:h-56 lg:h-64 rounded-lg overflow-hidden">
         <img
           src={
+            // eslint-disable-next-line no-constant-binary-expression
             courseData.imagen ||
             "/placeholder.svg?height=256&width=512&query=course image" ||
             "/placeholder.svg"
@@ -286,7 +305,7 @@ const CourseDetail = () => {
                     <CardContent className="pt-0 mt-2 p-4 sm:p-6 sm:pt-0 space-y-2 sm:space-y-3">
                       {module.contenido && module.contenido.length > 0 ? (
                         module.contenido.map((content) => (
-                          <ContentItemComponent
+                          <ContentItem
                             key={content.id || content.titulo}
                             content={{
                               ...content,
@@ -297,9 +316,7 @@ const CourseDetail = () => {
                             onToggleComplete={() =>
                               toggleContentComplete(content.id || content.titulo)
                             }
-                            onContentClick={() => {
-                              console.log(content);
-                            }}
+                            onContentClick={handleContentClick}
                           />
                         ))
                       ) : (
@@ -315,6 +332,15 @@ const CourseDetail = () => {
           })
         )}
       </div>
+
+      {selectedContent && (
+        <PDFModal
+          isOpen={pdfModalOpen}
+          onClose={closePdfModal}
+          pdfUrl={selectedContent.url_contenido}
+          title={selectedContent.titulo}
+        />
+      )}
     </div>
   );
 };

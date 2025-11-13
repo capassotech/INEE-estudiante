@@ -14,7 +14,7 @@ import { ContentItem as ContentItemType } from "@/types/types";
 interface ContentItemProps {
   content: ContentItemType;
   onToggleComplete: (contentId: string) => void;
-  onContentClick: (content: any) => void;
+  onContentClick: (content: ContentItemType) => void;
 }
 
 const ContentItem = ({
@@ -57,7 +57,8 @@ const ContentItem = ({
   };
 
   const handleActionClick = () => {
-    if (content.tipo_contenido === "VIDEO") {
+    console.log(content.tipo_contenido);
+    if (content.tipo_contenido.toUpperCase() === "VIDEO" || content.tipo_contenido.toUpperCase() === "PDF") {
       onContentClick(content);
     } else {
       window.open(content.url_contenido, "_blank");
@@ -139,17 +140,19 @@ const ContentItem = ({
           onClick={handleActionClick}
           className="text-xs sm:text-sm bg-transparent"
         >
-          {content.tipo_contenido === "VIDEO" ? (
+          {content.tipo_contenido === "VIDEO" || content.tipo_contenido === "PDF" ? (
             <>
-              <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              <span className="hidden sm:inline">Ver</span>
-              <span className="sm:hidden">Ver</span>
+              {content.tipo_contenido === "VIDEO" ? (
+                <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              ) : (
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              )}
+              <span>Ver</span>
             </>
           ) : (
             <>
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              <span className="hidden sm:inline">Abrir</span>
-              <span className="sm:hidden">Abrir</span>
+              <span>Abrir</span>
             </>
           )}
         </Button>
