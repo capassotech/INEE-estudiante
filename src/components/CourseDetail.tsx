@@ -21,6 +21,7 @@ import ContentItem from "@/components/content-item";
 import PDFModal from "@/components/PDFModal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
+import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -159,17 +160,16 @@ const CourseDetail = () => {
 
       {/* IMAGEN DEL CURSO */}
       <div className="relative h-40 sm:h-48 md:h-56 lg:h-64 rounded-lg overflow-hidden">
-        <img
-          src={
-            // eslint-disable-next-line no-constant-binary-expression
-            courseData.imagen ||
-            "/placeholder.svg?height=256&width=512&query=course image" ||
-            "/placeholder.svg"
-          }
+        <ImageWithPlaceholder
+          src={courseData.imagen || "/placeholder.svg"}
           alt={courseData.titulo}
-          className="w-full h-full object-cover"
+          className="rounded-lg"
+          aspectRatio="auto"
+          style={{ width: '100%', height: '100%' }}
+          placeholderIcon="book"
+          placeholderText=""
         />
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center p-4 z-10">
           <div className="text-center text-white max-w-full">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 break-words">
               {courseData.titulo}

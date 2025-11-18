@@ -10,6 +10,7 @@ import {
   FileImage,
 } from "lucide-react";
 import { ContentItem as ContentItemType } from "@/types/types";
+import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 interface ContentItemProps {
   content: ContentItemType;
@@ -91,17 +92,16 @@ const ContentItem = ({
               className="relative cursor-pointer"
               onClick={handleActionClick}
             >
-              <img
-                src={
-                  // eslint-disable-next-line no-constant-binary-expression
-                  content.url_miniatura ||
-                  "/placeholder.svg?height=48&width=64&query=video thumbnail" ||
-                  "/placeholder.svg"
-                }
+              <ImageWithPlaceholder
+                src={content.url_miniatura || "/placeholder.svg"}
                 alt={content.titulo}
-                className="w-12 h-9 sm:w-16 sm:h-12 object-cover rounded"
+                className="w-12 h-9 sm:w-16 sm:h-12 rounded"
+                aspectRatio="auto"
+                style={{ width: '3rem', height: '2.25rem' }}
+                placeholderIcon="image"
+                placeholderText=""
               />
-              <div className="absolute inset-0 bg-black/30 rounded flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/30 rounded flex items-center justify-center z-10">
                 <Play className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>

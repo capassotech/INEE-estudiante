@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -265,10 +266,14 @@ const Index = () => {
               >
                 <CardContent className="p-0 flex flex-col sm:flex-row">
                   <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
-                    <img
-                      src={course.imagen || "/placeholder.svg?height=160&width=240&query=course image"}
+                    <ImageWithPlaceholder
+                      src={course.imagen || "/placeholder.svg"}
                       alt={course.titulo}
-                      className="object-cover w-full h-full transition-transform hover:scale-105"
+                      className="rounded-none transition-transform hover:scale-105"
+                      aspectRatio="auto"
+                      style={{ width: '100%', height: '100%' }}
+                      placeholderIcon="book"
+                      placeholderText=""
                     />
                   </div>
                   <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
