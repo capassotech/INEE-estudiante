@@ -1,125 +1,225 @@
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { SearchIcon, Play, BookOpen, Filter, FileText, HelpCircle } from "lucide-react"
+import { SearchIcon, BookOpen, Filter, GraduationCap, Calendar, Book, FolderOpen, Loader2 } from "lucide-react"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import userService from "@/services/userService"
+import courseService from "@/services/courseService"
+import { Course } from "@/types/types"
+import axios from "axios"
+import { auth } from "../../config/firebase-client"
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com"
 
 const Search = () => {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get("q") || "")
-  const [filter, setFilter] = useState<"all" | "video" | "theory" | "quiz">("all")
+  const [filter, setFilter] = useState<"all" | "formacion" | "ebook" | "evento" | "modulo">("all")
+  const [allItems, setAllItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const courseData = {
-    modules: [
-      {
-        id: "modulo-1",
-        title: "Anatomía del esqueleto humano",
-        contents: [
-          {
-            id: "contenido-1",
-            type: "VIDEO" as const,
-            title: "Introducción a la anatomía",
-            description: "Conceptos básicos de anatomía humana aplicada al ejercicio",
-            url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-            duration: "25 min",
-            moduleName: "Anatomía del esqueleto humano",
-          },
-          {
-            id: "contenido-2",
-            type: "PDF" as const,
-            title: "Manual de anatomía básica",
-            description: "Guía completa con ilustraciones del sistema esquelético",
-            url: "https://example.com/manual-anatomia.pdf",
-            duration: "Lectura 15 min",
-            moduleName: "Anatomía del esqueleto humano",
-          },
-          {
-            id: "contenido-4",
-            type: "QUIZ" as const,
-            title: "Evaluación: Anatomía básica",
-            description: "Test de conocimientos sobre anatomía del esqueleto",
-            url: "https://example.com/quiz-anatomia",
-            duration: "10 min",
-            moduleName: "Anatomía del esqueleto humano",
-          },
-        ],
-      },
-      {
-        id: "modulo-2",
-        title: "Articulaciones y movimiento",
-        contents: [
-          {
-            id: "contenido-5",
-            type: "VIDEO" as const,
-            title: "Tipos de articulaciones",
-            description: "Clasificación y características de las articulaciones",
-            url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-            duration: "35 min",
-            moduleName: "Articulaciones y movimiento",
-          },
-          {
-            id: "contenido-6",
-            type: "DOCX" as const,
-            title: "Ejercicios de movilidad articular",
-            description: "Rutinas específicas para cada tipo de articulación",
-            url: "https://example.com/ejercicios-movilidad.docx",
-            duration: "Lectura 20 min",
-            moduleName: "Articulaciones y movimiento",
-          },
-        ],
-      },
-      {
-        id: "modulo-3",
-        title: "Sistema muscular",
-        contents: [
-          {
-            id: "contenido-8",
-            type: "VIDEO" as const,
-            title: "Músculos principales",
-            description: "Identificación de los grupos musculares más importantes",
-            url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-            duration: "45 min",
-            moduleName: "Sistema muscular",
-          },
-          {
-            id: "contenido-9",
-            type: "PDF" as const,
-            title: "Atlas muscular ilustrado",
-            description: "Guía visual completa del sistema muscular",
-            url: "https://example.com/atlas-muscular.pdf",
-            duration: "Lectura 25 min",
-            moduleName: "Sistema muscular",
-          },
-        ],
-      },
-    ],
-  }
+  // Cargar todos los recursos (formaciones, ebooks, eventos, módulos)
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadAllResources = async () => {
+      if (!user?.uid) {
+        setAllItems([]);
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const allItemsArray: any[] = [];
+        
+        // 1. Obtener formaciones del usuario
+        const coursesData = await userService.getCoursesPerUser(user.uid, { limit: 100 });
+        const courses: Course[] = coursesData.courses || [];
+        
+        console.log("📚 [Search] Loaded courses:", courses.length);
+        
+        // Cargar todos los módulos en paralelo
+        const modulePromises: Promise<any[]>[] = [];
+        const courseModuleMap = new Map<string, string[]>(); // courseId -> moduleIds
+        
+        for (const course of courses) {
+          // Agregar formación
+          allItemsArray.push({
+            id: `formacion-${course.id}`,
+            resourceType: "formacion",
+            title: course.titulo || "",
+            description: course.descripcion || "",
+            image: course.imagen || "",
+            href: `/curso/${course.id}`,
+          });
+          
+          // Preparar carga de módulos
+          if (course.id_modulos && course.id_modulos.length > 0) {
+            courseModuleMap.set(course.id, course.id_modulos);
+            modulePromises.push(courseService.getAllModules(course.id_modulos));
+          }
+        }
+        
+        // Cargar todos los módulos en paralelo
+        if (modulePromises.length > 0) {
+          const allModulesArrays = await Promise.all(modulePromises);
+          let moduleIndex = 0;
+          
+          for (const course of courses) {
+            if (course.id_modulos && course.id_modulos.length > 0) {
+              const modules = allModulesArrays[moduleIndex] || [];
+              moduleIndex++;
+              
+              for (const module of modules) {
+                // Generar ID único para evitar duplicados
+                const uniqueId = `modulo-${course.id}-${module.id}`;
+                allItemsArray.push({
+                  id: uniqueId,
+                  resourceType: "modulo",
+                  title: module.titulo || "",
+                  description: module.descripcion || "",
+                  courseId: course.id,
+                  courseName: course.titulo || "",
+                  href: `/curso/${course.id}`,
+                });
+              }
+            }
+          }
+        }
+        
+        // 3. Obtener ebooks (opcional, no crítico)
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          if (idToken) {
+            const ebooksResponse = await axios.get(`${API_BASE_URL}/api/ebooks`, {
+              headers: { Authorization: `Bearer ${idToken}` },
+              params: { limit: 100 }
+            });
+            
+            const ebooks = ebooksResponse.data?.ebooks || (Array.isArray(ebooksResponse.data) ? ebooksResponse.data : []);
+            for (const ebook of ebooks) {
+              allItemsArray.push({
+                id: `ebook-${ebook.id}`,
+                resourceType: "ebook",
+                title: ebook.title || ebook.titulo || "",
+                description: ebook.description || ebook.descripcion || "",
+                image: ebook.imagen || "",
+                href: `/ebook/${ebook.id}`,
+              });
+            }
+            console.log("📖 [Search] Loaded ebooks:", ebooks.length);
+          }
+        } catch (error) {
+          console.warn("⚠️ [Search] Could not load ebooks (non-critical):", error);
+        }
+        
+        // 4. Obtener eventos (opcional, no crítico)
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          if (idToken) {
+            const eventsResponse = await axios.get(`${API_BASE_URL}/api/eventos`, {
+              headers: { Authorization: `Bearer ${idToken}` },
+              params: { limit: 100 }
+            });
+            
+            const events = eventsResponse.data?.events || (Array.isArray(eventsResponse.data) ? eventsResponse.data : []);
+            for (const event of events) {
+              // Convertir fecha de Firestore Timestamp a string si es necesario
+              let dateString = "";
+              if (event.date) {
+                if (typeof event.date === 'string') {
+                  dateString = event.date;
+                } else if (event.date._seconds) {
+                  // Es un Timestamp de Firestore
+                  dateString = new Date(event.date._seconds * 1000).toLocaleDateString();
+                } else if (event.date instanceof Date) {
+                  dateString = event.date.toLocaleDateString();
+                }
+              } else if (event.fecha) {
+                if (typeof event.fecha === 'string') {
+                  dateString = event.fecha;
+                } else if (event.fecha._seconds) {
+                  dateString = new Date(event.fecha._seconds * 1000).toLocaleDateString();
+                } else if (event.fecha instanceof Date) {
+                  dateString = event.fecha.toLocaleDateString();
+                }
+              }
+              
+              allItemsArray.push({
+                id: `evento-${event.id}`,
+                resourceType: "evento",
+                title: event.title || event.titulo || "",
+                description: event.description || event.descripcion || "",
+                image: event.image || event.imagen || "",
+                date: dateString,
+                href: `/evento/${event.id}`,
+              });
+            }
+            console.log("📅 [Search] Loaded events:", events.length);
+          }
+        } catch (error) {
+          console.warn("⚠️ [Search] Could not load events (non-critical):", error);
+        }
+        
+        if (!isMounted) return;
+        
+        console.log("✅ [Search] Loaded resources:", {
+          total: allItemsArray.length,
+          formaciones: allItemsArray.filter(i => i.resourceType === "formacion").length,
+          modulos: allItemsArray.filter(i => i.resourceType === "modulo").length,
+          ebooks: allItemsArray.filter(i => i.resourceType === "ebook").length,
+          eventos: allItemsArray.filter(i => i.resourceType === "evento").length,
+        });
+        
+        setAllItems(allItemsArray);
+      } catch (error) {
+        console.error("❌ [Search] Error loading resources:", error);
+        if (isMounted) {
+          setAllItems([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadAllResources();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid]);
 
-  // Aplanar todos los contenidos de todos los módulos
-  const allContents = courseData.modules.flatMap((module) =>
-    module.contents.map((content) => ({
-      ...content,
-      moduleId: module.id,
-      moduleName: content.moduleName || module.title,
-    })),
-  )
+  // Actualizar query cuando cambie el parámetro de la URL
+  useEffect(() => {
+    const urlQuery = searchParams.get("q") || "";
+    if (urlQuery !== query) {
+      setQuery(urlQuery);
+    }
+  }, [searchParams]);
 
   const filteredResults = useMemo(() => {
-    let results = allContents
+    let results = allItems
 
-    // Aplicar filtro por tipo
+    console.log("🔍 [Search] Filtering results:", {
+      totalItems: allItems.length,
+      filter,
+      query,
+      beforeFilter: results.length
+    });
+
+    // Aplicar filtro por tipo de recurso
     if (filter !== "all") {
-      if (filter === "video") {
-        results = results.filter((item) => item.type === "VIDEO")
-      } else if (filter === "theory") {
-        results = results.filter((item) => item.type === "PDF" || item.type === "DOCX")
-      } else if (filter === "quiz") {
-        results = results.filter((item) => item.type === "QUIZ")
-      }
+      results = results.filter((item) => item.resourceType === filter)
+      console.log("🔍 [Search] After filter:", results.length);
     }
 
     // Aplicar búsqueda por texto
@@ -127,83 +227,99 @@ const Search = () => {
       const searchTerm = query.toLowerCase()
       results = results.filter(
         (item) =>
-          item.title.toLowerCase().includes(searchTerm) ||
-          item.description.toLowerCase().includes(searchTerm) ||
-          item.moduleName.toLowerCase().includes(searchTerm),
+          (item.title && item.title.toLowerCase().includes(searchTerm)) ||
+          (item.description && item.description.toLowerCase().includes(searchTerm)) ||
+          (item.courseName && item.courseName.toLowerCase().includes(searchTerm)),
       )
+      console.log("🔍 [Search] After search:", results.length);
     }
 
+    console.log("✅ [Search] Final results:", results.length);
     return results
-  }, [query, filter, allContents])
+  }, [query, filter, allItems])
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "VIDEO":
-        return <Play className="w-6 h-6" />
-      case "PDF":
-      case "DOCX":
-        return <FileText className="w-6 h-6" />
-      case "QUIZ":
-        return <HelpCircle className="w-6 h-6" />
+  const getIcon = (resourceType: string) => {
+    switch (resourceType) {
+      case "formacion":
+        return <GraduationCap className="w-6 h-6" />
+      case "ebook":
+        return <Book className="w-6 h-6" />
+      case "evento":
+        return <Calendar className="w-6 h-6" />
+      case "modulo":
+        return <FolderOpen className="w-6 h-6" />
       default:
         return <BookOpen className="w-6 h-6" />
     }
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "VIDEO":
-        return "bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400"
-      case "PDF":
+  const getTypeColor = (resourceType: string) => {
+    switch (resourceType) {
+      case "formacion":
         return "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400"
-      case "DOCX":
+      case "ebook":
         return "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400"
-      case "QUIZ":
+      case "evento":
         return "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+      case "modulo":
+        return "bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400"
       default:
         return "bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400"
     }
   }
 
+  const getTypeLabel = (resourceType: string) => {
+    switch (resourceType) {
+      case "formacion":
+        return "Formación"
+      case "ebook":
+        return "Ebook"
+      case "evento":
+        return "Evento"
+      case "modulo":
+        return "Módulo"
+      default:
+        return "Recurso"
+    }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      setSearchParams({ q: query.trim() });
+    } else {
+      setSearchParams({});
+    }
+  };
+
   const handleItemClick = (item: any) => {
-    if (item.type === "VIDEO") {
-      // Ir al módulo específico
-      navigate(`/curso/fitness-grupal`)
-    } else if (item.type === "PDF" || item.type === "DOCX") {
-      // Ir a teoría con el contenido específico
-      navigate(`/teoria/${item.id}`, {
-        state: {
-          content: item,
-          moduleId: item.moduleId,
-          moduleName: item.moduleName,
-        },
-      })
-    } else if (item.type === "QUIZ") {
-      // Abrir quiz en nueva ventana
-      window.open(item.url, "_blank")
+    if (item.href) {
+      navigate(item.href)
+    } else if (item.resourceType === "modulo" && item.courseId) {
+      navigate(`/curso/${item.courseId}`)
     }
   }
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Buscar Contenido</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Buscar Recursos</h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Encuentra videos, documentos y evaluaciones en todos los módulos
+          Encuentra formaciones, ebooks, eventos y módulos
         </p>
       </div>
 
       {/* Barra de búsqueda */}
-      <div className="relative">
+      <form onSubmit={handleSearch} className="relative">
         <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         <Input
           type="search"
-          placeholder="Buscar por título, descripción o módulo..."
+          placeholder="Buscar formaciones, ebooks, eventos o módulos..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-12 h-12 text-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
         />
-      </div>
+      </form>
 
       {/* Filtros */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-2">
@@ -217,38 +333,49 @@ const Search = () => {
           Todo
         </Button>
         <Button
-          variant={filter === "video" ? "default" : "outline"}
+          variant={filter === "formacion" ? "default" : "outline"}
           size="sm"
-          onClick={() => setFilter("video")}
+          onClick={() => setFilter("formacion")}
           className="whitespace-nowrap"
         >
-          Videos
+          Formaciones
         </Button>
         <Button
-          variant={filter === "theory" ? "default" : "outline"}
+          variant={filter === "ebook" ? "default" : "outline"}
           size="sm"
-          onClick={() => setFilter("theory")}
+          onClick={() => setFilter("ebook")}
           className="whitespace-nowrap"
         >
-          Teoría
+          Ebooks
         </Button>
         <Button
-          variant={filter === "quiz" ? "default" : "outline"}
+          variant={filter === "evento" ? "default" : "outline"}
           size="sm"
-          onClick={() => setFilter("quiz")}
+          onClick={() => setFilter("evento")}
           className="whitespace-nowrap"
         >
-          Evaluaciones
+          Eventos
+        </Button>
+        <Button
+          variant={filter === "modulo" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("modulo")}
+          className="whitespace-nowrap"
+        >
+          Módulos
         </Button>
       </div>
 
       {/* Resultados */}
       <div className="space-y-3">
-        {filteredResults.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          </div>
+        ) : filteredResults.length > 0 ? (
           <>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {filteredResults.length} resultado{filteredResults.length !== 1 ? "s" : ""} encontrado
-              {filteredResults.length !== 1 ? "s" : ""}
+              {filteredResults.length} resultado{filteredResults.length !== 1 ? "s" : ""} encontrado{filteredResults.length !== 1 ? "s" : ""}
             </p>
             {filteredResults.map((item) => (
               <Card
@@ -259,25 +386,33 @@ const Search = () => {
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-4">
                     <div
-                      className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${getTypeColor(item.type)}`}
+                      className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${getTypeColor(item.resourceType)}`}
                     >
-                      {getIcon(item.type)}
+                      {getIcon(item.resourceType)}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <h3 className="font-medium text-gray-900 dark:text-gray-100 line-clamp-2">{item.title}</h3>
-                        <Badge variant="outline" className={`ml-2 ${getTypeColor(item.type)} border-current`}>
-                          {item.type}
+                        <Badge variant="outline" className={`ml-2 ${getTypeColor(item.resourceType)} border-current`}>
+                          {getTypeLabel(item.resourceType)}
                         </Badge>
                       </div>
 
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{item.description}</p>
 
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{item.moduleName}</span>
-                        <span>•</span>
-                        <span>{item.duration}</span>
+                        {item.courseName && (
+                          <>
+                            <span>{item.courseName}</span>
+                            <span>•</span>
+                          </>
+                        )}
+                        {item.date && typeof item.date === 'string' && (
+                          <>
+                            <span>{item.date}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

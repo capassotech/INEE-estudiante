@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight, Loader2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import userService from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Course } from "@/types/types";
+import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -36,6 +37,10 @@ const Index = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [lastId, setLastId] = useState<string | null>(null);
   const [pageHistory, setPageHistory] = useState<Map<number, string | null>>(new Map([[1, null]]));
+  
+  // Estado de búsqueda
+  const [searchQuery, setSearchQuery] = useState("");
+  const isInitialMount = useRef(true);
   const banners = [
     "https://universidad.gruposuperior.com.co/wp-content/uploads/2021/05/BANNER-PROMOCIONAL-1.png",
     "https://alehlatam.org/wp-content/uploads/2024/12/BANNER-V-Curso-HCC.png",
@@ -53,7 +58,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  const loadCourses = async (page: number, size: number, resetHistory = false) => {
+  const loadCourses = async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
     if (!user?.uid) {
       setIsLoading(false);
       setCourses([]);
@@ -68,7 +73,8 @@ const Index = () => {
       }
 
       let lastIdForPage: string | null = null;
-      if (page > 1) {
+      if (page > 1 && !currentSearch) {
+        // Solo construir historial si no hay búsqueda activa
         lastIdForPage = pageHistory.get(page - 1) || null;
         if (!lastIdForPage && page > 1) {
           // Construir historial si no existe
@@ -94,9 +100,13 @@ const Index = () => {
         }
       }
 
-      const params: { limit: number; lastId?: string } = { limit: size };
-      if (lastIdForPage) {
+      const params: { limit: number; lastId?: string; search?: string } = { limit: size };
+      if (lastIdForPage && !currentSearch) {
+        // Solo usar lastId si no hay búsqueda activa
         params.lastId = lastIdForPage;
+      }
+      if (currentSearch && currentSearch.trim()) {
+        params.search = currentSearch.trim();
       }
 
       console.log('🔍 [Index] Loading courses:', { page, size, params });
@@ -150,12 +160,21 @@ const Index = () => {
 
   useEffect(() => {
     if (user?.uid) {
-      loadCourses(currentPage, pageSize, currentPage === 1);
+      loadCourses(currentPage, pageSize, currentPage === 1, searchQuery);
+      isInitialMount.current = false;
     } else {
       setIsLoading(false);
       setCourses([]);
     }
   }, [user?.uid, currentPage, pageSize]);
+
+  // Recargar cuando cambie searchQuery (pero no en el mount inicial)
+  useEffect(() => {
+    if (!isInitialMount.current && user?.uid) {
+      setCurrentPage(1);
+      loadCourses(1, pageSize, true, searchQuery);
+    }
+  }, [searchQuery]);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -224,27 +243,40 @@ const Index = () => {
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 ml-1">
             Mis formaciones
           </h2>
-          {courses.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Mostrar:
-              </span>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(value) => handleSetPageSize(parseInt(value))}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex items-center gap-2">
+            {/* Campo de búsqueda */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="search"
+                placeholder="Buscar formaciones..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              />
             </div>
-          )}
+            {courses.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Mostrar:
+                </span>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={(value) => handleSetPageSize(parseInt(value))}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-4">
           {isLoading ? (

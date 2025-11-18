@@ -25,7 +25,7 @@ api.interceptors.request.use(async (config) => {
 });
 
 class UserService {
-  async getCoursesPerUser(uid: string, params?: { limit?: number; lastId?: string }) {
+  async getCoursesPerUser(uid: string, params?: { limit?: number; lastId?: string; search?: string }) {
     try {
       const queryParams = new URLSearchParams();
       if (params?.limit) {
@@ -33,6 +33,9 @@ class UserService {
       }
       if (params?.lastId) {
         queryParams.append('lastId', params.lastId);
+      }
+      if (params?.search) {
+        queryParams.append('search', params.search);
       }
       
       const url = `/formaciones/user/${uid}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
