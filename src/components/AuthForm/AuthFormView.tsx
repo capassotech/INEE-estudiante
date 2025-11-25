@@ -524,6 +524,11 @@ export default function AuthFormView({
                             </div>
                         </div>
                     </Link>
+                    {isLogin && (
+                        <h1 className="text-3xl font-bold text-white mb-6">
+                            Panel de alumno
+                        </h1>
+                    )}
                 </div>
 
                 <Card className="shadow-2xl border-0 card-gradient">
