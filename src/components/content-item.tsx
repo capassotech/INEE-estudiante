@@ -58,7 +58,6 @@ const ContentItem = ({
   };
 
   const handleActionClick = () => {
-    console.log(content.tipo_contenido);
     if (content.tipo_contenido.toUpperCase() === "VIDEO" || content.tipo_contenido.toUpperCase() === "PDF") {
       onContentClick(content);
     } else {

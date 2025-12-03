@@ -112,7 +112,6 @@ export default function TestVocacional() {
                         return
                     }
                 } else {
-                    console.log(`Pregunta ${currentQuestionId} tiene la misma respuesta, saltando guardado`)
                 }
             }
 

@@ -59,23 +59,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (firebaseUser) {
         try {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Si hay un usuario de Firebase, obtener su perfil del backend
+          // Obtener el perfil del backend inmediatamente, sin delay
           const profile = await authService.getProfile();
+          
+          // Verificar que el perfil corresponde al usuario actual de Firebase
+          if (profile.uid !== firebaseUser.uid) {
+            console.error("Error: El perfil obtenido no corresponde al usuario actual");
+            await authService.logout();
+            setUser(null);
+            setIsLoading(false);
+            return;
+          }
+          
           setUser(profile);
 
+          // Actualizar localStorage con los datos correctos del perfil
           authService.updateStudentDataInStorage({
+            uid: profile.uid,
+            email: profile.email,
+            nombre: profile.nombre,
+            apellido: profile.apellido,
             dni: profile.dni,
             fechaRegistro: profile.fechaRegistro,
             aceptaTerminos: profile.aceptaTerminos,
+            role: profile.role || "student",
             lastProfileUpdate: new Date().toISOString(),
           });
         } catch (error) {
           console.error("Error al obtener perfil:", error);
+          // Si falla obtener el perfil, limpiar todo
+          await authService.logout();
           setUser(null);
         }
       } else {
+        // Si no hay usuario de Firebase, limpiar todo
+        localStorage.removeItem("studentData");
         setUser(null);
       }
 
@@ -178,11 +196,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const forgotPassword = async (email: string) => {
     try {
       await authService.forgotPassword(email);
-      console.log("Email de recuperación enviado exitosamente");
     } catch (error: any) {
-      console.log("Error al recuperar contraseña:", error.message);
-      console.log("Usuario existe:", error.exists);
-      
       throw error;
     }
   };

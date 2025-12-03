@@ -80,7 +80,6 @@ const CourseDetail = () => {
       setSelectedContent(content);
       setPdfModalOpen(true);
     } else {
-      console.log(content);
     }
   };
 

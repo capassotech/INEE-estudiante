@@ -34,14 +34,38 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
+      // Extraer el ID de membresía (puede ser string o objeto con id)
+      let membresiaId: string | null = null;
       if (user.membresia) {
+        if (typeof user.membresia === 'string') {
+          membresiaId = user.membresia;
+        } else if (typeof user.membresia === 'object' && user.membresia !== null && 'id' in user.membresia) {
+          membresiaId = (user.membresia as any).id;
+        }
+      }
+
+      if (membresiaId) {
         setIsLoadingMembresia(true);
         const fetchMembresia = async () => {
-          const membresiaResult = await membershipService.getMembresia(user.membresia || '');
-          setMembresia(membresiaResult.data);
-          setIsLoadingMembresia(false);
-        }
+          try {
+            const membresiaResult = await membershipService.getMembresia(membresiaId!);
+            if (membresiaResult && membresiaResult.data) {
+              setMembresia(membresiaResult.data);
+            } else if (membresiaResult) {
+              // Si la respuesta no tiene .data, usar directamente
+              setMembresia(membresiaResult);
+            }
+          } catch (error) {
+            console.error("Error al obtener membresía:", error);
+            setMembresia(null);
+          } finally {
+            setIsLoadingMembresia(false);
+          }
+        };
         fetchMembresia();
+      } else {
+        setMembresia(null);
+        setIsLoadingMembresia(false);
       }
     }
   }, [user?.membresia, user]);
