@@ -517,13 +517,18 @@ export default function AuthFormView({
         <div className="min-h-screen bg-gradient-hero dark:bg-gradient-hero-dark flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center">
-                    <Link to="/" className="inline-flex items-center space-x-2 mb-8">
+                    <Link to="/" className="inline-flex items-center space-x-2 mb-6">
                         <div className="flex items-center space-x-2">
                             <div className="h-10 rounded-lg flex items-center justify-center">
                                 <img src="/logo-blanco.png" alt="INEE Logo" className="h-20" />
                             </div>
                         </div>
                     </Link>
+                    {isLogin && (
+                        <h1 className="text-4xl font-bold text-white mb-8 tracking-tight drop-shadow-lg">
+                            Panel de alumno
+                        </h1>
+                    )}
                 </div>
 
                 <Card className="shadow-2xl border-0 card-gradient">
