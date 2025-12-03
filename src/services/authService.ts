@@ -53,10 +53,12 @@ class AuthService {
       // Obtener el perfil real del backend inmediatamente después del registro
       if (auth.currentUser) {
         try {
-          const profile = await this.getProfile();
+          const currentUid = auth.currentUser.uid;
+          // Pasar el UID esperado para que getProfile lo verifique
+          const profile = await this.getProfile(currentUid);
           
-          // Verificar que el perfil corresponde al usuario actual
-          if (profile.uid !== auth.currentUser.uid) {
+          // Verificar que el perfil corresponde al usuario actual (doble verificación)
+          if (profile.uid !== currentUid) {
             console.error("Error: El perfil obtenido no corresponde al usuario actual");
             await this.logout();
             throw new Error("Error de autenticación: perfil no coincide");
@@ -110,7 +112,7 @@ class AuthService {
 
       // Obtener el perfil real del backend inmediatamente después del login
       try {
-        const profile = await this.getProfile();
+        const profile = await this.getProfile(user.uid);
         const studentData = {
           uid: profile.uid,
           email: profile.email,
@@ -163,7 +165,7 @@ class AuthService {
 
       // Obtener el perfil real del backend inmediatamente después del registro
       try {
-        const profile = await this.getProfile();
+        const profile = await this.getProfile(user.uid);
         const studentData = {
           uid: profile.uid,
           email: profile.email,
@@ -222,10 +224,12 @@ class AuthService {
       // Obtener el perfil real del backend inmediatamente después del login
       if (auth.currentUser) {
         try {
-          const profile = await this.getProfile();
+          const currentUid = auth.currentUser.uid;
+          // Pasar el UID esperado para que getProfile lo verifique
+          const profile = await this.getProfile(currentUid);
           
-          // Verificar que el perfil corresponde al usuario actual
-          if (profile.uid !== auth.currentUser.uid) {
+          // Verificar que el perfil corresponde al usuario actual (doble verificación)
+          if (profile.uid !== currentUid) {
             console.error("Error: El perfil obtenido no corresponde al usuario actual");
             await this.logout();
             throw new Error("Error de autenticación: perfil no coincide");
@@ -307,11 +311,36 @@ class AuthService {
   }
 
   // Obtener perfil del usuario
-  async getProfile(): Promise<UserProfile> {
+  async getProfile(expectedUid?: string, retries: number = 3): Promise<UserProfile> {
     try {
+      // Asegurarse de que el token esté actualizado
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        // Forzar refresco del token para asegurar que esté actualizado
+        await currentUser.getIdToken(true);
+      }
+      
       const response = await api.get("/auth/me");
-      return response.data;
+      const profile = response.data;
+      
+      // Si se espera un UID específico, verificar que coincida
+      if (expectedUid && profile.uid !== expectedUid) {
+        // Si hay reintentos disponibles y el UID no coincide, reintentar
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return this.getProfile(expectedUid, retries - 1);
+        }
+        throw new Error("El perfil obtenido no corresponde al usuario actual");
+      }
+      
+      return profile;
     } catch (error: any) {
+      // Si hay reintentos disponibles, reintentar (excepto si es el error de UID no coincidente)
+      if (retries > 0 && error.message !== "El perfil obtenido no corresponde al usuario actual") {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return this.getProfile(expectedUid, retries - 1);
+      }
+      
       if (error.response?.status === 401) {
         await this.logout();
         throw new Error(
@@ -319,7 +348,7 @@ class AuthService {
         );
       }
       throw new Error(
-        error.response?.data?.error || "Error al obtener el perfil"
+        error.response?.data?.error || error.message || "Error al obtener el perfil"
       );
     }
   }
