@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock, Mail, CreditCard, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -7,6 +7,7 @@ import RutasAprendizajeModal from "@/components/RutasAprendizajeModal";
 import { toast } from "sonner";
 import { Membership } from "@/types/types";
 import membershipService from "@/services/membershipService";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Profile() {
   const { user, isLoading, refreshUser, updateRouteUser } = useAuth();
@@ -102,186 +103,221 @@ export default function Profile() {
     )
   }
 
+  const getPerfilNombre = (ruta: string | null): string => {
+    if (!ruta) return "No determinado";
+    const rutas: { [key: string]: string } = {
+      "consultoria": "Consultoría",
+      "liderazgo": "Liderazgo",
+      "emprendimiento": "Emprendimiento",
+      "consultor-lider": "Consultor-Líder",
+      "lider-emprendedor": "Líder-Emprendedor",
+      "emprendedor-consultor": "Emprendedor-Consultor"
+    };
+    return rutas[ruta] || ruta;
+  };
+
   return (
-    <div className="font-sans container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 min-h-screen text-[#4B4B4C]">
-      <div className="flex items-center gap-4 border-b border-gray-200 dark:border-gray-700 pb-4 mb-8">
+    <div className="font-sans container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => navigate("/")}
-          className="self-start sm:mt-1"
+          className="hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="">
-          <h1 className="text-3xl font-bold tracking-wide text-black dark:text-white">
-            Perfil
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Mi Perfil
           </h1>
-          <p className="text-base text-[#4B4B4C] dark:text-zinc-300 mt-1">
-            Información personal y edición de tu cuenta.
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Gestiona tu información personal y preferencias
           </p>
         </div>
       </div>
 
-      <section className="rounded-xl shadow-lg p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-[#8B3740] flex items-center justify-center text-white text-xl font-bold">
-            {user.nombre.charAt(0)}
-            {user.apellido.charAt(0)}
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-[#8B3740] dark:text-white">
-              {user.nombre} {user.apellido}
-            </h2>
-            <p className="text-sm text-[#4B4B4C] dark:text-zinc-300">
-              {user.email}
-            </p>
-            <p className="text-sm text-[#4B4B4C] dark:text-zinc-300">
-              DNI: {user.dni}
-            </p>
-            {isLoadingRuta ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
-                <p className="text-sm text-gray-400 dark:text-zinc-500">
-                  Cargando ruta de aprendizaje...
-                </p>
-              </div>
-            ) : rutaAprendizaje ? (
-              <p className="bg-gradient-to-r bg-clip-text text-transparent from-zinc-800/80 to-primary font-semibold dark:text-zinc-300">
-                Ruta de aprendizaje: <span className="text-primary">{rutaAprendizaje}</span>
-              </p>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-400 dark:text-zinc-500 italic">
-                  Completa el test vocacional para conocer tu ruta de aprendizaje
-                </p>
-                <Button
-                  onClick={async () => {
-                    setIsLoadingRuta(true);
-                    try {
-                      await refreshUser();
-                    } catch (error) {
-                      console.error('Error al refrescar:', error);
-                    } finally {
-                      setTimeout(() => setIsLoadingRuta(false), 1000);
-                    }
-                  }}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs px-3 py-1 border-gray-300 text-gray-600"
-                >
-                  Refrescar datos
-                </Button>
-              </div>
-            )}
-            <Button 
-              onClick={() => setIsOpen(true)} 
-              size="sm" 
-              variant="outline" 
-              className="text-xs px-3 border-gray-300 mt-1"
-              >
-                Ver mas formaciones
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#4B4B4C] dark:text-zinc-200">
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              disabled
-              defaultValue={`${user.nombre} ${user.apellido}`}
-              className="mt-1 w-full border border-[#D8D3CA] dark:text-zinc-300 dark:border-zinc-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#D8A848]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#4B4B4C] dark:text-zinc-200">
-              Correo electrónico
-            </label>
-            <input
-              type="email"
-              disabled
-              defaultValue={user.email}
-              className="mt-1 w-full border border-[#D8D3CA] dark:text-zinc-300 dark:border-zinc-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#D8A848]"
-            />
-          </div>
-        </div>
-
-        {/* <div className="flex justify-end gap-4">
-          <Button
-            variant="outline"
-            className="px-6 py-3 bg-[#8B3740] dark:bg-zinc-700 text-white rounded-lg hover:bg-[#D8A848] transition-colors font-medium"
-          >
-            Guardar cambios
-          </Button>
-        </div> */}
-      </section>
-
-      <section className="rounded-xl shadow-lg p-6 space-y-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Crown className="w-6 h-6 text-[#D8A848]" />
-          <h2 className="text-xl font-semibold text-[#8B3740] dark:text-white">
-            Mi Membresía
-          </h2>
-        </div>
-        
-        {isLoadingMembresia ? ( 
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-            <p className="text-sm text-gray-400 dark:text-zinc-500">
-              Cargando membresía...
-            </p>
-          </div>
-        ) : membresia !== null ? (
-          <div className="bg-gradient-to-br from-[#8B3740]/5 to-[#D8A848]/5 dark:from-[#8B3740]/10 dark:to-[#D8A848]/10 rounded-lg border border-[#8B3740]/20 dark:border-[#8B3740]/30 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-lg font-bold text-[#8B3740] dark:text-white">
-                    {membresia.nombre}
-                  </h3>
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    membresia.estado === 'activo' 
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-                  }`}>
-                    {membresia.estado === 'activo' ? (
-                      <CheckCircle className="w-3 h-3" />
-                    ) : (
-                      <Clock className="w-3 h-3" />
-                    )}
-                    {membresia.estado === 'activo' ? 'Activo' : 'Inactivo'}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Columna izquierda - Información principal */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Tarjeta de información personal */}
+          <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-6">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
+                  {user.nombre.charAt(0)}
+                  {user.apellido.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
+                    {user.nombre} {user.apellido}
+                  </h2>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Mail className="w-4 h-4" />
+                      <span>{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <CreditCard className="w-4 h-4" />
+                      <span>DNI: {user.dni}</span>
+                    </div>
                   </div>
                 </div>
-                <p className="text-sm text-[#4B4B4C] dark:text-zinc-300 mb-3 leading-relaxed">
-                  {membresia.descripcion}
-                </p>
-                <div className="text-xs text-[#4B4B4C] dark:text-zinc-400">
-                  Fecha de alta: {new Date(membresia.fecha_alta).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tarjeta de ruta de aprendizaje */}
+          <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Ruta de Aprendizaje
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Tu perfil predominante de desarrollo profesional
+                  </p>
                 </div>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Crown className="w-12 h-12 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
-            <p className="text-[#4B4B4C] dark:text-zinc-400 mb-4">
-              No tienes una membresía activa
-            </p>
-            <Button onClick={() => navigate("/membresias")} className="bg-[#8B3740] hover:bg-[#D8A848] text-white">
-              Explorar Membresías
-            </Button>
-          </div>
-        )}
-      </section>
+
+              {isLoadingRuta ? (
+                <div className="flex items-center justify-center gap-3 py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Cargando ruta de aprendizaje...
+                  </p>
+                </div>
+              ) : rutaAprendizaje ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          Perfil predominante
+                        </p>
+                        <p className="text-lg font-semibold text-purple-700 dark:text-purple-300">
+                          {getPerfilNombre(rutaAprendizaje)}
+                        </p>
+                      </div>
+                      <BookOpen className="w-8 h-8 text-purple-500 dark:text-purple-400" />
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => setIsOpen(true)} 
+                    variant="outline"
+                    className="w-full border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                  >
+                    Cambiar mi ruta de aprendizaje
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-8 space-y-4">
+                  <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 w-16 h-16 mx-auto flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
+                      Aún no tienes una ruta asignada
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
+                      Completa el test vocacional para conocer tu perfil predominante
+                    </p>
+                    <Button
+                      onClick={() => navigate("/test-vocacional")}
+                      className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
+                    >
+                      Realizar test vocacional
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+        </div>
+
+        {/* Columna derecha - Membresía */}
+        <div className="lg:col-span-1">
+          <Card className="border-slate-200 dark:border-slate-700 shadow-sm sticky top-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500">
+                  <Crown className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Mi Membresía
+                </h3>
+              </div>
+              
+              {isLoadingMembresia ? ( 
+                <div className="flex items-center justify-center gap-2 py-8">
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Cargando...
+                  </p>
+                </div>
+              ) : membresia !== null ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                        {membresia.nombre}
+                      </h4>
+                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        membresia.estado === 'activo' 
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                      }`}>
+                        {membresia.estado === 'activo' ? (
+                          <CheckCircle className="w-3 h-3" />
+                        ) : (
+                          <Clock className="w-3 h-3" />
+                        )}
+                        {membresia.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                      {membresia.descripcion}
+                    </p>
+                    <div className="text-xs text-slate-500 dark:text-slate-500 pt-3 border-t border-amber-200 dark:border-amber-800">
+                      Fecha de alta: {new Date(membresia.fecha_alta).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 space-y-4">
+                  <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 w-16 h-16 mx-auto flex items-center justify-center">
+                    <Crown className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">
+                      Sin membresía activa
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
+                      Explora nuestros planes y beneficios
+                    </p>
+                    <Button 
+                      onClick={() => navigate("/membresias")} 
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-sm"
+                    >
+                      Explorar Membresías
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
       
       <RutasAprendizajeModal 
         isOpen={isOpen} 

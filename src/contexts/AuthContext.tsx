@@ -59,32 +59,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (firebaseUser) {
         try {
-          // Obtener el perfil del backend inmediatamente, sin delay
-          const profile = await authService.getProfile();
+          // Esperar un momento para asegurar que el token esté completamente propagado
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Obtener el perfil del backend pasando el UID esperado
+          const expectedUid = firebaseUser.uid;
+          const profile = await authService.getProfile(expectedUid);
           
           // Verificar que el perfil corresponde al usuario actual de Firebase
-          if (profile.uid !== firebaseUser.uid) {
-            console.error("Error: El perfil obtenido no corresponde al usuario actual");
-            await authService.logout();
-            setUser(null);
-            setIsLoading(false);
-            return;
+          if (profile.uid !== expectedUid) {
+            console.error("Error: El perfil obtenido no corresponde al usuario actual", {
+              expected: expectedUid,
+              received: profile.uid
+            });
+            // No hacer logout inmediatamente, intentar refrescar el token y reintentar
+            try {
+              await firebaseUser.getIdToken(true);
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const retryProfile = await authService.getProfile(expectedUid);
+              if (retryProfile.uid !== expectedUid) {
+                await authService.logout();
+                setUser(null);
+                setIsLoading(false);
+                return;
+              }
+              // Si el reintento fue exitoso, usar ese perfil
+              setUser(retryProfile);
+              
+              // Actualizar localStorage con los datos correctos del perfil
+              authService.updateStudentDataInStorage({
+                uid: retryProfile.uid,
+                email: retryProfile.email,
+                nombre: retryProfile.nombre,
+                apellido: retryProfile.apellido,
+                dni: retryProfile.dni,
+                fechaRegistro: retryProfile.fechaRegistro,
+                aceptaTerminos: retryProfile.aceptaTerminos,
+                role: retryProfile.role || "student",
+                lastProfileUpdate: new Date().toISOString(),
+              });
+            } catch (retryError) {
+              console.error("Error en reintento de obtener perfil:", retryError);
+              await authService.logout();
+              setUser(null);
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            setUser(profile);
+            
+            // Actualizar localStorage con los datos correctos del perfil
+            authService.updateStudentDataInStorage({
+              uid: profile.uid,
+              email: profile.email,
+              nombre: profile.nombre,
+              apellido: profile.apellido,
+              dni: profile.dni,
+              fechaRegistro: profile.fechaRegistro,
+              aceptaTerminos: profile.aceptaTerminos,
+              role: profile.role || "student",
+              lastProfileUpdate: new Date().toISOString(),
+            });
           }
-          
-          setUser(profile);
-
-          // Actualizar localStorage con los datos correctos del perfil
-          authService.updateStudentDataInStorage({
-            uid: profile.uid,
-            email: profile.email,
-            nombre: profile.nombre,
-            apellido: profile.apellido,
-            dni: profile.dni,
-            fechaRegistro: profile.fechaRegistro,
-            aceptaTerminos: profile.aceptaTerminos,
-            role: profile.role || "student",
-            lastProfileUpdate: new Date().toISOString(),
-          });
         } catch (error) {
           console.error("Error al obtener perfil:", error);
           // Si falla obtener el perfil, limpiar todo
