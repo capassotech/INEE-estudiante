@@ -109,10 +109,9 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
       if (isLogin) {
         await login(formData.email, formData.password);
 
-        const studentData = authService.getStudentDataFromStorage();
-        const userName = studentData?.nombre || "Usuario";
-
-        toast.success(`¡Bienvenido de vuelta, ${userName}!`, {
+        // Esperar un momento para que el perfil se actualice en el contexto
+        // El perfil real se obtiene del backend en el useEffect de AuthContext
+        toast.success("¡Bienvenido de vuelta!", {
           description: "Has iniciado sesión exitosamente",
           duration: 4000,
         });
@@ -123,10 +122,9 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
       } else {
         await register(formData);
 
-        const studentData = authService.getStudentDataFromStorage();
-        const userName = studentData?.nombre || "Usuario";
-
-        toast.success(`¡Bienvenido a INEE, ${userName}!`, {
+        // Esperar un momento para que el perfil se actualice en el contexto
+        // El perfil real se obtiene del backend en el useEffect de AuthContext
+        toast.success("¡Bienvenido a INEE!", {
           description: "Tu cuenta ha sido creada exitosamente",
           duration: 4000,
         });
@@ -136,7 +134,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
         // }, 1000);
       }
     } catch (error: any) {     
-      toast.error(error.error);
+      toast.error(error.error || error.message || "Error al autenticarse");
     } finally {
       setIsSubmitting(false);
     }

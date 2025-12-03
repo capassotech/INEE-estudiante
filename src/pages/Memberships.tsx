@@ -29,15 +29,39 @@ const Memberships = () => {
     useEffect(() => { 
         fetchMembershipPlans() 
         if (user) {
-            fetchUserMembership(user.membresia);
+            // Extraer el ID de membresía (puede ser string o objeto con id)
+            let membresiaId: string | null = null;
+            if (user.membresia) {
+                if (typeof user.membresia === 'string') {
+                    membresiaId = user.membresia;
+                } else if (typeof user.membresia === 'object' && user.membresia !== null && 'id' in user.membresia) {
+                    membresiaId = (user.membresia as any).id;
+                }
+            }
+            if (membresiaId) {
+                fetchUserMembership(membresiaId);
+            }
         }
     }, [user]);
 
     const fetchUserMembership = async (membresiaId: string) => {
         setIsLoading(true);
-        const data = await membershipService.getMembresia(membresiaId);
-        setUserMembership(data.data);
-        setIsLoading(false);
+        try {
+            const data = await membershipService.getMembresia(membresiaId);
+            if (data && data.data) {
+                setUserMembership(data.data);
+            } else if (data) {
+                // Si la respuesta no tiene .data, usar directamente
+                setUserMembership(data);
+            } else {
+                setUserMembership(null);
+            }
+        } catch (error) {
+            console.error("Error al obtener membresía del usuario:", error);
+            setUserMembership(null);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     const fetchMembershipPlans = async () => {

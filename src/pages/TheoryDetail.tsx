@@ -64,7 +64,6 @@ const TheoryDetail = () => {
   };
 
   const markAsCompleted = () => {
-    console.log("Unidad marcada como completada");
   };
 
   return (

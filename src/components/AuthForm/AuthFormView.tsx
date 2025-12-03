@@ -263,6 +263,7 @@ export default function AuthFormView({
                                 id="email"
                                 type="email"
                                 placeholder="tu@email.com"
+                                autoComplete="email"
                                 className={`pl-10 form-input ${errors.email ? "border-destructive ring-destructive" : ""
                                     }`}
                                 value={formData.email as string}
@@ -283,6 +284,7 @@ export default function AuthFormView({
                                 id="password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Crea una contraseña segura"
+                                autoComplete="new-password"
                                 className={`pl-10 pr-10 form-input ${errors.password
                                     ? "border-destructive ring-destructive"
                                     : ""
@@ -446,6 +448,7 @@ export default function AuthFormView({
                             id="email"
                             type="email"
                             placeholder="tu@email.com"
+                            autoComplete="email"
                             className={`pl-10 form-input ${errors.email ? "border-destructive ring-destructive" : ""
                                 }`}
                             value={formData.email as string}
@@ -466,6 +469,7 @@ export default function AuthFormView({
                             id="password"
                             type={showPassword ? "text" : "password"}
                             placeholder="Tu contraseña"
+                            autoComplete="current-password"
                             className={`pl-10 pr-10 form-input ${errors.password
                                 ? "border-destructive ring-destructive"
                                 : ""

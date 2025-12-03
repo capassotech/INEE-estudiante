@@ -109,12 +109,7 @@ const Index = () => {
         params.search = currentSearch.trim();
       }
 
-      console.log('🔍 [Index] Loading courses:', { page, size, params });
       const data = await userService.getCoursesPerUser(user.uid, params);
-      console.log('📦 [Index] Received data:', { 
-        coursesCount: data.courses?.length || 0,
-        pagination: data.pagination 
-      });
       
       let coursesData: Course[] = [];
       if (data.courses) {

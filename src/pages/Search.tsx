@@ -50,7 +50,6 @@ const Search = () => {
           return !estado || estado === "vigente" || estado === "activo" || estado === "disponible";
         });
         
-        console.log("📚 [Search] Loaded courses:", allCourses.length, "vigentes:", courses.length);
         
         // Cargar todos los módulos en paralelo solo para formaciones vigentes
         const modulePromises: Array<{ course: Course; promise: Promise<any[]> }> = [];
@@ -131,7 +130,6 @@ const Search = () => {
                 href: `/ebook/${ebook.id}`,
               });
             }
-            console.log("📖 [Search] Loaded ebooks:", ebooks.length);
           }
         } catch (error) {
           console.warn("⚠️ [Search] Could not load ebooks (non-critical):", error);
@@ -179,7 +177,6 @@ const Search = () => {
                 href: `/evento/${event.id}`,
               });
             }
-            console.log("📅 [Search] Loaded events:", events.length);
           }
         } catch (error) {
           console.warn("⚠️ [Search] Could not load events (non-critical):", error);
@@ -187,13 +184,6 @@ const Search = () => {
         
         if (!isMounted) return;
         
-        console.log("✅ [Search] Loaded resources:", {
-          total: allItemsArray.length,
-          formaciones: allItemsArray.filter(i => i.resourceType === "formacion").length,
-          modulos: allItemsArray.filter(i => i.resourceType === "modulo").length,
-          ebooks: allItemsArray.filter(i => i.resourceType === "ebook").length,
-          eventos: allItemsArray.filter(i => i.resourceType === "evento").length,
-        });
         
         setAllItems(allItemsArray);
       } catch (error) {
@@ -226,17 +216,10 @@ const Search = () => {
   const filteredResults = useMemo(() => {
     let results = [...allItems] // Crear copia para no mutar el array original
 
-    console.log("🔍 [Search] Filtering results:", {
-      totalItems: allItems.length,
-      filter,
-      query: query.trim(),
-      beforeFilter: results.length
-    });
 
     // Aplicar filtro por tipo de recurso
     if (filter !== "all") {
       results = results.filter((item) => item.resourceType === filter)
-      console.log("🔍 [Search] After filter:", results.length);
     }
 
     // Aplicar búsqueda por texto
@@ -269,10 +252,8 @@ const Search = () => {
         return titleMatch || descriptionMatch || courseNameMatch || tagsMatch || temasMatch || nivelMatch || pilarMatch
       })
       
-      console.log("🔍 [Search] After search:", results.length);
     }
 
-    console.log("✅ [Search] Final results:", results.length);
     return results
   }, [query, filter, allItems])
 

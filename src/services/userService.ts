@@ -39,33 +39,15 @@ class UserService {
       }
       
       const url = `/formaciones/user/${uid}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      console.log('🔍 [UserService] Fetching courses:', { 
-        uid, 
-        params, 
-        url,
-        baseURL: API_BASE_URL,
-        fullURL: `${API_BASE_URL}/api${url}`
-      });
       const response = await api.get(url);
-      console.log('📦 [UserService] Raw response.data:', response.data);
-      console.log('📦 [UserService] Response type:', typeof response.data, 'Is array:', Array.isArray(response.data));
-      console.log('📦 [UserService] Response details:', { 
-        hasCourses: !!response.data?.courses, 
-        coursesCount: response.data?.courses?.length || 0,
-        pagination: response.data?.pagination,
-        isArray: Array.isArray(response.data),
-        arrayLength: Array.isArray(response.data) ? response.data.length : 0
-      });
       
       // Si la respuesta tiene estructura paginada
       if (response.data && response.data.courses) {
-        console.log('✅ [UserService] Returning paginated structure');
         return response.data;
       }
       
       // Compatibilidad con respuestas antiguas (array directo)
       if (Array.isArray(response.data)) {
-        console.log('⚠️ [UserService] Response is array, converting to paginated structure');
         return {
           courses: response.data,
           pagination: {
