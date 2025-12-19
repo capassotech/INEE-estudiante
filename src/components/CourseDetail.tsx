@@ -38,9 +38,11 @@ const CourseDetail = () => {
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
 
   // Función para guardar progreso en localStorage como respaldo
+  // Usar userId en la clave para que sea específico por usuario
   const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
     try {
-      const key = `progress_${courseId}`;
+      if (!user?.uid) return;
+      const key = `progress_${user.uid}_${courseId}`;
       localStorage.setItem(key, JSON.stringify(Array.from(completed)));
     } catch (error) {
       console.warn("Error al guardar progreso en localStorage:", error);
@@ -48,9 +50,11 @@ const CourseDetail = () => {
   };
 
   // Función para cargar progreso desde localStorage
+  // Usar userId en la clave para que sea específico por usuario
   const loadProgressFromLocalStorage = (courseId: string): Set<string> => {
     try {
-      const key = `progress_${courseId}`;
+      if (!user?.uid) return new Set<string>();
+      const key = `progress_${user.uid}_${courseId}`;
       const saved = localStorage.getItem(key);
       if (saved) {
         return new Set(JSON.parse(saved));
@@ -89,7 +93,7 @@ const CourseDetail = () => {
           
           // Cargar progreso desde localStorage primero (para mostrar algo inmediatamente)
           let cachedProgress = new Set<string>();
-          if (courseId) {
+          if (courseId && user?.uid) {
             cachedProgress = loadProgressFromLocalStorage(courseId);
             if (cachedProgress.size > 0) {
               setCompletedContents(cachedProgress);
@@ -218,13 +222,58 @@ const CourseDetail = () => {
             saveProgressToLocalStorage(courseId, cachedProgress);
           } else {
             // Si no hay nada en localStorage pero el backend reporta progreso,
-            // mantener el progreso del backend pero no establecer contenidos completados
-            // (porque las verificaciones fallaron)
-            setProgressData({
-              progreso_general: progreso_general,
-              total_contenidos: total_contenidos,
-              contenidos_completados: contenidos_completados,
-            });
+            // intentar usar los índices de los contenidos como alternativa
+            // El backend normaliza los IDs a índices, así que intentemos verificar por índice
+            const completedByIndex = new Set<string>();
+            
+            for (const module of modulesData) {
+              if (!module.contenido || module.contenido.length === 0) continue;
+              
+              const moduloBackend = modulosBackendMap.get(module.id);
+              const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
+              
+              if (contenidosCompletadosModulo > 0) {
+                // Intentar verificar por índice en lugar de por título
+                for (let index = 0; index < module.contenido.length; index++) {
+                  const content = module.contenido[index];
+                  const contentIdByIndex = index.toString();
+                  
+                  try {
+                    const estadoResponse = await progressService.obtenerEstadoContenido(
+                      module.id, 
+                      contentIdByIndex
+                    );
+                    if (estadoResponse.success && estadoResponse.data.completado) {
+                      // Usar el ID real del contenido (no el índice)
+                      const realContentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
+                      completedByIndex.add(realContentId);
+                    }
+                  } catch (error) {
+                    // Continuar con el siguiente
+                  }
+                }
+              }
+            }
+            
+            if (completedByIndex.size > 0) {
+              completedSet = completedByIndex;
+              const realProgress = total_contenidos > 0 
+                ? Math.round((completedByIndex.size / total_contenidos) * 100) 
+                : 0;
+              setProgressData({
+                progreso_general: realProgress,
+                total_contenidos: total_contenidos,
+                contenidos_completados: completedByIndex.size,
+              });
+              saveProgressToLocalStorage(courseId, completedByIndex);
+            } else {
+              // Si todo falla, mantener el progreso del backend aunque no podamos marcar checkboxes
+              setProgressData({
+                progreso_general: progreso_general,
+                total_contenidos: total_contenidos,
+                contenidos_completados: contenidos_completados,
+              });
+            }
           }
         } else if (completedSet.size === 0 && contenidos_completados === 0) {
           setProgressData({
@@ -233,8 +282,8 @@ const CourseDetail = () => {
             contenidos_completados: 0,
           });
           // Limpiar localStorage si no hay progreso
-          if (courseId) {
-            localStorage.removeItem(`progress_${courseId}`);
+          if (courseId && user?.uid) {
+            localStorage.removeItem(`progress_${user.uid}_${courseId}`);
           }
         } else if (completedSet.size !== contenidos_completados) {
           // Usar el valor verificado como fuente de verdad
