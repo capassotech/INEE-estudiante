@@ -22,8 +22,61 @@ interface VideoModalProps {
   } | null;
 }
 
+/**
+ * Convierte una URL de YouTube a formato embed
+ * Soporta varios formatos:
+ * - https://www.youtube.com/watch?v=VIDEO_ID
+ * - https://www.youtube.com/live/VIDEO_ID?si=...
+ * - https://youtu.be/VIDEO_ID
+ * - https://m.youtube.com/watch?v=VIDEO_ID
+ */
+const convertToYouTubeEmbed = (url: string): string => {
+  if (!url) return url;
+  
+  // Si ya es una URL de embed, retornarla tal cual
+  if (url.includes('youtube.com/embed/')) {
+    return url;
+  }
+  
+  try {
+    const urlObj = new URL(url);
+    
+    // Para URLs tipo: youtube.com/watch?v=VIDEO_ID o youtube.com/live/VIDEO_ID
+    if (urlObj.hostname.includes('youtube.com')) {
+      // Caso: /live/VIDEO_ID
+      const liveMatch = urlObj.pathname.match(/\/live\/([^/?]+)/);
+      if (liveMatch) {
+        return `https://www.youtube.com/embed/${liveMatch[1]}`;
+      }
+      
+      // Caso: /watch?v=VIDEO_ID
+      const videoId = urlObj.searchParams.get('v');
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+    
+    // Para URLs tipo: youtu.be/VIDEO_ID
+    if (urlObj.hostname === 'youtu.be') {
+      const videoId = urlObj.pathname.substring(1); // Remover el "/" inicial
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+    
+    // Si no se pudo convertir, retornar la URL original
+    return url;
+  } catch (error) {
+    // Si hay error al parsear la URL, retornar la original
+    console.warn('Error al convertir URL de YouTube:', error);
+    return url;
+  }
+};
+
 const VideoModal = ({ isOpen, onClose, content }: VideoModalProps) => {
   if (!content) return null;
+  
+  const embedUrl = convertToYouTubeEmbed(content.url);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -40,7 +93,7 @@ const VideoModal = ({ isOpen, onClose, content }: VideoModalProps) => {
           {/* Video Player */}
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
             <iframe
-              src={content.url}
+              src={embedUrl}
               title={content.title}
               className="w-full h-full"
               allowFullScreen
