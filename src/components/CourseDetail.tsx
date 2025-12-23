@@ -21,16 +21,55 @@ import ContentItem from "@/components/content-item";
 import PDFModal from "@/components/PDFModal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
+import progressService from "@/services/progressService";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const { user } = useAuth();
   const [courseData, setCourseData] = useState<Course | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isLoadingModules, setIsLoadingModules] = useState(true);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
-  const [completedContents, setCompletedContents] = useState<string[]>([]);
+  const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
+
+  // Función para guardar progreso en localStorage como respaldo
+  // Usar userId en la clave para que sea específico por usuario
+  const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
+    try {
+      if (!user?.uid) return;
+      const key = `progress_${user.uid}_${courseId}`;
+      localStorage.setItem(key, JSON.stringify(Array.from(completed)));
+    } catch (error) {
+      console.warn("Error al guardar progreso en localStorage:", error);
+    }
+  };
+
+  // Función para cargar progreso desde localStorage
+  // Usar userId en la clave para que sea específico por usuario
+  const loadProgressFromLocalStorage = (courseId: string): Set<string> => {
+    try {
+      if (!user?.uid) return new Set<string>();
+      const key = `progress_${user.uid}_${courseId}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        return new Set(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.warn("Error al cargar progreso desde localStorage:", error);
+    }
+    return new Set<string>();
+  };
+  const [progressData, setProgressData] = useState<{
+    progreso_general: number;
+    total_contenidos: number;
+    contenidos_completados: number;
+  } | null>(null);
+  const [updatingContent, setUpdatingContent] = useState<Set<string>>(new Set());
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItemType | null>(null);
   const navigate = useNavigate();
@@ -47,13 +86,234 @@ const CourseDetail = () => {
   useEffect(() => {
     if (courseData) {
       const fetchModules = async () => {
-        const modules = await courseService.getAllModules(courseData.id_modulos);
-        setModules(modules || []);
-        setIsLoadingModules(false);
+        try {
+          const modulesData = await courseService.getAllModules(courseData.id_modulos);
+          setModules(modulesData || []);
+          setIsLoadingModules(false);
+          
+          // Cargar progreso desde localStorage primero (para mostrar algo inmediatamente)
+          let cachedProgress = new Set<string>();
+          if (courseId && user?.uid) {
+            cachedProgress = loadProgressFromLocalStorage(courseId);
+            if (cachedProgress.size > 0) {
+              setCompletedContents(cachedProgress);
+            }
+          }
+          
+          // Cargar progreso desde el backend después de cargar los módulos
+          // Pasar el cache como parámetro para usarlo como respaldo
+          if (user?.uid && courseId && modulesData) {
+            await loadProgressFromBackend(modulesData, cachedProgress);
+          } else {
+            setIsLoadingProgress(false);
+          }
+        } catch (error) {
+          console.error("Error al cargar módulos:", error);
+          setIsLoadingModules(false);
+          setIsLoadingProgress(false);
+        }
       };
       fetchModules();
     }
-  }, [courseData]);
+  }, [courseData, user, courseId]);
+
+  /**
+   * Cargar progreso desde el backend
+   */
+  const loadProgressFromBackend = async (modulesData: Module[], cachedProgress: Set<string> = new Set()) => {
+    if (!user?.uid || !courseId || !modulesData || modulesData.length === 0) {
+      setIsLoadingProgress(false);
+      return;
+    }
+
+    try {
+      setIsLoadingProgress(true);
+      
+      const response = await progressService.obtenerProgresoCurso(courseId);
+      
+      if (response.success && response.data) {
+        const { modulos, progreso_general, total_contenidos, contenidos_completados } = response.data;
+        
+        // Actualizar estado de progreso general
+        setProgressData({
+          progreso_general,
+          total_contenidos,
+          contenidos_completados,
+        });
+
+        // Mapear contenidos completados desde el backend
+        // El backend normaliza los IDs a índices, así que necesitamos verificar cada contenido
+        let completedSet = new Set<string>();
+        
+        // Crear un mapa de módulos del backend por ID
+        const modulosBackendMap = new Map(
+          modulos.map(m => [m.modulo_id, m])
+        );
+        
+        // Verificar estado de TODOS los contenidos en paralelo (no solo los que tienen progreso)
+        // Esto asegura que cargamos correctamente el estado de todos los contenidos
+        const checkPromises: Array<Promise<{ contentId: string; completed: boolean; moduleId: string }>> = [];
+        
+        for (const module of modulesData) {
+          if (!module.contenido || module.contenido.length === 0) continue;
+          
+          const moduloBackend = modulosBackendMap.get(module.id);
+          const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
+          
+          // Verificar TODOS los contenidos del módulo, no solo los que tienen progreso
+          // Esto asegura que cargamos el estado correcto incluso si hay inconsistencias
+          for (let index = 0; index < module.contenido.length; index++) {
+            const content = module.contenido[index];
+            // Usar el mismo formato que cuando guardamos: content.id || content.titulo + " " + content.descripcion
+            // Esto debe coincidir exactamente con content-item.tsx
+            const contentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
+            
+            // Crear promesa para verificar estado
+            const checkPromise = progressService
+              .obtenerEstadoContenido(module.id, contentId)
+              .then((estadoResponse) => {
+                const completed = estadoResponse.success && estadoResponse.data.completado;
+                return { contentId, completed, moduleId: module.id };
+              })
+              .catch((error) => {
+                console.error(`❌ Error al verificar estado de contenido "${contentId.substring(0, 50)}..." en módulo ${module.id}:`, {
+                  error: error.message,
+                  response: error.response?.data,
+                  status: error.response?.status
+                });
+                // Retornar no completado si hay error
+                return { contentId, completed: false, moduleId: module.id };
+              });
+            
+            checkPromises.push(checkPromise);
+          }
+        }
+        
+        // Esperar todas las verificaciones en paralelo (sin límites de lotes)
+        const results = await Promise.allSettled(checkPromises);
+        
+        // Procesar resultados
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            const { contentId, completed } = result.value;
+            if (completed) {
+              completedSet.add(contentId);
+            }
+          }
+        });
+
+        // Guardar en localStorage como respaldo
+        saveProgressToLocalStorage(courseId, completedSet);
+        
+        if (completedSet.size === 0 && contenidos_completados > 0) {
+          // Si hay progreso en localStorage y el backend también reporta progreso,
+          // usar el localStorage como fuente de verdad (es más confiable que las verificaciones que fallan)
+          if (cachedProgress.size > 0) {
+            completedSet = cachedProgress;
+            const realProgress = total_contenidos > 0 
+              ? Math.round((cachedProgress.size / total_contenidos) * 100) 
+              : 0;
+            setProgressData({
+              progreso_general: realProgress,
+              total_contenidos: total_contenidos,
+              contenidos_completados: cachedProgress.size,
+            });
+            // Guardar de nuevo en localStorage para asegurar que esté actualizado
+            saveProgressToLocalStorage(courseId, cachedProgress);
+          } else {
+            // Si no hay nada en localStorage pero el backend reporta progreso,
+            // intentar usar los índices de los contenidos como alternativa
+            // El backend normaliza los IDs a índices, así que intentemos verificar por índice
+            const completedByIndex = new Set<string>();
+            
+            for (const module of modulesData) {
+              if (!module.contenido || module.contenido.length === 0) continue;
+              
+              const moduloBackend = modulosBackendMap.get(module.id);
+              const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
+              
+              if (contenidosCompletadosModulo > 0) {
+                // Intentar verificar por índice en lugar de por título
+                for (let index = 0; index < module.contenido.length; index++) {
+                  const content = module.contenido[index];
+                  const contentIdByIndex = index.toString();
+                  
+                  try {
+                    const estadoResponse = await progressService.obtenerEstadoContenido(
+                      module.id, 
+                      contentIdByIndex
+                    );
+                    if (estadoResponse.success && estadoResponse.data.completado) {
+                      // Usar el ID real del contenido (no el índice)
+                      const realContentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
+                      completedByIndex.add(realContentId);
+                    }
+                  } catch (error) {
+                    // Continuar con el siguiente
+                  }
+                }
+              }
+            }
+            
+            if (completedByIndex.size > 0) {
+              completedSet = completedByIndex;
+              const realProgress = total_contenidos > 0 
+                ? Math.round((completedByIndex.size / total_contenidos) * 100) 
+                : 0;
+              setProgressData({
+                progreso_general: realProgress,
+                total_contenidos: total_contenidos,
+                contenidos_completados: completedByIndex.size,
+              });
+              saveProgressToLocalStorage(courseId, completedByIndex);
+            } else {
+              // Si todo falla, mantener el progreso del backend aunque no podamos marcar checkboxes
+              setProgressData({
+                progreso_general: progreso_general,
+                total_contenidos: total_contenidos,
+                contenidos_completados: contenidos_completados,
+              });
+            }
+          }
+        } else if (completedSet.size === 0 && contenidos_completados === 0) {
+          setProgressData({
+            progreso_general: 0,
+            total_contenidos: total_contenidos,
+            contenidos_completados: 0,
+          });
+          // Limpiar localStorage si no hay progreso
+          if (courseId && user?.uid) {
+            localStorage.removeItem(`progress_${user.uid}_${courseId}`);
+          }
+        } else if (completedSet.size !== contenidos_completados) {
+          // Usar el valor verificado como fuente de verdad
+          const realProgress = total_contenidos > 0 
+            ? Math.round((completedSet.size / total_contenidos) * 100) 
+            : 0;
+          setProgressData({
+            progreso_general: realProgress,
+            total_contenidos: total_contenidos,
+            contenidos_completados: completedSet.size,
+          });
+          // Actualizar localStorage con los valores verificados
+          saveProgressToLocalStorage(courseId, completedSet);
+        } else {
+          // Todo coincide, actualizar localStorage con los valores verificados
+          saveProgressToLocalStorage(courseId, completedSet);
+        }
+        
+        setCompletedContents(completedSet);
+      } else {
+        console.warn("⚠️ Respuesta del backend sin éxito:", response);
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar progreso:", error);
+      console.error("Detalles del error:", error.response?.data || error.message);
+      toast.error("Error al cargar el progreso del curso");
+    } finally {
+      setIsLoadingProgress(false);
+    }
+  };
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
@@ -67,12 +327,117 @@ const CourseDetail = () => {
     });
   };
 
-  const toggleContentComplete = (contentId: string) => {
-    setCompletedContents((prev) =>
-      prev.includes(contentId)
-        ? prev.filter((id) => id !== contentId)
-        : [...prev, contentId]
-    );
+  /**
+   * Marcar/desmarcar contenido como completado
+   */
+  const toggleContentComplete = async (contentId: string) => {
+    if (!user?.uid || !courseId) {
+      toast.error("Debes estar autenticado para marcar progreso");
+      return;
+    }
+
+    // Encontrar el módulo y contenido correspondiente
+    // Usar el mismo formato que content-item.tsx: content.id || content.titulo + " " + content.descripcion
+    let targetModule: Module | null = null;
+    let targetContent: ContentItemType | null = null;
+
+    for (const module of modules) {
+      if (module.contenido) {
+        const content = module.contenido.find((c) => {
+          // Coincidir con el formato usado en content-item.tsx
+          const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
+          return cId === contentId || c.id === contentId || c.titulo === contentId;
+        });
+        if (content) {
+          targetModule = module;
+          targetContent = content;
+          break;
+        }
+      }
+    }
+
+    if (!targetModule || !targetContent) {
+      toast.error("No se pudo encontrar el contenido");
+      return;
+    }
+
+    const isCurrentlyCompleted = completedContents.has(contentId);
+    const contentKey = `${targetModule.id}-${contentId}`;
+
+    // Optimistic update
+    setUpdatingContent((prev) => new Set(prev).add(contentKey));
+    let updatedSet: Set<string>;
+    setCompletedContents((prev) => {
+      const newSet = new Set(prev);
+      if (isCurrentlyCompleted) {
+        newSet.delete(contentId);
+      } else {
+        newSet.add(contentId);
+      }
+      updatedSet = newSet;
+      // Guardar en localStorage inmediatamente después de la actualización optimista
+      if (courseId) {
+        saveProgressToLocalStorage(courseId, newSet);
+      }
+      return newSet;
+    });
+
+    try {
+      let response;
+      if (isCurrentlyCompleted) {
+        // Desmarcar
+        response = await progressService.desmarcarCompletado({
+          userId: user.uid,
+          cursoId: courseId,
+          moduloId: targetModule.id,
+          contenidoId: contentId,
+        });
+      } else {
+        // Marcar
+        response = await progressService.marcarCompletado({
+          userId: user.uid,
+          cursoId: courseId,
+          moduloId: targetModule.id,
+          contenidoId: contentId,
+        });
+      }
+
+      if (response.success) {
+        // Actualizar progreso general desde la respuesta del backend
+        if (response.progreso) {
+          setProgressData({
+            progreso_general: response.progreso.progreso,
+            total_contenidos: response.progreso.total_contenidos,
+            contenidos_completados: response.progreso.contenidos_completados,
+          });
+        }
+      }
+    } catch (error: any) {
+      // Revertir cambio optimista
+      setCompletedContents((prev) => {
+        const newSet = new Set(prev);
+        if (isCurrentlyCompleted) {
+          newSet.add(contentId);
+        } else {
+          newSet.delete(contentId);
+        }
+        // Actualizar localStorage con el estado revertido
+        if (courseId) {
+          saveProgressToLocalStorage(courseId, newSet);
+        }
+        return newSet;
+      });
+      
+      toast.error(
+        error.message || "Error al actualizar el progreso. Intenta nuevamente."
+      );
+    } finally {
+      setUpdatingContent((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(contentKey);
+        return newSet;
+      });
+    }
   };
 
   const handleContentClick = (content: ContentItemType) => {
@@ -88,13 +453,20 @@ const CourseDetail = () => {
     setSelectedContent(null);
   };
 
-  const totalContents = modules.reduce(
+  const totalContents = progressData?.total_contenidos || modules.reduce(
     (acc, m) => acc + (m.contenido?.length || 0),
     0
   );
-  const completedCount = completedContents.length;
-  const progressPercentage =
-    totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
+  
+  // Usar el tamaño real del Set de contenidos completados como fuente de verdad
+  // El progressData puede tener valores desactualizados, así que priorizamos completedContents
+  const actualCompletedCount = completedContents.size;
+  const completedCount = actualCompletedCount > 0 ? actualCompletedCount : (progressData?.contenidos_completados || 0);
+  
+  // Calcular el progreso basado en el estado actual, no en datos potencialmente desactualizados
+  const progressPercentage = totalContents > 0 
+    ? Math.round((actualCompletedCount / totalContents) * 100) 
+    : (progressData?.progreso_general || 0);
   useEffect(() => {
     if (progressPercentage === 100 && courseData) {
       const timer = setTimeout(() => {
@@ -191,6 +563,9 @@ const CourseDetail = () => {
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
                   Progreso del Curso
+                  {isLoadingProgress && (
+                    <Loader2 className="w-4 h-4 inline-block ml-2 animate-spin" />
+                  )}
                 </CardTitle>
                 <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
                   {completedCount} de {totalContents} elementos completados
@@ -247,7 +622,7 @@ const CourseDetail = () => {
           modules.map((module) => {
             const moduleCompletedCount = module.contenido
               ? module.contenido.filter((c) =>
-                completedContents.includes(c.id || c.titulo)
+                completedContents.has(c.id || c.titulo)
               ).length
               : 0;
             const moduleProgress = module.contenido
@@ -303,21 +678,31 @@ const CourseDetail = () => {
                   <CollapsibleContent>
                     <CardContent className="pt-0 mt-2 p-4 sm:p-6 sm:pt-0 space-y-2 sm:space-y-3">
                       {module.contenido && module.contenido.length > 0 ? (
-                        module.contenido.map((content) => (
-                          <ContentItem
-                            key={content.id || content.titulo}
-                            content={{
-                              ...content,
-                              completed: completedContents.includes(
-                                content.id || content.titulo
-                              ),
-                            }}
-                            onToggleComplete={() =>
-                              toggleContentComplete(content.id || content.titulo)
-                            }
-                            onContentClick={handleContentClick}
-                          />
-                        ))
+                        module.contenido.map((content) => {
+                          const contentId = content.id || content.titulo;
+                          const contentKey = `${module.id}-${contentId}`;
+                          const isUpdating = updatingContent.has(contentKey);
+                          
+                          return (
+                            <div key={contentId} className="relative">
+                              {isUpdating && (
+                                <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center z-10 rounded-lg">
+                                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                </div>
+                              )}
+                              <ContentItem
+                                content={{
+                                  ...content,
+                                  completed: completedContents.has(contentId),
+                                }}
+                                onToggleComplete={() =>
+                                  toggleContentComplete(contentId)
+                                }
+                                onContentClick={handleContentClick}
+                              />
+                            </div>
+                          );
+                        })
                       ) : (
                         <p className="text-sm text-gray-500 dark:text-gray-400 italic">
                           No hay contenido disponible en este módulo
