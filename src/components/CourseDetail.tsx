@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import ContentItem from "@/components/content-item";
 import PDFModal from "@/components/PDFModal";
+import VideoModal from "@/components/video-modal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 import progressService from "@/services/progressService";
@@ -71,6 +72,7 @@ const CourseDetail = () => {
   } | null>(null);
   const [updatingContent, setUpdatingContent] = useState<Set<string>>(new Set());
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItemType | null>(null);
   const navigate = useNavigate();
 
@@ -444,12 +446,19 @@ const CourseDetail = () => {
     if (content.tipo_contenido.toUpperCase() === "PDF") {
       setSelectedContent(content);
       setPdfModalOpen(true);
-    } else {
+    } else if (content.tipo_contenido.toUpperCase() === "VIDEO") {
+      setSelectedContent(content);
+      setVideoModalOpen(true);
     }
   };
 
   const closePdfModal = () => {
     setPdfModalOpen(false);
+    setSelectedContent(null);
+  };
+
+  const closeVideoModal = () => {
+    setVideoModalOpen(false);
     setSelectedContent(null);
   };
 
@@ -621,9 +630,10 @@ const CourseDetail = () => {
         ) : (
           modules.map((module) => {
             const moduleCompletedCount = module.contenido
-              ? module.contenido.filter((c) =>
-                completedContents.has(c.id || c.titulo)
-              ).length
+              ? module.contenido.filter((c) => {
+                  const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
+                  return completedContents.has(cId);
+                }).length
               : 0;
             const moduleProgress = module.contenido
               ? Math.round(
@@ -678,13 +688,16 @@ const CourseDetail = () => {
                   <CollapsibleContent>
                     <CardContent className="pt-0 mt-2 p-4 sm:p-6 sm:pt-0 space-y-2 sm:space-y-3">
                       {module.contenido && module.contenido.length > 0 ? (
-                        module.contenido.map((content) => {
-                          const contentId = content.id || content.titulo;
+                        module.contenido.map((content, index) => {
+                          // Usar el mismo formato que en otras partes del código para contentId
+                          const contentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
                           const contentKey = `${module.id}-${contentId}`;
                           const isUpdating = updatingContent.has(contentKey);
+                          // Usar contentKey como clave única para evitar duplicados
+                          const uniqueKey = `${module.id}-${content.id || index}-${content.titulo}`;
                           
                           return (
-                            <div key={contentId} className="relative">
+                            <div key={uniqueKey} className="relative">
                               {isUpdating && (
                                 <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center z-10 rounded-lg">
                                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -717,12 +730,30 @@ const CourseDetail = () => {
         )}
       </div>
 
-      {selectedContent && (
+      {selectedContent && selectedContent.tipo_contenido.toUpperCase() === "PDF" && (
         <PDFModal
           isOpen={pdfModalOpen}
           onClose={closePdfModal}
           pdfUrl={selectedContent.url_contenido}
           title={selectedContent.titulo}
+        />
+      )}
+
+      {selectedContent && selectedContent.tipo_contenido.toUpperCase() === "VIDEO" && (
+        <VideoModal
+          isOpen={videoModalOpen}
+          onClose={closeVideoModal}
+          content={{
+            id: selectedContent.id,
+            title: selectedContent.titulo,
+            description: selectedContent.descripcion,
+            url: selectedContent.urls_contenido && selectedContent.urls_contenido.length > 0 
+              ? selectedContent.urls_contenido[0] 
+              : selectedContent.url_contenido,
+            duration: selectedContent.duracion,
+            thumbnail: selectedContent.url_miniatura,
+            topics: [], // Los temas están en el módulo, no en el contenido individual
+          }}
         />
       )}
     </div>

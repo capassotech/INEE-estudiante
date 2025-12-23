@@ -50,6 +50,7 @@ export interface ContentItem {
     titulo: string;
     tipo_contenido: "VIDEO" | "PDF" | "DOCX" | "QUIZ" | "IMAGE";
     url_contenido: string;
+    urls_contenido?: string[]; // Campo específico para videos (array de URLs)
     url_miniatura: string;
     completed?: boolean;
 }
