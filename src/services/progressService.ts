@@ -12,6 +12,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
+  console.log("📡 Request URL completa:", config.baseURL + config.url);
   try {
     const user = auth.currentUser;
     if (user) {
@@ -129,7 +130,16 @@ class ProgressService {
   async obtenerProgresoCurso(cursoId: string): Promise<ProgresoCursoResponse> {
     try {
       const response = await api.get<ProgresoCursoResponse>(
-        `/progreso/curso/${cursoId}`
+        `/progreso/curso/${cursoId}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          params: {
+            _t: Date.now() // Timestamp para evitar caché del navegador
+          }
+        }
       );
       return response.data;
     } catch (error: any) {
@@ -150,7 +160,16 @@ class ProgressService {
   ): Promise<EstadoContenidoResponse> {
     try {
       const response = await api.get<EstadoContenidoResponse>(
-        `/progreso/contenido/${moduloId}/${contenidoId}`
+        `/progreso/contenido/${moduloId}/${contenidoId}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          params: {
+            _t: Date.now() // Timestamp para evitar caché del navegador
+          }
+        }
       );
       return response.data;
     } catch (error: any) {
