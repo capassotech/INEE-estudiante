@@ -14,15 +14,23 @@ import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 interface ContentItemProps {
   content: ContentItemType;
-  onToggleComplete: (contentId: string) => void;
+  contentIndex: number;
+  onToggleComplete: (contentIndex: number) => void;
   onContentClick: (content: ContentItemType) => void;
 }
 
 const ContentItem = ({
   content,
+  contentIndex,
   onToggleComplete,
   onContentClick,
 }: ContentItemProps) => {
+  console.log(`🎨 ContentItem rendering:`, {
+    titulo: content.titulo,
+    index: contentIndex,
+    completed: content.completed
+  });
+  
   const getIcon = () => {
     switch (content.tipo_contenido) {
       case "VIDEO":
@@ -58,10 +66,19 @@ const ContentItem = ({
   };
 
   const handleActionClick = () => {
-    if (content.tipo_contenido.toUpperCase() === "VIDEO" || content.tipo_contenido.toUpperCase() === "PDF") {
+    if (content.tipo_contenido.toUpperCase() === "VIDEO") {
+      onContentClick(content);
+    } else if (content.tipo_contenido.toUpperCase() === "PDF") {
       onContentClick(content);
     } else {
-      window.open(content.url_contenido, "_blank");
+      // Para DOCX, XLSX, PPTX, etc., abrir en nueva pestaña
+      const url = content.url_contenido || 
+                  (content.urls_contenido && content.urls_contenido.length > 0 
+                    ? content.urls_contenido[0] 
+                    : null);
+      if (url) {
+        window.open(url, "_blank");
+      }
     }
   };
 
@@ -70,7 +87,7 @@ const ContentItem = ({
       <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
         <button
           onClick={() =>
-            onToggleComplete(content.id || content.titulo + " " + content.descripcion)
+            onToggleComplete(contentIndex)
           }
           className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 transition-colors flex-shrink-0 
     ${content.completed
@@ -139,18 +156,14 @@ const ContentItem = ({
           onClick={handleActionClick}
           className="text-xs sm:text-sm bg-transparent"
         >
-          {content.tipo_contenido === "VIDEO" || content.tipo_contenido === "PDF" ? (
+          {content.tipo_contenido === "VIDEO" ? (
             <>
-              {content.tipo_contenido === "VIDEO" ? (
-                <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              ) : (
-                <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              )}
+              <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               <span>Ver</span>
             </>
           ) : (
             <>
-              <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               <span>Abrir</span>
             </>
           )}

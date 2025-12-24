@@ -46,11 +46,12 @@ export interface UserProfile {
 export interface ContentItem {
     id: string;
     descripcion: string;
-    duracion: string;
+    duracion: string | number;
     titulo: string;
-    tipo_contenido: "VIDEO" | "PDF" | "DOCX" | "QUIZ" | "IMAGE";
-    url_contenido: string;
-    url_miniatura: string;
+    tipo_contenido: "VIDEO" | "PDF" | "DOCX" | "QUIZ" | "IMAGE" | "video" | "pdf";
+    url_contenido?: string; // URL individual (opcional, puede usar urls_contenido en su lugar)
+    urls_contenido?: string[]; // Array de URLs (usado por videos y PDFs)
+    url_miniatura: string | null;
     completed?: boolean;
 }
 
