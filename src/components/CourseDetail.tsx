@@ -144,7 +144,7 @@ const CourseDetail = () => {
         });
 
         // Mapear contenidos completados desde el backend
-        // El backend normaliza los IDs a índices, así que necesitamos verificar cada contenido
+        // El backend normaliza los IDs a índices, así que usamos el índice como identificador
         let completedSet = new Set<string>();
         
         // Crear un mapa de módulos del backend por ID
@@ -152,9 +152,8 @@ const CourseDetail = () => {
           modulos.map(m => [m.modulo_id, m])
         );
         
-        // Verificar estado de TODOS los contenidos en paralelo (no solo los que tienen progreso)
-        // Esto asegura que cargamos correctamente el estado de todos los contenidos
-        const checkPromises: Array<Promise<{ contentId: string; completed: boolean; moduleId: string }>> = [];
+        // Verificar estado de TODOS los contenidos en paralelo usando índices
+        const checkPromises: Array<Promise<{ contentKey: string; completed: boolean; moduleId: string }>> = [];
         
         for (const module of modulesData) {
           if (!module.contenido || module.contenido.length === 0) continue;
@@ -162,47 +161,52 @@ const CourseDetail = () => {
           const moduloBackend = modulosBackendMap.get(module.id);
           const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
           
-          // Verificar TODOS los contenidos del módulo, no solo los que tienen progreso
-          // Esto asegura que cargamos el estado correcto incluso si hay inconsistencias
+          // Verificar TODOS los contenidos del módulo usando el índice
           for (let index = 0; index < module.contenido.length; index++) {
-            const content = module.contenido[index];
-            // Usar el mismo formato que cuando guardamos: content.id || content.titulo + " " + content.descripcion
-            // Esto debe coincidir exactamente con content-item.tsx
-            const contentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
+            const contentKey = `${module.id}-${index}`;
             
-            // Crear promesa para verificar estado
+            // Crear promesa para verificar estado usando el índice
             const checkPromise = progressService
-              .obtenerEstadoContenido(module.id, contentId)
+              .obtenerEstadoContenido(module.id, index.toString())
               .then((estadoResponse) => {
                 const completed = estadoResponse.success && estadoResponse.data.completado;
-                return { contentId, completed, moduleId: module.id };
+                console.log(`🔍 Verificando contenido ${module.id}-${index}:`, {
+                  completado: completed,
+                  respuesta: estadoResponse.data
+                });
+                return { contentKey, completed, moduleId: module.id };
               })
               .catch((error) => {
-                console.error(`❌ Error al verificar estado de contenido "${contentId.substring(0, 50)}..." en módulo ${module.id}:`, {
+                console.error(`❌ Error al verificar estado de contenido ${index} en módulo ${module.id}:`, {
                   error: error.message,
                   response: error.response?.data,
                   status: error.response?.status
                 });
                 // Retornar no completado si hay error
-                return { contentId, completed: false, moduleId: module.id };
+                return { contentKey, completed: false, moduleId: module.id };
               });
             
             checkPromises.push(checkPromise);
           }
         }
         
-        // Esperar todas las verificaciones en paralelo (sin límites de lotes)
+        // Esperar todas las verificaciones en paralelo
         const results = await Promise.allSettled(checkPromises);
         
         // Procesar resultados
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
-            const { contentId, completed } = result.value;
+            const { contentKey, completed } = result.value;
             if (completed) {
-              completedSet.add(contentId);
+              completedSet.add(contentKey);
+              console.log(`✅ Contenido completado encontrado: ${contentKey}`);
             }
+          } else {
+            console.error('❌ Error al procesar resultado de progreso:', result.reason);
           }
         });
+
+        console.log(`📊 Total contenidos completados cargados: ${completedSet.size}`, Array.from(completedSet));
 
         // Guardar en localStorage como respaldo
         saveProgressToLocalStorage(courseId, completedSet);
@@ -224,9 +228,8 @@ const CourseDetail = () => {
             saveProgressToLocalStorage(courseId, cachedProgress);
           } else {
             // Si no hay nada en localStorage pero el backend reporta progreso,
-            // intentar usar los índices de los contenidos como alternativa
-            // El backend normaliza los IDs a índices, así que intentemos verificar por índice
-            const completedByIndex = new Set<string>();
+            // intentar construir el conjunto de contenidos completados basado en el reporte del backend
+            const completedByBackend = new Set<string>();
             
             for (const module of modulesData) {
               if (!module.contenido || module.contenido.length === 0) continue;
@@ -235,20 +238,17 @@ const CourseDetail = () => {
               const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
               
               if (contenidosCompletadosModulo > 0) {
-                // Intentar verificar por índice en lugar de por título
+                // Verificar cada contenido del módulo
                 for (let index = 0; index < module.contenido.length; index++) {
-                  const content = module.contenido[index];
-                  const contentIdByIndex = index.toString();
+                  const contentKey = `${module.id}-${index}`;
                   
                   try {
                     const estadoResponse = await progressService.obtenerEstadoContenido(
                       module.id, 
-                      contentIdByIndex
+                      index.toString()
                     );
                     if (estadoResponse.success && estadoResponse.data.completado) {
-                      // Usar el ID real del contenido (no el índice)
-                      const realContentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
-                      completedByIndex.add(realContentId);
+                      completedByBackend.add(contentKey);
                     }
                   } catch (error) {
                     // Continuar con el siguiente
@@ -257,15 +257,15 @@ const CourseDetail = () => {
               }
             }
             
-            if (completedByIndex.size > 0) {
-              completedSet = completedByIndex;
+            if (completedByBackend.size > 0) {
+              completedSet = completedByBackend;
               const realProgress = total_contenidos > 0 
-                ? Math.round((completedByIndex.size / total_contenidos) * 100) 
+                ? Math.round((completedByBackend.size / total_contenidos) * 100) 
                 : 0;
               setProgressData({
                 progreso_general: realProgress,
                 total_contenidos: total_contenidos,
-                contenidos_completados: completedByIndex.size,
+                contenidos_completados: completedByBackend.size,
               });
               saveProgressToLocalStorage(courseId, completedByIndex);
             } else {
@@ -304,6 +304,7 @@ const CourseDetail = () => {
           saveProgressToLocalStorage(courseId, completedSet);
         }
         
+        console.log(`🔄 Actualizando completedContents con ${completedSet.size} items:`, Array.from(completedSet));
         setCompletedContents(completedSet);
       } else {
         console.warn("⚠️ Respuesta del backend sin éxito:", response);
@@ -332,39 +333,40 @@ const CourseDetail = () => {
   /**
    * Marcar/desmarcar contenido como completado
    */
-  const toggleContentComplete = async (contentId: string) => {
+  const toggleContentComplete = async (moduleId: string, contentIndex: number) => {
     if (!user?.uid || !courseId) {
       toast.error("Debes estar autenticado para marcar progreso");
       return;
     }
 
-    // Encontrar el módulo y contenido correspondiente
-    // Usar el mismo formato que content-item.tsx: content.id || content.titulo + " " + content.descripcion
-    let targetModule: Module | null = null;
-    let targetContent: ContentItemType | null = null;
-
-    for (const module of modules) {
-      if (module.contenido) {
-        const content = module.contenido.find((c) => {
-          // Coincidir con el formato usado en content-item.tsx
-          const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
-          return cId === contentId || c.id === contentId || c.titulo === contentId;
-        });
-        if (content) {
-          targetModule = module;
-          targetContent = content;
-          break;
-        }
-      }
-    }
-
-    if (!targetModule || !targetContent) {
+    // Encontrar el módulo y contenido correspondiente usando el índice
+    const targetModule = modules.find((m) => m.id === moduleId);
+    
+    if (!targetModule || !targetModule.contenido || !targetModule.contenido[contentIndex]) {
+      console.error("❌ No se encontró el contenido:", { moduleId, contentIndex });
       toast.error("No se pudo encontrar el contenido");
       return;
     }
 
-    const isCurrentlyCompleted = completedContents.has(contentId);
-    const contentKey = `${targetModule.id}-${contentId}`;
+    const targetContent = targetModule.contenido[contentIndex];
+
+    console.log("✅ Contenido encontrado para marcar/desmarcar:", {
+      contentIndex,
+      moduloId: targetModule.id,
+      cursoId: courseId,
+      userId: user.uid,
+      contenido: targetContent
+    });
+
+    const contentKey = `${moduleId}-${contentIndex}`;
+    const isCurrentlyCompleted = completedContents.has(contentKey);
+
+    console.log(`🔄 Estado antes de toggle:`, {
+      contentKey,
+      isCurrentlyCompleted,
+      totalCompletados: completedContents.size,
+      todosLosCompletados: Array.from(completedContents)
+    });
 
     // Optimistic update
     setUpdatingContent((prev) => new Set(prev).add(contentKey));
@@ -372,40 +374,55 @@ const CourseDetail = () => {
     setCompletedContents((prev) => {
       const newSet = new Set(prev);
       if (isCurrentlyCompleted) {
-        newSet.delete(contentId);
+        newSet.delete(contentKey);
+        console.log(`➖ Eliminando ${contentKey} del estado local`);
       } else {
-        newSet.add(contentId);
+        newSet.add(contentKey);
+        console.log(`➕ Agregando ${contentKey} al estado local`);
       }
       updatedSet = newSet;
       // Guardar en localStorage inmediatamente después de la actualización optimista
       if (courseId) {
         saveProgressToLocalStorage(courseId, newSet);
       }
+      console.log(`💾 Nuevo estado local:`, {
+        totalCompletados: newSet.size,
+        todosLosCompletados: Array.from(newSet)
+      });
       return newSet;
     });
 
     try {
       let response;
+      const dataToSend = {
+        userId: user.uid,
+        cursoId: courseId,
+        moduloId: targetModule.id,
+        contenidoId: contentIndex.toString(), // Enviar el índice como string
+      };
+      
+      console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
+      
       if (isCurrentlyCompleted) {
         // Desmarcar
-        response = await progressService.desmarcarCompletado({
-          userId: user.uid,
-          cursoId: courseId,
-          moduloId: targetModule.id,
-          contenidoId: contentId,
-        });
+        response = await progressService.desmarcarCompletado(dataToSend);
       } else {
         // Marcar
-        response = await progressService.marcarCompletado({
-          userId: user.uid,
-          cursoId: courseId,
-          moduloId: targetModule.id,
-          contenidoId: contentId,
-        });
+        response = await progressService.marcarCompletado(dataToSend);
       }
+      
+      console.log("📥 Respuesta del backend:", response);
 
       if (response.success) {
-        // Actualizar progreso general desde la respuesta del backend
+        console.log(`✅ Backend confirmó la operación. Estado optimista aplicado:`, {
+          contentKey,
+          estaCompletadoEnUpdatedSet: updatedSet.has(contentKey),
+          deberiaEstar: !isCurrentlyCompleted,
+          coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
+        });
+        
+        // NO hay necesidad de actualizar el estado nuevamente porque ya hicimos optimistic update
+        // Solo actualizar el progreso general
         if (response.progreso) {
           setProgressData({
             progreso_general: response.progreso.progreso,
@@ -419,9 +436,9 @@ const CourseDetail = () => {
       setCompletedContents((prev) => {
         const newSet = new Set(prev);
         if (isCurrentlyCompleted) {
-          newSet.add(contentId);
+          newSet.add(contentKey);
         } else {
-          newSet.delete(contentId);
+          newSet.delete(contentKey);
         }
         // Actualizar localStorage con el estado revertido
         if (courseId) {
@@ -689,12 +706,10 @@ const CourseDetail = () => {
                     <CardContent className="pt-0 mt-2 p-4 sm:p-6 sm:pt-0 space-y-2 sm:space-y-3">
                       {module.contenido && module.contenido.length > 0 ? (
                         module.contenido.map((content, index) => {
-                          // Usar el mismo formato que en otras partes del código para contentId
-                          const contentId = content.id || (content.titulo + (content.descripcion ? " " + content.descripcion : ""));
-                          const contentKey = `${module.id}-${contentId}`;
+                          // Usar el índice del contenido como identificador único
+                          const contentKey = `${module.id}-${index}`;
                           const isUpdating = updatingContent.has(contentKey);
-                          // Usar contentKey como clave única para evitar duplicados
-                          const uniqueKey = `${module.id}-${content.id || index}-${content.titulo}`;
+                          const uniqueKey = `${module.id}-${index}-${content.titulo}`;
                           
                           return (
                             <div key={uniqueKey} className="relative">
@@ -706,10 +721,11 @@ const CourseDetail = () => {
                               <ContentItem
                                 content={{
                                   ...content,
-                                  completed: completedContents.has(contentId),
+                                  completed: completedContents.has(contentKey),
                                 }}
+                                contentIndex={index}
                                 onToggleComplete={() =>
-                                  toggleContentComplete(contentId)
+                                  toggleContentComplete(module.id, index)
                                 }
                                 onContentClick={handleContentClick}
                               />
@@ -734,8 +750,13 @@ const CourseDetail = () => {
         <PDFModal
           isOpen={pdfModalOpen}
           onClose={closePdfModal}
-          pdfUrl={selectedContent.url_contenido}
-          title={selectedContent.titulo}
+          pdfUrl={
+            selectedContent.url_contenido || 
+            (selectedContent.urls_contenido && selectedContent.urls_contenido.length > 0 
+              ? selectedContent.urls_contenido[0] 
+              : "")
+          }
+          title={selectedContent.titulo || "Documento PDF"}
         />
       )}
 
