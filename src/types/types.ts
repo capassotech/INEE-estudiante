@@ -52,6 +52,7 @@ export interface ContentItem {
     url_contenido?: string; // URL individual (opcional, puede usar urls_contenido en su lugar)
     urls_contenido?: string[]; // Array de URLs (usado por videos y PDFs)
     url_miniatura: string | null;
+    urls_bibliografia: string | null;
     completed?: boolean;
 }
 
