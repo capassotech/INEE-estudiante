@@ -8,6 +8,7 @@ import {
   Clock,
   HelpCircle,
   FileImage,
+  BookOpen,
 } from "lucide-react";
 import { ContentItem as ContentItemType } from "@/types/types";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
@@ -25,11 +26,8 @@ const ContentItem = ({
   onToggleComplete,
   onContentClick,
 }: ContentItemProps) => {
-  console.log(`🎨 ContentItem rendering:`, {
-    titulo: content.titulo,
-    index: contentIndex,
-    completed: content.completed
-  });
+
+  console.log(content)
   
   const getIcon = () => {
     switch (content.tipo_contenido) {
@@ -103,20 +101,24 @@ const ContentItem = ({
         </button>
 
         <div className="flex-shrink-0">
-          {content.tipo_contenido === "VIDEO" && content.url_miniatura ? (
+          {content.tipo_contenido === "VIDEO" ? (
             <div
               className="relative cursor-pointer"
               onClick={handleActionClick}
             >
-              <ImageWithPlaceholder
-                src={content.url_miniatura || "/placeholder.svg"}
-                alt={content.titulo}
-                className="w-12 h-9 sm:w-16 sm:h-12 rounded"
-                aspectRatio="auto"
-                style={{ width: '3rem', height: '2.25rem' }}
-                placeholderIcon="image"
-                placeholderText=""
-              />
+              {content.url_miniatura ? (
+                <img src={content.url_miniatura || "/placeholder.svg"} alt={content.titulo} className="w-12 h-9 sm:w-16 sm:h-12 rounded" />
+              ) : (
+                <ImageWithPlaceholder
+                  src={content.url_miniatura || "/placeholder.svg"}
+                  alt={content.titulo}
+                  className="w-12 h-9 sm:w-16 sm:h-12 rounded"
+                  aspectRatio="auto"
+                  style={{ width: '3rem', height: '2.25rem' }}
+                  placeholderIcon="image"
+                  placeholderText=""
+                />
+              )}
               <div className="absolute inset-0 bg-black/30 rounded flex items-center justify-center z-10">
                 <Play className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </div>
@@ -125,7 +127,14 @@ const ContentItem = ({
             <div
               className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${getTypeColor()}`}
             >
-              {getIcon()}
+              
+              {content.url_miniatura ? (
+                <img src={content.url_miniatura || "/placeholder.svg"} alt={content.titulo} className="w-12 h-9 sm:w-16 sm:h-12 rounded" />
+              ) : (
+                <>
+                  {getIcon()}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -145,6 +154,25 @@ const ContentItem = ({
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-2 break-words">
               {content.descripcion}
             </p>
+          )}
+          {content.urls_bibliografia && content.urls_bibliografia.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Bibliografía Complementaria
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(content.urls_bibliografia, "_blank")}
+                className="mt-1.5 h-7 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-0 pl-0"
+              >
+                <Download className="w-3 h-3 mr-1.5" />
+                Descargar
+              </Button>
+            </div>
           )}
         </div>
       </div>

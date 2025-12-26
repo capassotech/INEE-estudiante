@@ -92,7 +92,7 @@ const CourseDetail = () => {
           const modulesData = await courseService.getAllModules(courseData.id_modulos);
           setModules(modulesData || []);
           setIsLoadingModules(false);
-          
+
           // Cargar progreso desde localStorage primero (para mostrar algo inmediatamente)
           let cachedProgress = new Set<string>();
           if (courseId && user?.uid) {
@@ -101,7 +101,7 @@ const CourseDetail = () => {
               setCompletedContents(cachedProgress);
             }
           }
-          
+
           // Cargar progreso desde el backend después de cargar los módulos
           // Pasar el cache como parámetro para usarlo como respaldo
           if (user?.uid && courseId && modulesData) {
@@ -116,6 +116,8 @@ const CourseDetail = () => {
         }
       };
       fetchModules();
+
+
     }
   }, [courseData, user, courseId]);
 
@@ -130,12 +132,12 @@ const CourseDetail = () => {
 
     try {
       setIsLoadingProgress(true);
-      
+
       const response = await progressService.obtenerProgresoCurso(courseId);
-      
+
       if (response.success && response.data) {
         const { modulos, progreso_general, total_contenidos, contenidos_completados } = response.data;
-        
+
         // Actualizar estado de progreso general
         setProgressData({
           progreso_general,
@@ -146,25 +148,25 @@ const CourseDetail = () => {
         // Mapear contenidos completados desde el backend
         // El backend normaliza los IDs a índices, así que usamos el índice como identificador
         let completedSet = new Set<string>();
-        
+
         // Crear un mapa de módulos del backend por ID
         const modulosBackendMap = new Map(
           modulos.map(m => [m.modulo_id, m])
         );
-        
+
         // Verificar estado de TODOS los contenidos en paralelo usando índices
         const checkPromises: Array<Promise<{ contentKey: string; completed: boolean; moduleId: string }>> = [];
-        
+
         for (const module of modulesData) {
           if (!module.contenido || module.contenido.length === 0) continue;
-          
+
           const moduloBackend = modulosBackendMap.get(module.id);
           const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
-          
+
           // Verificar TODOS los contenidos del módulo usando el índice
           for (let index = 0; index < module.contenido.length; index++) {
             const contentKey = `${module.id}-${index}`;
-            
+
             // Crear promesa para verificar estado usando el índice
             const checkPromise = progressService
               .obtenerEstadoContenido(module.id, index.toString())
@@ -185,14 +187,14 @@ const CourseDetail = () => {
                 // Retornar no completado si hay error
                 return { contentKey, completed: false, moduleId: module.id };
               });
-            
+
             checkPromises.push(checkPromise);
           }
         }
-        
+
         // Esperar todas las verificaciones en paralelo
         const results = await Promise.allSettled(checkPromises);
-        
+
         // Procesar resultados
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
@@ -210,14 +212,14 @@ const CourseDetail = () => {
 
         // Guardar en localStorage como respaldo
         saveProgressToLocalStorage(courseId, completedSet);
-        
+
         if (completedSet.size === 0 && contenidos_completados > 0) {
           // Si hay progreso en localStorage y el backend también reporta progreso,
           // usar el localStorage como fuente de verdad (es más confiable que las verificaciones que fallan)
           if (cachedProgress.size > 0) {
             completedSet = cachedProgress;
-            const realProgress = total_contenidos > 0 
-              ? Math.round((cachedProgress.size / total_contenidos) * 100) 
+            const realProgress = total_contenidos > 0
+              ? Math.round((cachedProgress.size / total_contenidos) * 100)
               : 0;
             setProgressData({
               progreso_general: realProgress,
@@ -230,21 +232,21 @@ const CourseDetail = () => {
             // Si no hay nada en localStorage pero el backend reporta progreso,
             // intentar construir el conjunto de contenidos completados basado en el reporte del backend
             const completedByBackend = new Set<string>();
-            
+
             for (const module of modulesData) {
               if (!module.contenido || module.contenido.length === 0) continue;
-              
+
               const moduloBackend = modulosBackendMap.get(module.id);
               const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
-              
+
               if (contenidosCompletadosModulo > 0) {
                 // Verificar cada contenido del módulo
                 for (let index = 0; index < module.contenido.length; index++) {
                   const contentKey = `${module.id}-${index}`;
-                  
+
                   try {
                     const estadoResponse = await progressService.obtenerEstadoContenido(
-                      module.id, 
+                      module.id,
                       index.toString()
                     );
                     if (estadoResponse.success && estadoResponse.data.completado) {
@@ -256,11 +258,11 @@ const CourseDetail = () => {
                 }
               }
             }
-            
+
             if (completedByBackend.size > 0) {
               completedSet = completedByBackend;
-              const realProgress = total_contenidos > 0 
-                ? Math.round((completedByBackend.size / total_contenidos) * 100) 
+              const realProgress = total_contenidos > 0
+                ? Math.round((completedByBackend.size / total_contenidos) * 100)
                 : 0;
               setProgressData({
                 progreso_general: realProgress,
@@ -289,8 +291,8 @@ const CourseDetail = () => {
           }
         } else if (completedSet.size !== contenidos_completados) {
           // Usar el valor verificado como fuente de verdad
-          const realProgress = total_contenidos > 0 
-            ? Math.round((completedSet.size / total_contenidos) * 100) 
+          const realProgress = total_contenidos > 0
+            ? Math.round((completedSet.size / total_contenidos) * 100)
             : 0;
           setProgressData({
             progreso_general: realProgress,
@@ -303,7 +305,7 @@ const CourseDetail = () => {
           // Todo coincide, actualizar localStorage con los valores verificados
           saveProgressToLocalStorage(courseId, completedSet);
         }
-        
+
         console.log(`🔄 Actualizando completedContents con ${completedSet.size} items:`, Array.from(completedSet));
         setCompletedContents(completedSet);
       } else {
@@ -341,7 +343,7 @@ const CourseDetail = () => {
 
     // Encontrar el módulo y contenido correspondiente usando el índice
     const targetModule = modules.find((m) => m.id === moduleId);
-    
+
     if (!targetModule || !targetModule.contenido || !targetModule.contenido[contentIndex]) {
       console.error("❌ No se encontró el contenido:", { moduleId, contentIndex });
       toast.error("No se pudo encontrar el contenido");
@@ -400,9 +402,9 @@ const CourseDetail = () => {
         moduloId: targetModule.id,
         contenidoId: contentIndex.toString(), // Enviar el índice como string
       };
-      
+
       console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
-      
+
       if (isCurrentlyCompleted) {
         // Desmarcar
         response = await progressService.desmarcarCompletado(dataToSend);
@@ -410,7 +412,7 @@ const CourseDetail = () => {
         // Marcar
         response = await progressService.marcarCompletado(dataToSend);
       }
-      
+
       console.log("📥 Respuesta del backend:", response);
 
       if (response.success) {
@@ -420,7 +422,7 @@ const CourseDetail = () => {
           deberiaEstar: !isCurrentlyCompleted,
           coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
         });
-        
+
         // NO hay necesidad de actualizar el estado nuevamente porque ya hicimos optimistic update
         // Solo actualizar el progreso general
         if (response.progreso) {
@@ -446,7 +448,7 @@ const CourseDetail = () => {
         }
         return newSet;
       });
-      
+
       toast.error(
         error.message || "Error al actualizar el progreso. Intenta nuevamente."
       );
@@ -483,15 +485,15 @@ const CourseDetail = () => {
     (acc, m) => acc + (m.contenido?.length || 0),
     0
   );
-  
+
   // Usar el tamaño real del Set de contenidos completados como fuente de verdad
   // El progressData puede tener valores desactualizados, así que priorizamos completedContents
   const actualCompletedCount = completedContents.size;
   const completedCount = actualCompletedCount > 0 ? actualCompletedCount : (progressData?.contenidos_completados || 0);
-  
+
   // Calcular el progreso basado en el estado actual, no en datos potencialmente desactualizados
-  const progressPercentage = totalContents > 0 
-    ? Math.round((actualCompletedCount / totalContents) * 100) 
+  const progressPercentage = totalContents > 0
+    ? Math.round((actualCompletedCount / totalContents) * 100)
     : (progressData?.progreso_general || 0);
   useEffect(() => {
     if (progressPercentage === 100 && courseData) {
@@ -648,9 +650,9 @@ const CourseDetail = () => {
           modules.map((module) => {
             const moduleCompletedCount = module.contenido
               ? module.contenido.filter((c) => {
-                  const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
-                  return completedContents.has(cId);
-                }).length
+                const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
+                return completedContents.has(cId);
+              }).length
               : 0;
             const moduleProgress = module.contenido
               ? Math.round(
@@ -710,7 +712,7 @@ const CourseDetail = () => {
                           const contentKey = `${module.id}-${index}`;
                           const isUpdating = updatingContent.has(contentKey);
                           const uniqueKey = `${module.id}-${index}-${content.titulo}`;
-                          
+
                           return (
                             <div key={uniqueKey} className="relative">
                               {isUpdating && (
@@ -751,9 +753,9 @@ const CourseDetail = () => {
           isOpen={pdfModalOpen}
           onClose={closePdfModal}
           pdfUrl={
-            selectedContent.url_contenido || 
-            (selectedContent.urls_contenido && selectedContent.urls_contenido.length > 0 
-              ? selectedContent.urls_contenido[0] 
+            selectedContent.url_contenido ||
+            (selectedContent.urls_contenido && selectedContent.urls_contenido.length > 0
+              ? selectedContent.urls_contenido[0]
               : "")
           }
           title={selectedContent.titulo || "Documento PDF"}
@@ -768,10 +770,10 @@ const CourseDetail = () => {
             id: selectedContent.id,
             title: selectedContent.titulo,
             description: selectedContent.descripcion,
-            url: selectedContent.urls_contenido && selectedContent.urls_contenido.length > 0 
-              ? selectedContent.urls_contenido[0] 
+            url: selectedContent.urls_contenido && selectedContent.urls_contenido.length > 0
+              ? selectedContent.urls_contenido[0]
               : selectedContent.url_contenido,
-            duration: selectedContent.duracion,
+            duration: selectedContent.duracion.toString(),
             thumbnail: selectedContent.url_miniatura,
             topics: [], // Los temas están en el módulo, no en el contenido individual
           }}
