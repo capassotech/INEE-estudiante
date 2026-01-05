@@ -8,6 +8,7 @@ import {
   Clock,
   HelpCircle,
   FileImage,
+  BookOpen,
 } from "lucide-react";
 import { ContentItem as ContentItemType } from "@/types/types";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
@@ -25,12 +26,9 @@ const ContentItem = ({
   onToggleComplete,
   onContentClick,
 }: ContentItemProps) => {
-  console.log(`🎨 ContentItem rendering:`, {
-    titulo: content.titulo,
-    index: contentIndex,
-    completed: content.completed
-  });
-  
+
+  console.log(content)
+
   const getIcon = () => {
     switch (content.tipo_contenido) {
       case "VIDEO":
@@ -72,10 +70,10 @@ const ContentItem = ({
       onContentClick(content);
     } else {
       // Para DOCX, XLSX, PPTX, etc., abrir en nueva pestaña
-      const url = content.url_contenido || 
-                  (content.urls_contenido && content.urls_contenido.length > 0 
-                    ? content.urls_contenido[0] 
-                    : null);
+      const url = content.url_contenido ||
+        (content.urls_contenido && content.urls_contenido.length > 0
+          ? content.urls_contenido[0]
+          : null);
       if (url) {
         window.open(url, "_blank");
       }
@@ -83,92 +81,135 @@ const ContentItem = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-        <button
-          onClick={() =>
-            onToggleComplete(contentIndex)
-          }
-          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 transition-colors flex-shrink-0 
-    ${content.completed
-              ? "border-green-500 bg-green-500 text-white"
-              : "border-gray-400 text-gray-400 hover:border-green-400"
-            }`}
-        >
-          {content.completed ? (
-            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-          ) : (
-            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-transparent" />
-          )}
-        </button>
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4">
+        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+          <button
+            onClick={() =>
+              onToggleComplete(contentIndex)
+            }
+            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 transition-colors flex-shrink-0 
+        ${content.completed
+                ? "border-green-500 bg-green-500 text-white"
+                : "border-gray-400 text-gray-400 hover:border-green-400"
+              }`}
+          >
+            {content.completed ? (
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+            ) : (
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-transparent" />
+            )}
+          </button>
 
-        <div className="flex-shrink-0">
-          {content.tipo_contenido === "VIDEO" && content.url_miniatura ? (
-            <div
-              className="relative cursor-pointer"
-              onClick={handleActionClick}
-            >
-              <ImageWithPlaceholder
-                src={content.url_miniatura || "/placeholder.svg"}
-                alt={content.titulo}
-                className="w-12 h-9 sm:w-16 sm:h-12 rounded"
-                aspectRatio="auto"
-                style={{ width: '3rem', height: '2.25rem' }}
-                placeholderIcon="image"
-                placeholderText=""
-              />
-              <div className="absolute inset-0 bg-black/30 rounded flex items-center justify-center z-10">
-                <Play className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+          <div className="flex-shrink-0">
+            {content.tipo_contenido === "VIDEO" ? (
+              <div
+                className="relative cursor-pointer"
+                onClick={handleActionClick}
+              >
+                {content.url_miniatura ? (
+                  <img src={content.url_miniatura || "/placeholder.svg"} alt={content.titulo} className="w-12 h-9 sm:w-16 sm:h-12 rounded" />
+                ) : (
+                  <ImageWithPlaceholder
+                    src={content.url_miniatura || "/placeholder.svg"}
+                    alt={content.titulo}
+                    className="w-12 h-9 sm:w-16 sm:h-12 rounded"
+                    aspectRatio="auto"
+                    style={{ width: '3rem', height: '2.25rem' }}
+                    placeholderIcon="image"
+                    placeholderText=""
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/30 rounded flex items-center justify-center z-10">
+                  <Play className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div
-              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${getTypeColor()}`}
-            >
-              {getIcon()}
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-            <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 break-words">
-              {content.titulo}
-            </h4>
-            <Badge
-              variant="outline"
-              className={`${getTypeColor()} text-xs self-start sm:self-center flex-shrink-0`}
-            >
-              {content.tipo_contenido}
-            </Badge>
+            ) : (
+              <div
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${getTypeColor()}`}
+              >
+
+                {content.url_miniatura ? (
+                  <img src={content.url_miniatura || "/placeholder.svg"} alt={content.titulo} className="w-12 h-9 sm:w-16 sm:h-12 rounded" />
+                ) : (
+                  <>
+                    {getIcon()}
+                  </>
+                )}
+              </div>
+            )}
           </div>
-          {content.descripcion && (
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-2 break-words">
-              {content.descripcion}
-            </p>
-          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+              <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 break-words">
+                {content.titulo}
+              </h4>
+              <Badge
+                variant="outline"
+                className={`${getTypeColor()} text-xs self-start sm:self-center flex-shrink-0`}
+              >
+                {content.tipo_contenido}
+              </Badge>
+            </div>
+            {content.descripcion && (
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-2 break-words">
+                {content.descripcion}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end sm:justify-start">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleActionClick}
+            className="text-xs sm:text-sm bg-transparent"
+          >
+            {content.tipo_contenido === "VIDEO" ? (
+              <>
+                <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span>Ver</span>
+              </>
+            ) : (
+              <>
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span>Abrir</span>
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
-      <div className="flex justify-end sm:justify-start">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleActionClick}
-          className="text-xs sm:text-sm bg-transparent"
-        >
-          {content.tipo_contenido === "VIDEO" ? (
-            <>
-              <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              <span>Ver</span>
-            </>
-          ) : (
-            <>
-              <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              <span>Abrir</span>
-            </>
-          )}
-        </Button>
-      </div>
+      {content.urls_bibliografia && content.urls_bibliografia.length > 0 && (
+        <div className="border-t border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/50 rounded-b-lg">
+          <div className="p-3 sm:p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <h5 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                    Bibliografía Complementaria
+                  </h5>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Material adicional para profundizar en el tema
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(content.urls_bibliografia, "_blank")}
+                className="flex-shrink-0 h-8 px-3 text-xs sm:text-sm text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 transition-colors hover:border-none"
+              >
+                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
+                <span className="hidden sm:inline">Descargar</span>
+                <span className="sm:hidden">PDF</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
