@@ -25,6 +25,8 @@ jobs:
         run: npm ci
 
       - name: Build project
+        env:
+          VITE_ENVIRONMENT: qa
         run: npm run build
 
       - name: Deploy to Firebase QA
@@ -53,6 +55,8 @@ jobs:
         run: npm ci
 
       - name: Build project
+        env:
+          VITE_ENVIRONMENT: prod
         run: npm run build
 
       - name: Deploy to Firebase Production
