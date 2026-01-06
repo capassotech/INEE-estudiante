@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "inee-plataforma"
-  }
+    "production": "inee-admin",
+    "QA": "inee-qa"
+  },
+  "targets": {},
+  "etags": {}
 }
