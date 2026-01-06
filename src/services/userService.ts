@@ -37,10 +37,17 @@ class UserService {
       if (params?.search) {
         queryParams.append('search', params.search);
       }
+      // Agregar timestamp para evitar caché del navegador
+      queryParams.append('_t', Date.now().toString());
       
-      const url = `/formaciones/user/${uid}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await api.get(url);
-      
+      const url = `/formaciones/user/${uid}?${queryParams.toString()}`;
+      const response = await api.get(url, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      console.log(response.data);
       // Si la respuesta tiene estructura paginada
       if (response.data && response.data.courses) {
         return response.data;

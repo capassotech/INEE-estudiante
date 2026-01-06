@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChevronRight, Loader2, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
 import userService from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Course } from "@/types/types";
@@ -25,9 +25,10 @@ import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   
   // Estados de paginación
@@ -37,10 +38,16 @@ const Index = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [lastId, setLastId] = useState<string | null>(null);
   const [pageHistory, setPageHistory] = useState<Map<number, string | null>>(new Map([[1, null]]));
+  const pageHistoryRef = useRef<Map<number, string | null>>(new Map([[1, null]]));
   
   // Estado de búsqueda
   const [searchQuery, setSearchQuery] = useState("");
   const isInitialMount = useRef(true);
+  
+  // Mantener el ref sincronizado con el estado
+  useEffect(() => {
+    pageHistoryRef.current = pageHistory;
+  }, [pageHistory]);
   const banners = [
     "https://universidad.gruposuperior.com.co/wp-content/uploads/2021/05/BANNER-PROMOCIONAL-1.png",
     "https://alehlatam.org/wp-content/uploads/2024/12/BANNER-V-Curso-HCC.png",
@@ -58,7 +65,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  const loadCourses = async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
+  const loadCourses = useCallback(async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
     if (!user?.uid) {
       setIsLoading(false);
       setCourses([]);
@@ -67,15 +74,18 @@ const Index = () => {
 
     try {
       setIsLoading(true);
+      console.log("🔄 Cargando cursos - Página:", page, "Usuario:", user.uid);
       
       if (resetHistory) {
         setPageHistory(new Map([[1, null]]));
       }
 
+      // Usar la función de actualización de estado para obtener el valor actual de pageHistory
       let lastIdForPage: string | null = null;
       if (page > 1 && !currentSearch) {
-        // Solo construir historial si no hay búsqueda activa
-        lastIdForPage = pageHistory.get(page - 1) || null;
+        // Obtener el historial actual usando el ref
+        lastIdForPage = pageHistoryRef.current.get(page - 1) || null;
+        
         if (!lastIdForPage && page > 1) {
           // Construir historial si no existe
           let currentLastId: string | null = null;
@@ -109,7 +119,9 @@ const Index = () => {
         params.search = currentSearch.trim();
       }
 
+      console.log("📡 Llamando al backend con params:", params);
       const data = await userService.getCoursesPerUser(user.uid, params);
+      console.log("✅ Respuesta del backend:", data);
       
       let coursesData: Course[] = [];
       if (data.courses) {
@@ -146,22 +158,32 @@ const Index = () => {
       
       setCourses(uniqueCourses);
     } catch (error) {
-      console.error("Error al cargar los cursos:", error);
+      console.error("❌ Error al cargar los cursos:", error);
       setCourses([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.uid]);
 
   useEffect(() => {
+    console.log("🔍 useEffect ejecutado - user?.uid:", user?.uid, "authLoading:", authLoading, "currentPage:", currentPage, "pathname:", location.pathname);
+    
+    // Esperar a que AuthContext termine de cargar antes de intentar cargar cursos
+    if (authLoading) {
+      console.log("⏳ AuthContext aún cargando, esperando...");
+      return;
+    }
+    
     if (user?.uid) {
+      console.log("✅ Usuario encontrado, cargando cursos...");
       loadCourses(currentPage, pageSize, currentPage === 1, searchQuery);
       isInitialMount.current = false;
     } else {
+      console.log("❌ Usuario no disponible");
       setIsLoading(false);
       setCourses([]);
     }
-  }, [user?.uid, currentPage, pageSize]);
+  }, [user?.uid, authLoading, currentPage, pageSize, location.pathname, loadCourses, searchQuery]);
 
   // Recargar cuando cambie searchQuery (pero no en el mount inicial)
   useEffect(() => {
@@ -169,7 +191,7 @@ const Index = () => {
       setCurrentPage(1);
       loadCourses(1, pageSize, true, searchQuery);
     }
-  }, [searchQuery]);
+  }, [searchQuery, loadCourses, pageSize, user?.uid]);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -182,6 +204,8 @@ const Index = () => {
     setCurrentPage(1);
     await loadCourses(1, size, true);
   };
+
+  console.log(courses);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
