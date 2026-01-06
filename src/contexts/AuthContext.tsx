@@ -1,4 +1,3 @@
-"use client";
 
 import type React from "react";
 import {
@@ -10,7 +9,8 @@ import {
 } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
-import authService, { type UserProfile } from "../services/authService";
+import authService from "../services/authService";
+import { UserProfile } from "../types/types";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -21,6 +21,14 @@ interface AuthContextType {
   register: (userData: any) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  googleRegister: (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => Promise<any>;
+  googleLogin: () => Promise<any>;
+  forgotPassword: (email: string) => Promise<void>;
+  changePassword: (oobCode: string, password: string) => Promise<void>;
+  testVocacional: (responses: string[]) => Promise<void>;
+  loadQuestion: (id: string) => Promise<{ texto: string, orden: number, respuestas: any[] }[]>;
+  savePartialAnswers: (questionId: string, answer: string) => Promise<void>;
+  updateRouteUser: (routeName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,21 +59,77 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (firebaseUser) {
         try {
-          // Si hay un usuario de Firebase, obtener su perfil del backend
-          const profile = await authService.getProfile();
-          setUser(profile);
-
-          authService.updateStudentDataInStorage({
-            dni: profile.dni,
-            fechaRegistro: profile.fechaRegistro,
-            aceptaTerminos: profile.aceptaTerminos,
-            lastProfileUpdate: new Date().toISOString(),
-          });
+          // Esperar un momento para asegurar que el token esté completamente propagado
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Obtener el perfil del backend pasando el UID esperado
+          const expectedUid = firebaseUser.uid;
+          const profile = await authService.getProfile(expectedUid);
+          
+          // Verificar que el perfil corresponde al usuario actual de Firebase
+          if (profile.uid !== expectedUid) {
+            console.error("Error: El perfil obtenido no corresponde al usuario actual", {
+              expected: expectedUid,
+              received: profile.uid
+            });
+            // No hacer logout inmediatamente, intentar refrescar el token y reintentar
+            try {
+              await firebaseUser.getIdToken(true);
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const retryProfile = await authService.getProfile(expectedUid);
+              if (retryProfile.uid !== expectedUid) {
+                await authService.logout();
+                setUser(null);
+                setIsLoading(false);
+                return;
+              }
+              // Si el reintento fue exitoso, usar ese perfil
+              setUser(retryProfile);
+              
+              // Actualizar localStorage con los datos correctos del perfil
+              authService.updateStudentDataInStorage({
+                uid: retryProfile.uid,
+                email: retryProfile.email,
+                nombre: retryProfile.nombre,
+                apellido: retryProfile.apellido,
+                dni: retryProfile.dni,
+                fechaRegistro: retryProfile.fechaRegistro,
+                aceptaTerminos: retryProfile.aceptaTerminos,
+                role: retryProfile.role || "student",
+                lastProfileUpdate: new Date().toISOString(),
+              });
+            } catch (retryError) {
+              console.error("Error en reintento de obtener perfil:", retryError);
+              await authService.logout();
+              setUser(null);
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            setUser(profile);
+            
+            // Actualizar localStorage con los datos correctos del perfil
+            authService.updateStudentDataInStorage({
+              uid: profile.uid,
+              email: profile.email,
+              nombre: profile.nombre,
+              apellido: profile.apellido,
+              dni: profile.dni,
+              fechaRegistro: profile.fechaRegistro,
+              aceptaTerminos: profile.aceptaTerminos,
+              role: profile.role || "student",
+              lastProfileUpdate: new Date().toISOString(),
+            });
+          }
         } catch (error) {
           console.error("Error al obtener perfil:", error);
+          // Si falla obtener el perfil, limpiar todo
+          await authService.logout();
           setUser(null);
         }
       } else {
+        // Si no hay usuario de Firebase, limpiar todo
+        localStorage.removeItem("studentData");
         setUser(null);
       }
 
@@ -78,10 +142,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await authService.login({ email, password });
-
+      
       // Los datos ya se guardaron en localStorage en el servicio
-
+      const response = await authService.login({ email, password });
       return response; // Retornar respuesta para usar en el componente
     } catch (error) {
       setIsLoading(false);
@@ -92,6 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: any) => {
     try {
       setIsLoading(true);
+      
       const response = await authService.register({
         email: userData.email,
         password: userData.password,
@@ -102,8 +166,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       // Los datos ya se guardaron en localStorage en el servicio
-
+      setIsLoading(false);
       return response; // Retornar respuesta para usar en el componente
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const googleRegister = async (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => {
+    try {
+      setIsLoading(true);
+
+      const response = await authService.googleRegister(firstName, lastName, dni, acceptTerms);
+
+      setIsLoading(false);
+      return response;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const googleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const response = await authService.googleLogin();
+      setIsLoading(false);
+      return response;
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -139,6 +229,91 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      await authService.forgotPassword(email);
+    } catch (error: any) {
+      throw error;
+    }
+  };
+
+  const changePassword = async (oobCode: string, password: string) => {
+    try {
+      await authService.changePassword(oobCode, password);
+    } catch (error) {
+      console.error("Error al cambiar contraseña:", error);
+    }
+  };
+
+  const loadQuestion = async (id: string) => {
+    try {
+      const question = await authService.loadQuestion(id);
+      return question;
+    } catch (error) {
+      console.error("Error al cargar la pregunta:", error);
+      return null;
+    }
+  };
+
+  const savePartialAnswers = async (questionId: string, answer: string) => {
+    try {
+      if (!user?.uid) {
+        throw new Error("Usuario no autenticado");
+      }
+      await authService.savePartialAnswer(user.uid, questionId, answer);
+      
+      // Actualizar solo la parte relevante del usuario en lugar de hacer refresh completo
+      if (user) {
+        const updatedAnswers = [...(user.respuestas_test_vocacional || [])];
+        const existingIndex = updatedAnswers.findIndex(resp => resp.id_pregunta === questionId);
+        
+        const newAnswer = {
+          id_pregunta: questionId,
+          id_respuesta: `r${((answer.toUpperCase().charCodeAt(0) - 65) + 1)}`,
+          letra_respuesta: answer.toUpperCase()
+        };
+        
+        if (existingIndex >= 0) {
+          updatedAnswers[existingIndex] = newAnswer;
+        } else {
+          updatedAnswers.push(newAnswer);
+        }
+        
+        setUser({
+          ...user,
+          respuestas_test_vocacional: updatedAnswers
+        });
+      }
+    } catch (error) {
+      console.error("Error al guardar la respuesta parcial:", error);
+      throw error;
+    }
+  };
+
+  const testVocacional = async (responses: string[]) => {
+    try {
+      await authService.testVocacional(user.uid, responses);
+      // Actualizar el perfil del usuario después del test para obtener la ruta_aprendizaje
+      await refreshUser();
+    } catch (error) {
+      console.error("Error al realizar el test vocacional:", error);
+      throw error;
+    }
+  };
+
+  const updateRouteUser = async (routeName: string) => {
+    try {
+      const newUser = {
+        ...user,
+        ruta_aprendizaje: routeName
+      };
+      await authService.updateRouteUser(user.uid, newUser);
+    } catch (error) {
+      console.error("Error al actualizar la ruta de aprendizaje:", error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     firebaseUser,
@@ -148,6 +323,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshUser,
+    googleRegister,
+    googleLogin,
+    forgotPassword,
+    changePassword,
+    testVocacional,
+    loadQuestion,
+    savePartialAnswers,
+    updateRouteUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { X, Clock, BookOpen, CheckCircle, PlayCircle } from "lucide-react"
 import { useState } from "react"
+import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder"
 
 interface TheoryDetailModalProps {
   isOpen: boolean
@@ -127,13 +128,15 @@ const TheoryDetailModal = ({ isOpen, onClose, content }: TheoryDetailModalProps)
                   </div>
 
                   {section.image && (
-                    <div className="rounded-lg overflow-hidden">
-                      <img
-                        src={section.image || "/placeholder.svg"}
-                        alt={section.title}
-                        className="w-full h-48 md:h-64 object-cover"
-                      />
-                    </div>
+                    <ImageWithPlaceholder
+                      src={section.image || "/placeholder.svg"}
+                      alt={section.title}
+                      className="rounded-lg"
+                      aspectRatio="auto"
+                      style={{ height: '12rem' }}
+                      placeholderIcon="image"
+                      placeholderText=""
+                    />
                   )}
 
                   <div className="prose dark:prose-invert max-w-none">
