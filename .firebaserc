@@ -1,7 +1,7 @@
 {
   "projects": {
-    "production": "inee-admin",
-    "QA": "inee-qa"
+    "production": "inee-plataforma",
+    "QA": "inee-estudiante-qa"
   },
   "targets": {},
   "etags": {}
