@@ -1,8 +1,10 @@
 import axios from "axios";
-import { signInWithCustomToken, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
+import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -24,111 +26,321 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-export interface RegisterData {
-  email: string;
-  password: string;
-  nombre: string;
-  apellido: string;
-  dni: string;
-  aceptaTerminos: boolean;
-}
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  message: string;
-  user: {
-    uid: string;
-    email: string;
-    nombre: string;
-    apellido: string;
-    role: string;
-  };
-  customToken?: string;
-}
-
-export interface UserProfile {
-  uid: string;
-  email: string;
-  nombre: string;
-  apellido: string;
-  dni: string;
-  role: string;
-  fechaRegistro: string;
-  aceptaTerminos: boolean;
-}
-
 class AuthService {
   async register(userData: RegisterData): Promise<AuthResponse> {
     try {
+      // Limpiar datos antiguos antes de registrar
+      localStorage.removeItem("studentData");
+      
       const response = await api.post("/auth/register", userData);
 
       if (response.data.customToken) {
         await signInWithCustomToken(auth, response.data.customToken);
+        
+        // Esperar a que el token esté disponible
+        let retries = 0;
+        while (!auth.currentUser && retries < 10) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        // Esperar un momento adicional para que el token se propague
+        if (auth.currentUser) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      if (response.data.user) {
+      // Obtener el perfil real del backend inmediatamente después del registro
+      if (auth.currentUser) {
+        try {
+          const currentUid = auth.currentUser.uid;
+          // Pasar el UID esperado para que getProfile lo verifique
+          const profile = await this.getProfile(currentUid);
+          
+          // Verificar que el perfil corresponde al usuario actual (doble verificación)
+          if (profile.uid !== currentUid) {
+            console.error("Error: El perfil obtenido no corresponde al usuario actual");
+            await this.logout();
+            throw new Error("Error de autenticación: perfil no coincide");
+          }
+          
+          const studentData = {
+            uid: profile.uid,
+            email: profile.email,
+            nombre: profile.nombre,
+            apellido: profile.apellido,
+            role: profile.role || "student",
+            registrationTime: new Date().toISOString(),
+          };
+          localStorage.setItem("studentData", JSON.stringify(studentData));
+        } catch (profileError) {
+          console.error("Error al obtener perfil después del registro:", profileError);
+          // Si falla obtener el perfil, limpiar y lanzar error
+          await this.logout();
+          throw profileError;
+        }
+      }
+
+      return response.data;
+    } catch (error: any) {
+      // Limpiar localStorage si el registro falla
+      localStorage.removeItem("studentData");
+      if (error.response?.data) {
+        throw error.response.data;
+      }
+      throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
+
+
+  async googleLogin() {
+    try {
+      // Limpiar datos antiguos antes de hacer login
+      localStorage.removeItem("studentData");
+      
+      const googleProvider = new GoogleAuthProvider();
+      const auth = getAuth();
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const userExists = await this.userExists(user.uid);
+      if (!userExists) {
+        await this.logout();
+        throw new Error("El usuario no está registrado");
+      }
+
+      // Obtener el perfil real del backend inmediatamente después del login
+      try {
+        const profile = await this.getProfile(user.uid);
         const studentData = {
-          uid: response.data.user.uid,
-          email: response.data.user.email,
-          nombre: response.data.user.nombre,
-          apellido: response.data.user.apellido,
-          role: response.data.user.role,
+          uid: profile.uid,
+          email: profile.email,
+          nombre: profile.nombre,
+          apellido: profile.apellido,
+          role: profile.role || "student",
+          loginTime: new Date().toISOString(),
+        };
+        localStorage.setItem("studentData", JSON.stringify(studentData));
+      } catch (profileError) {
+        console.error("Error al obtener perfil después de Google login:", profileError);
+        // No lanzar error aquí, el onAuthStateChanged lo manejará
+      }
+
+      const idToken = await user.getIdToken();
+      return { idToken, user };
+    } catch (error: any) {
+      // Limpiar localStorage si el login falla
+      localStorage.removeItem("studentData");
+      throw new Error(error.message);
+    }
+  }
+
+  async googleRegister(firstName: string, lastName: string, dni: string, acceptTerms: boolean): Promise<void> {
+    // Limpiar datos antiguos antes de registrar
+    localStorage.removeItem("studentData");
+    
+    const googleProvider = new GoogleAuthProvider();
+    const auth = getAuth();
+
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    const idToken = await user.getIdToken();
+
+    const userExists = await this.userExists(user.uid);
+    if (userExists) {
+      await this.logout();
+      throw new Error("El usuario ya está registrado");
+    }
+
+    try {
+      const response = await api.post("/auth/google-register", {
+        idToken,
+        email: user.email,
+        nombre: firstName,
+        apellido: lastName,
+        dni: dni,
+        aceptaTerminos: acceptTerms,
+      });
+
+      // Obtener el perfil real del backend inmediatamente después del registro
+      try {
+        const profile = await this.getProfile(user.uid);
+        const studentData = {
+          uid: profile.uid,
+          email: profile.email,
+          nombre: profile.nombre,
+          apellido: profile.apellido,
+          role: profile.role || "student",
           registrationTime: new Date().toISOString(),
         };
-
+        localStorage.setItem("studentData", JSON.stringify(studentData));
+      } catch (profileError) {
+        // Si falla obtener el perfil, usar los datos proporcionados como fallback
+        const studentData = {
+          uid: user.uid,
+          email: user.email,
+          nombre: firstName,
+          apellido: lastName,
+          role: "student",
+          registrationTime: new Date().toISOString(),
+        };
         localStorage.setItem("studentData", JSON.stringify(studentData));
       }
 
       return response.data;
     } catch (error: any) {
-      if (error.response?.data) {
-        throw new Error(error.response.data.error || "Error en el registro");
-      }
-      throw new Error("Error de conexión. Verifica tu conexión a internet.");
+      // Limpiar localStorage si el registro falla
+      localStorage.removeItem("studentData");
+      console.error("Error en googleRegister: ", error.response?.data?.error);
+      throw new Error(error.response?.data?.error || error.message);
     }
   }
 
   // Iniciar sesión
   async login(credentials: LoginData): Promise<AuthResponse> {
     try {
+      // Limpiar datos antiguos antes de hacer login
+      localStorage.removeItem("studentData");
+      
       const response = await api.post("/auth/login", credentials);
 
       if (response.data.customToken) {
         await signInWithCustomToken(auth, response.data.customToken);
+        
+        // Esperar a que el token esté disponible
+        let retries = 0;
+        while (!auth.currentUser && retries < 10) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        // Esperar un momento adicional para que el token se propague
+        if (auth.currentUser) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      if (response.data.user) {
-        const studentData = {
-          uid: response.data.user.uid,
-          email: response.data.user.email,
-          nombre: response.data.user.nombre,
-          apellido: response.data.user.apellido,
-          role: response.data.user.role,
-          loginTime: new Date().toISOString(),
-        };
-
-        localStorage.setItem("studentData", JSON.stringify(studentData));
+      // Obtener el perfil real del backend inmediatamente después del login
+      if (auth.currentUser) {
+        try {
+          const currentUid = auth.currentUser.uid;
+          // Pasar el UID esperado para que getProfile lo verifique
+          const profile = await this.getProfile(currentUid);
+          
+          // Verificar que el perfil corresponde al usuario actual (doble verificación)
+          if (profile.uid !== currentUid) {
+            console.error("Error: El perfil obtenido no corresponde al usuario actual");
+            await this.logout();
+            throw new Error("Error de autenticación: perfil no coincide");
+          }
+          
+          const studentData = {
+            uid: profile.uid,
+            email: profile.email,
+            nombre: profile.nombre,
+            apellido: profile.apellido,
+            role: profile.role || "student",
+            loginTime: new Date().toISOString(),
+          };
+          localStorage.setItem("studentData", JSON.stringify(studentData));
+        } catch (profileError) {
+          console.error("Error al obtener perfil después del login:", profileError);
+          // Si falla obtener el perfil, limpiar y lanzar error
+          await this.logout();
+          throw profileError;
+        }
       }
 
       return response.data;
     } catch (error: any) {
+      // Limpiar localStorage si el login falla
+      localStorage.removeItem("studentData");
       if (error.response?.data) {
-        throw new Error(error.response.data.error || "Error en el login");
+        throw error.response.data;
       }
-      throw new Error("Error de conexión. Verifica tu conexión a internet.");
+      throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
+
+  async getUserById(uid: string): Promise<UserProfile> {
+    try {
+      const response = await api.get(`/auth/user/${uid}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al obtener el usuario");
+    }
+  }
+
+  async userExists(uid: string): Promise<boolean> {
+    try {
+      await api.get(`/auth/user/${uid}`);
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return false;
+      }
+      // Si es otro tipo de error (500, 401, etc.), lo lanzamos
+      throw new Error(error.response?.data?.error || "Error al verificar el usuario");
+    }
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      // Validar si el usuario existe en la db
+      await api.get(`/auth/check-email/${email}`);
+
+      await sendPasswordResetEmail(auth, email, {
+        url: `${FRONTEND_URL}/recuperar-contrasena`,
+      });
+      
+    } catch (error: any) {
+      const customError = new Error(error.response?.data?.error || "Error al enviar email de recuperación");
+      (customError as any).exists = error.response?.data?.exists || false;
+      
+      throw customError;
+    }
+  }
+
+  async changePassword(oobCode: string, password: string): Promise<void> {
+    try {
+      await confirmPasswordReset(auth, oobCode, password);
+    } catch (error: any) {
+      throw new Error(error.message || "Error al cambiar contraseña");
     }
   }
 
   // Obtener perfil del usuario
-  async getProfile(): Promise<UserProfile> {
+  async getProfile(expectedUid?: string, retries: number = 3): Promise<UserProfile> {
     try {
+      // Asegurarse de que el token esté actualizado
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        // Forzar refresco del token para asegurar que esté actualizado
+        await currentUser.getIdToken(true);
+      }
+      
       const response = await api.get("/auth/me");
-      return response.data;
+      const profile = response.data;
+      
+      // Si se espera un UID específico, verificar que coincida
+      if (expectedUid && profile.uid !== expectedUid) {
+        // Si hay reintentos disponibles y el UID no coincide, reintentar
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return this.getProfile(expectedUid, retries - 1);
+        }
+        throw new Error("El perfil obtenido no corresponde al usuario actual");
+      }
+      
+      return profile;
     } catch (error: any) {
+      // Si hay reintentos disponibles, reintentar (excepto si es el error de UID no coincidente)
+      if (retries > 0 && error.message !== "El perfil obtenido no corresponde al usuario actual") {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return this.getProfile(expectedUid, retries - 1);
+      }
+      
       if (error.response?.status === 401) {
         await this.logout();
         throw new Error(
@@ -136,7 +348,7 @@ class AuthService {
         );
       }
       throw new Error(
-        error.response?.data?.error || "Error al obtener el perfil"
+        error.response?.data?.error || error.message || "Error al obtener el perfil"
       );
     }
   }
@@ -189,6 +401,42 @@ class AuthService {
       localStorage.setItem("studentData", JSON.stringify(updatedData));
     } catch (error) {
       console.error("Error al actualizar datos del estudiante:", error);
+    }
+  }
+
+  async loadQuestion(id: string): Promise<{ texto: string, orden: number, respuestas: any[] }[]> {
+    try {
+      const response = await api.get(`/test-vocacional/preguntas/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al cargar la pregunta");
+    }
+  }
+  
+  async savePartialAnswer(uid: string, questionId: string, answer: string): Promise<void> {
+    try {
+      await api.post(`/test-vocacional/enviar-respuesta-parcial/${uid}`, { 
+        id_pregunta: questionId, 
+        letra_respuesta: answer.toUpperCase()
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al guardar la respuesta parcial");
+    }
+  }
+
+  async testVocacional(uid: string, responses: string[]): Promise<void> {
+    try {
+      await api.post(`/test-vocacional`, { uid, responses });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al realizar el test vocacional");
+    }
+  }
+
+  async updateRouteUser(uid: string, newUser: UserProfile): Promise<void> {
+    try {
+      await api.put(`/users/${uid}`, newUser);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || "Error al actualizar la ruta de aprendizaje");
     }
   }
 }

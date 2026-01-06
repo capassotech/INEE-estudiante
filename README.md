@@ -1,45 +1,54 @@
-# Welcome to your project
+# INEE Tienda
 
-## How can I edit this code?
+Plataforma de alumnos INEE.
 
-There are several ways of editing your application.
-
-Follow these steps:
+## 🚀 Inicio Rápido
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+# 1. Instalar dependencias
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 2. Configurar entorno (ver sección abajo)
+
+# 3. Iniciar servidor de desarrollo
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Configuración de Entornos (QA / Producción)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Este proyecto **ya tiene un archivo `.env`**. Solo necesitas **reemplazar su contenido** con la configuración que te proporcionen.
 
-**Use GitHub Codespaces**
+### ⚙️ Cómo Configurar el Entorno
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. **Abre** el archivo `.env` en este proyecto (`INEE-tienda/.env`)
 
-## What technologies are used for this project?
+2. **Comenta** todo el contenido actual 
 
-This project is built with:
+3. **Copia** todo el contenido del archivo de configuración que te proporcionaron:
+   - Para **QA**: archivo con variables de entorno de pruebas
+   - Para **Producción**: archivo con variables de entorno de producción
+
+4. **Pega** el contenido en el archivo `.env`
+
+
+### 🔄 Cambiar de Entorno
+
+Para cambiar entre QA y Producción, repite los pasos anteriores con el archivo de configuración del nuevo entorno.
+
+
+### Verificar Entorno Actual
+
+Para verificar qué entorno estás usando, revisa el archivo `.env` y busca:
+- Si `VITE_FIREBASE_PROJECT_ID=inee-qa` → Estás en **QA**
+- Si `VITE_FIREBASE_PROJECT_ID=tu-proyecto-prod` → Estás en **Producción**
+
+## 📦 Tecnologías
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+
+
+

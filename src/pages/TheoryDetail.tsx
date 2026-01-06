@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, BookOpen, CheckCircle, PlayCircle } from "lucide-react";
+import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const TheoryDetail = () => {
   const { unitId } = useParams();
@@ -63,7 +64,6 @@ const TheoryDetail = () => {
   };
 
   const markAsCompleted = () => {
-    console.log("Unidad marcada como completada");
   };
 
   return (
@@ -130,13 +130,15 @@ const TheoryDetail = () => {
                 </h2>
               </div>
               {section.image && (
-                <div className="rounded-lg overflow-hidden">
-                  <img 
-                    src={section.image}
-                    alt={section.title}
-                    className="w-full h-48 md:h-64 object-cover"
-                  />
-                </div>
+                <ImageWithPlaceholder
+                  src={section.image}
+                  alt={section.title}
+                  className="rounded-lg"
+                  aspectRatio="auto"
+                  style={{ height: '12rem' }}
+                  placeholderIcon="image"
+                  placeholderText=""
+                />
               )}
               <div className="prose dark:prose-invert max-w-none">
                 {section.content.split('\n').map((paragraph, pIndex) => {
