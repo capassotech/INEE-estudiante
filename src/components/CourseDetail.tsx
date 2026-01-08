@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const location = useLocation();
   const { user } = useAuth();
   const [courseData, setCourseData] = useState<Course | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
@@ -65,6 +66,7 @@ const CourseDetail = () => {
     }
     return new Set<string>();
   };
+
   const [progressData, setProgressData] = useState<{
     progreso_general: number;
     total_contenidos: number;
@@ -518,14 +520,23 @@ const CourseDetail = () => {
   const progressPercentage = totalContents > 0
     ? Math.round((actualCompletedCount / totalContents) * 100)
     : (progressData?.progreso_general || 0);
+
+  // Consideramos el curso completado cuando el progreso llega al 100%
+  const isCourseCompleted = progressPercentage === 100;
+
   useEffect(() => {
-    if (progressPercentage === 100 && courseData) {
+    const fromReview = (location.state as any)?.fromReview;
+
+    // Solo redirigir a la reseña cuando se completa el curso
+    // y NO venimos de haber omitido/completado la reseña en esta visita
+    if (progressPercentage === 100 && courseData && !fromReview) {
       const timer = setTimeout(() => {
         navigate(`/course/${courseId}/review`, { state: { course: courseData } });
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [progressPercentage, courseData, courseId, navigate]);
+  }, [progressPercentage, courseData, courseId, navigate, location.state]);
+  
   if (isLoadingCourse) {
     return (
       <div className="container mx-auto px-4 py-6 text-center flex justify-center items-center h-screen">
@@ -749,6 +760,7 @@ const CourseDetail = () => {
                                   completed: completedContents.has(contentKey),
                                 }}
                                 contentIndex={index}
+                                isCourseCompleted={isCourseCompleted}
                                 onToggleComplete={() =>
                                   toggleContentComplete(module.id, index)
                                 }
