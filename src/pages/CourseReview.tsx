@@ -66,14 +66,29 @@ const CourseReview = () => {
         description: "Muchas gracias por tu tiempo.",
         variant: "default",
       });
-      navigate('/');
+      // Volver al detalle del curso con todos los contenidos completados
+      // y evitar que se vuelva a disparar inmediatamente el flujo de reseña
+      if (course?.id) {
+        navigate(`/curso/${course.id}`, {
+          state: { fromReview: true },
+        });
+      } else {
+        navigate("/");
+      }
     } catch (err: any) {
       console.error(err);
       toast({
-        title: "Error",
-        description: err.response?.data?.error || "No se pudo omitir la reseña.",
+        title: "Reseña omitida.",
+        description: err.response?.data?.error,
         variant: "destructive",
       });
+      if (course?.id) {
+        navigate(`/curso/${course.id}`, {
+          state: { fromReview: true },
+        });
+      } else {
+        navigate("/");
+      }
     } finally {
       setLoadingSkip(false);
     }
