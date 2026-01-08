@@ -38,6 +38,7 @@ const CourseDetail = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
+  const [hasUserReview, setHasUserReview] = useState(false);
 
   // Función para guardar progreso en localStorage como respaldo
   // Usar userId en la clave para que sea específico por usuario
@@ -86,6 +87,18 @@ const CourseDetail = () => {
     };
     fetchCourse();
   }, [courseId]);
+
+  // Verificar si el usuario ya tiene una reseña para este curso
+  useEffect(() => {
+    if (!user?.uid || !courseId) return;
+    try {
+      const key = `review_sent_${user.uid}_${courseId}`;
+      const hasReview = localStorage.getItem(key) === "true";
+      setHasUserReview(hasReview);
+    } catch (error) {
+      console.warn("Error al verificar reseña del usuario:", error);
+    }
+  }, [user?.uid, courseId]);
 
   useEffect(() => {
     if (courseData) {
@@ -529,13 +542,14 @@ const CourseDetail = () => {
 
     // Solo redirigir a la reseña cuando se completa el curso
     // y NO venimos de haber omitido/completado la reseña en esta visita
-    if (progressPercentage === 100 && courseData && !fromReview) {
+    // y el usuario NO tiene ya una reseña enviada
+    if (progressPercentage === 100 && courseData && !fromReview && !hasUserReview) {
       const timer = setTimeout(() => {
         navigate(`/course/${courseId}/review`, { state: { course: courseData } });
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [progressPercentage, courseData, courseId, navigate, location.state]);
+  }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview]);
   
   if (isLoadingCourse) {
     return (

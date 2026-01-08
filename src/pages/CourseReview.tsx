@@ -38,6 +38,16 @@ const CourseReview = () => {
       setLoading(true);
       await reviewService.createReview(course.id, rating, comment);
 
+      // Marcar que el usuario ya envió la reseña para este curso
+      if (user?.uid) {
+        try {
+          const key = `review_sent_${user.uid}_${course.id}`;
+          localStorage.setItem(key, "true");
+        } catch (error) {
+          console.warn("Error al guardar flag de reseña enviada:", error);
+        }
+      }
+
       toast({
         title: "¡Reseña enviada!",
         description: "Gracias por tu opinión. Serás redirigido al inicio.",
