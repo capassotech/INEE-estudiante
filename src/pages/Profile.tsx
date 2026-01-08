@@ -14,8 +14,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const [rutaAprendizaje, setRutaAprendizaje] = useState<string | null>(null);
   const [isLoadingRuta, setIsLoadingRuta] = useState(true);
-  const [membresia, setMembresia] = useState<Membership | null>(null);
-  const [isLoadingMembresia, setIsLoadingMembresia] = useState(false);
+  // const [membresia, setMembresia] = useState<Membership | null>(null);
+  // const [isLoadingMembresia, setIsLoadingMembresia] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -33,43 +33,44 @@ export default function Profile() {
     }
   }, [user?.ruta_aprendizaje, user]);
 
-  useEffect(() => {
-    if (user) {
-      // Extraer el ID de membresía (puede ser string o objeto con id)
-      let membresiaId: string | null = null;
-      if (user.membresia) {
-        if (typeof user.membresia === 'string') {
-          membresiaId = user.membresia;
-        } else if (typeof user.membresia === 'object' && user.membresia !== null && 'id' in user.membresia) {
-          membresiaId = (user.membresia as any).id;
-        }
-      }
+  // Funcionalidad de membresías deshabilitada temporalmente
+  // useEffect(() => {
+  //   if (user) {
+  //     // Extraer el ID de membresía (puede ser string o objeto con id)
+  //     let membresiaId: string | null = null;
+  //     if (user.membresia) {
+  //       if (typeof user.membresia === 'string') {
+  //         membresiaId = user.membresia;
+  //       } else if (typeof user.membresia === 'object' && user.membresia !== null && 'id' in user.membresia) {
+  //         membresiaId = (user.membresia as any).id;
+  //       }
+  //     }
 
-      if (membresiaId) {
-        setIsLoadingMembresia(true);
-        const fetchMembresia = async () => {
-          try {
-            const membresiaResult = await membershipService.getMembresia(membresiaId!);
-            if (membresiaResult && membresiaResult.data) {
-              setMembresia(membresiaResult.data);
-            } else if (membresiaResult) {
-              // Si la respuesta no tiene .data, usar directamente
-              setMembresia(membresiaResult);
-            }
-          } catch (error) {
-            console.error("Error al obtener membresía:", error);
-            setMembresia(null);
-          } finally {
-            setIsLoadingMembresia(false);
-          }
-        };
-        fetchMembresia();
-      } else {
-        setMembresia(null);
-        setIsLoadingMembresia(false);
-      }
-    }
-  }, [user?.membresia, user]);
+  //     if (membresiaId) {
+  //       setIsLoadingMembresia(true);
+  //       const fetchMembresia = async () => {
+  //         try {
+  //           const membresiaResult = await membershipService.getMembresia(membresiaId!);
+  //           if (membresiaResult && membresiaResult.data) {
+  //             setMembresia(membresiaResult.data);
+  //           } else if (membresiaResult) {
+  //             // Si la respuesta no tiene .data, usar directamente
+  //             setMembresia(membresiaResult);
+  //           }
+  //         } catch (error) {
+  //           console.error("Error al obtener membresía:", error);
+  //           setMembresia(null);
+  //         } finally {
+  //           setIsLoadingMembresia(false);
+  //         }
+  //       };
+  //       fetchMembresia();
+  //     } else {
+  //       setMembresia(null);
+  //       setIsLoadingMembresia(false);
+  //     }
+  //   }
+  // }, [user?.membresia, user]);
 
   useEffect(() => {
     const handleFocus = async () => {
@@ -138,9 +139,9 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Columna izquierda - Información principal */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           {/* Tarjeta de información personal */}
           <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
             <CardContent className="p-6">
@@ -241,8 +242,9 @@ export default function Profile() {
 
         </div>
 
+        {/* Funcionalidad de membresías deshabilitada temporalmente */}
         {/* Columna derecha - Membresía */}
-        <div className="lg:col-span-1">
+        {/* <div className="lg:col-span-1">
           <Card className="border-slate-200 dark:border-slate-700 shadow-sm sticky top-6">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-6">
@@ -316,7 +318,7 @@ export default function Profile() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </div> */}
       </div>
       
       <RutasAprendizajeModal 
