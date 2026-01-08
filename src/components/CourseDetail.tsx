@@ -163,8 +163,15 @@ const CourseDetail = () => {
           const moduloBackend = modulosBackendMap.get(module.id);
           const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
 
-          // Verificar TODOS los contenidos del módulo usando el índice
+          // Verificar TODOS los contenidos del módulo usando el índice (excluyendo contenido_extra)
           for (let index = 0; index < module.contenido.length; index++) {
+            const content = module.contenido[index];
+            
+            // Excluir contenido_extra de la verificación de progreso
+            if (content.tipo_contenido === "contenido_extra") {
+              continue;
+            }
+
             const contentKey = `${module.id}-${index}`;
 
             // Crear promesa para verificar estado usando el índice
@@ -240,8 +247,15 @@ const CourseDetail = () => {
               const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
 
               if (contenidosCompletadosModulo > 0) {
-                // Verificar cada contenido del módulo
+                // Verificar cada contenido del módulo (excluyendo contenido_extra)
                 for (let index = 0; index < module.contenido.length; index++) {
+                  const content = module.contenido[index];
+                  
+                  // Excluir contenido_extra de la verificación de progreso
+                  if (content.tipo_contenido === "contenido_extra") {
+                    continue;
+                  }
+
                   const contentKey = `${module.id}-${index}`;
 
                   try {
@@ -269,7 +283,7 @@ const CourseDetail = () => {
                 total_contenidos: total_contenidos,
                 contenidos_completados: completedByBackend.size,
               });
-              saveProgressToLocalStorage(courseId, completedByIndex);
+              saveProgressToLocalStorage(courseId, completedByBackend);
             } else {
               // Si todo falla, mantener el progreso del backend aunque no podamos marcar checkboxes
               setProgressData({
@@ -351,6 +365,13 @@ const CourseDetail = () => {
     }
 
     const targetContent = targetModule.contenido[contentIndex];
+
+    // Prevenir que contenido_extra se marque como completado (aunque no debería ser posible desde la UI)
+    if (targetContent.tipo_contenido === "contenido_extra") {
+      console.warn("⚠️ Intento de marcar contenido_extra como completado, ignorando...");
+      toast.error("La bibliografía complementaria no se puede marcar como completada");
+      return;
+    }
 
     console.log("✅ Contenido encontrado para marcar/desmarcar:", {
       contentIndex,
@@ -481,8 +502,10 @@ const CourseDetail = () => {
     setSelectedContent(null);
   };
 
-  const totalContents = progressData?.total_contenidos || modules.reduce(
-    (acc, m) => acc + (m.contenido?.length || 0),
+  // Excluir contenido_extra del cálculo del progreso ya que no se pueden marcar como completados
+  // Siempre calcular desde los módulos locales para excluir contenido_extra, no usar el valor del backend
+  const totalContents = modules.reduce(
+    (acc, m) => acc + (m.contenido?.filter(c => c.tipo_contenido !== "contenido_extra").length || 0),
     0
   );
 
