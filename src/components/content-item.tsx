@@ -29,8 +29,6 @@ const ContentItem = ({
   onContentClick,
 }: ContentItemProps) => {
 
-  console.log(content)
-
   const getIcon = () => {
     switch (content.tipo_contenido) {
       case "video":

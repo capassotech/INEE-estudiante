@@ -23,6 +23,7 @@ import VideoModal from "@/components/video-modal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 import progressService from "@/services/progressService";
+import reviewService from "@/services/reviewService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
@@ -88,16 +89,34 @@ const CourseDetail = () => {
     fetchCourse();
   }, [courseId]);
 
-  // Verificar si el usuario ya tiene una reseña para este curso
   useEffect(() => {
-    if (!user?.uid || !courseId) return;
-    try {
-      const key = `review_sent_${user.uid}_${courseId}`;
-      const hasReview = localStorage.getItem(key) === "true";
-      setHasUserReview(hasReview);
-    } catch (error) {
-      console.warn("Error al verificar reseña del usuario:", error);
-    }
+    const checkUserReview = async () => {
+      if (!user?.uid || !courseId) return;
+      
+      try {
+        const responseReviews = await reviewService.getReviewsByCourse(courseId);
+        console.log(responseReviews.reviews);
+        console.log(user.uid);
+        let foundReview = false;
+        
+        if (responseReviews?.reviews && Array.isArray(responseReviews.reviews)) {
+          for (const review of responseReviews.reviews) {
+            if (review.userId === user.uid) {
+              console.log("tiene review el usuario");
+              foundReview = true;
+              break;
+            }
+          }
+        }
+        
+        setHasUserReview(foundReview);
+      } catch (error) {
+        console.warn("Error al verificar reseña del usuario:", error);
+        setHasUserReview(false);
+      }
+    };
+
+    checkUserReview();
   }, [user?.uid, courseId]);
 
   useEffect(() => {
@@ -194,10 +213,10 @@ const CourseDetail = () => {
               .obtenerEstadoContenido(module.id, index.toString())
               .then((estadoResponse) => {
                 const completed = estadoResponse.success && estadoResponse.data.completado;
-                console.log(`🔍 Verificando contenido ${module.id}-${index}:`, {
-                  completado: completed,
-                  respuesta: estadoResponse.data
-                });
+                // console.log(`🔍 Verificando contenido ${module.id}-${index}:`, {
+                //   completado: completed,
+                //   respuesta: estadoResponse.data
+                // });
                 return { contentKey, completed, moduleId: module.id };
               })
               .catch((error) => {
@@ -223,14 +242,12 @@ const CourseDetail = () => {
             const { contentKey, completed } = result.value;
             if (completed) {
               completedSet.add(contentKey);
-              console.log(`✅ Contenido completado encontrado: ${contentKey}`);
             }
           } else {
             console.error('❌ Error al procesar resultado de progreso:', result.reason);
           }
         });
 
-        console.log(`📊 Total contenidos completados cargados: ${completedSet.size}`, Array.from(completedSet));
 
         // Guardar en localStorage como respaldo
         saveProgressToLocalStorage(courseId, completedSet);
@@ -335,7 +352,6 @@ const CourseDetail = () => {
           saveProgressToLocalStorage(courseId, completedSet);
         }
 
-        console.log(`🔄 Actualizando completedContents con ${completedSet.size} items:`, Array.from(completedSet));
         setCompletedContents(completedSet);
       } else {
         console.warn("⚠️ Respuesta del backend sin éxito:", response);
@@ -388,23 +404,23 @@ const CourseDetail = () => {
       return;
     }
 
-    console.log("✅ Contenido encontrado para marcar/desmarcar:", {
-      contentIndex,
-      moduloId: targetModule.id,
-      cursoId: courseId,
-      userId: user.uid,
-      contenido: targetContent
-    });
+    // console.log("✅ Contenido encontrado para marcar/desmarcar:", {
+    //   contentIndex,
+    //   moduloId: targetModule.id,
+    //   cursoId: courseId,
+    //   userId: user.uid,
+    //   contenido: targetContent
+    // });
 
     const contentKey = `${moduleId}-${contentIndex}`;
     const isCurrentlyCompleted = completedContents.has(contentKey);
 
-    console.log(`🔄 Estado antes de toggle:`, {
-      contentKey,
-      isCurrentlyCompleted,
-      totalCompletados: completedContents.size,
-      todosLosCompletados: Array.from(completedContents)
-    });
+    // console.log(`🔄 Estado antes de toggle:`, {
+    //   contentKey,
+    //   isCurrentlyCompleted,
+    //   totalCompletados: completedContents.size,
+    //   todosLosCompletados: Array.from(completedContents)
+    // });
 
     // Optimistic update
     setUpdatingContent((prev) => new Set(prev).add(contentKey));
@@ -439,7 +455,7 @@ const CourseDetail = () => {
         contenidoId: contentIndex.toString(), // Enviar el índice como string
       };
 
-      console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
+      // console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
 
       if (isCurrentlyCompleted) {
         // Desmarcar
@@ -449,15 +465,15 @@ const CourseDetail = () => {
         response = await progressService.marcarCompletado(dataToSend);
       }
 
-      console.log("📥 Respuesta del backend:", response);
+      // console.log("📥 Respuesta del backend:", response);
 
       if (response.success) {
-        console.log(`✅ Backend confirmó la operación. Estado optimista aplicado:`, {
-          contentKey,
-          estaCompletadoEnUpdatedSet: updatedSet.has(contentKey),
-          deberiaEstar: !isCurrentlyCompleted,
-          coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
-        });
+        // console.log(`✅ Backend confirmó la operación. Estado optimista aplicado:`, {
+        //   contentKey,
+        //   estaCompletadoEnUpdatedSet: updatedSet.has(contentKey),
+        //   deberiaEstar: !isCurrentlyCompleted,
+        //   coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
+        // });
 
         // NO hay necesidad de actualizar el estado nuevamente porque ya hicimos optimistic update
         // Solo actualizar el progreso general
