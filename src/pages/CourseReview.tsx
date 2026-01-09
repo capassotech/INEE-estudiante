@@ -90,7 +90,7 @@ const CourseReview = () => {
       toast({
         title: "Reseña omitida.",
         description: err.response?.data?.error,
-        variant: "destructive",
+        variant: "default",
       });
       if (course?.id) {
         navigate(`/curso/${course.id}`, {
