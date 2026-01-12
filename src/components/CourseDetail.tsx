@@ -38,38 +38,17 @@ const CourseDetail = () => {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
 
-  // Función para guardar progreso en localStorage como respaldo
-  // Usar userId en la clave para que sea específico por usuario
-  const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
-    try {
-      if (!user?.uid) return;
-      const key = `progress_${user.uid}_${courseId}`;
-      localStorage.setItem(key, JSON.stringify(Array.from(completed)));
-    } catch (error) {
-      console.warn("Error al guardar progreso en localStorage:", error);
-    }
-  };
-
-  // Función para cargar progreso desde localStorage
-  // Usar userId en la clave para que sea específico por usuario
-  const loadProgressFromLocalStorage = (courseId: string): Set<string> => {
-    try {
-      if (!user?.uid) return new Set<string>();
-      const key = `progress_${user.uid}_${courseId}`;
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        return new Set(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.warn("Error al cargar progreso desde localStorage:", error);
-    }
-    return new Set<string>();
-  };
   const [progressData, setProgressData] = useState<{
     progreso_general: number;
     total_contenidos: number;
     contenidos_completados: number;
   } | null>(null);
+
+  const [moduleProgressData, setModuleProgressData] = useState<Map<string, {
+    contenidos_completados: number;
+    contenidos_totales: number;
+  }>>(new Map());
+
   const [updatingContent, setUpdatingContent] = useState<Set<string>>(new Set());
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
@@ -121,9 +100,30 @@ const CourseDetail = () => {
     }
   }, [courseData, user, courseId]);
 
-  /**
-   * Cargar progreso desde el backend
-   */
+  const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
+    try {
+      if (!user?.uid) return;
+      const key = `progress_${user.uid}_${courseId}`;
+      localStorage.setItem(key, JSON.stringify(Array.from(completed)));
+    } catch (error) {
+      console.warn("Error al guardar progreso en localStorage:", error);
+    }
+  };
+
+  const loadProgressFromLocalStorage = (courseId: string): Set<string> => {
+    try {
+      if (!user?.uid) return new Set<string>();
+      const key = `progress_${user.uid}_${courseId}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        return new Set(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.warn("Error al cargar progreso desde localStorage:", error);
+    }
+    return new Set<string>();
+  };
+
   const loadProgressFromBackend = async (modulesData: Module[], cachedProgress: Set<string> = new Set()) => {
     if (!user?.uid || !courseId || !modulesData || modulesData.length === 0) {
       setIsLoadingProgress(false);
@@ -135,8 +135,18 @@ const CourseDetail = () => {
 
       const response = await progressService.obtenerProgresoCurso(courseId);
 
+      console.log("📥 Respuesta completa del backend:", response);
+
       if (response.success && response.data) {
         const { modulos, progreso_general, total_contenidos, contenidos_completados } = response.data;
+
+        console.log("📊 Datos del progreso:", {
+          modulos,
+          progreso_general,
+          total_contenidos,
+          contenidos_completados,
+          userId: user?.uid
+        });
 
         // Actualizar estado de progreso general
         setProgressData({
@@ -154,6 +164,19 @@ const CourseDetail = () => {
           modulos.map(m => [m.modulo_id, m])
         );
 
+        // Guardar los datos de progreso por módulo en el estado
+        const moduleProgressMap = new Map<string, {
+          contenidos_completados: number;
+          contenidos_totales: number;
+        }>();
+        modulos.forEach(m => {
+          moduleProgressMap.set(m.modulo_id, {
+            contenidos_completados: m.contenidos_completados,
+            contenidos_totales: m.contenidos_totales
+          });
+        });
+        setModuleProgressData(moduleProgressMap);
+
         // Verificar estado de TODOS los contenidos en paralelo usando índices
         const checkPromises: Array<Promise<{ contentKey: string; completed: boolean; moduleId: string }>> = [];
 
@@ -166,7 +189,7 @@ const CourseDetail = () => {
           // Verificar TODOS los contenidos del módulo usando el índice (excluyendo contenido_extra)
           for (let index = 0; index < module.contenido.length; index++) {
             const content = module.contenido[index];
-            
+
             // Excluir contenido_extra de la verificación de progreso
             if (content.tipo_contenido === "contenido_extra") {
               continue;
@@ -202,6 +225,8 @@ const CourseDetail = () => {
         // Esperar todas las verificaciones en paralelo
         const results = await Promise.allSettled(checkPromises);
 
+        console.log(`🔍 Resultados de verificaciones: ${results.length} total, ${results.filter(r => r.status === 'fulfilled').length} exitosas, ${results.filter(r => r.status === 'rejected').length} fallidas`);
+
         // Procesar resultados
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
@@ -216,11 +241,17 @@ const CourseDetail = () => {
         });
 
         console.log(`📊 Total contenidos completados cargados: ${completedSet.size}`, Array.from(completedSet));
+        console.log(`📊 Contenidos completados según backend: ${contenidos_completados}`);
+        console.log(`📊 ¿Coinciden?: ${completedSet.size === contenidos_completados}`);
 
         // Guardar en localStorage como respaldo
         saveProgressToLocalStorage(courseId, completedSet);
 
+        // Si las llamadas individuales fallaron pero el backend reporta progreso,
+        // intentar usar el localStorage como respaldo primero
         if (completedSet.size === 0 && contenidos_completados > 0) {
+          console.log("⚠️ No se pudieron cargar contenidos completados, pero el backend reporta progreso. Intentando usar localStorage...");
+
           // Si hay progreso en localStorage y el backend también reporta progreso,
           // usar el localStorage como fuente de verdad (es más confiable que las verificaciones que fallan)
           if (cachedProgress.size > 0) {
@@ -250,7 +281,7 @@ const CourseDetail = () => {
                 // Verificar cada contenido del módulo (excluyendo contenido_extra)
                 for (let index = 0; index < module.contenido.length; index++) {
                   const content = module.contenido[index];
-                  
+
                   // Excluir contenido_extra de la verificación de progreso
                   if (content.tipo_contenido === "contenido_extra") {
                     continue;
@@ -320,7 +351,6 @@ const CourseDetail = () => {
           saveProgressToLocalStorage(courseId, completedSet);
         }
 
-        console.log(`🔄 Actualizando completedContents con ${completedSet.size} items:`, Array.from(completedSet));
         setCompletedContents(completedSet);
       } else {
         console.warn("⚠️ Respuesta del backend sin éxito:", response);
@@ -346,9 +376,6 @@ const CourseDetail = () => {
     });
   };
 
-  /**
-   * Marcar/desmarcar contenido como completado
-   */
   const toggleContentComplete = async (moduleId: string, contentIndex: number) => {
     if (!user?.uid || !courseId) {
       toast.error("Debes estar autenticado para marcar progreso");
@@ -502,15 +529,12 @@ const CourseDetail = () => {
     setSelectedContent(null);
   };
 
-  // Excluir contenido_extra del cálculo del progreso ya que no se pueden marcar como completados
-  // Siempre calcular desde los módulos locales para excluir contenido_extra, no usar el valor del backend
   const totalContents = modules.reduce(
     (acc, m) => acc + (m.contenido?.filter(c => c.tipo_contenido !== "contenido_extra").length || 0),
     0
   );
 
-  // Usar el tamaño real del Set de contenidos completados como fuente de verdad
-  // El progressData puede tener valores desactualizados, así que priorizamos completedContents
+
   const actualCompletedCount = completedContents.size;
   const completedCount = actualCompletedCount > 0 ? actualCompletedCount : (progressData?.contenidos_completados || 0);
 
@@ -518,6 +542,7 @@ const CourseDetail = () => {
   const progressPercentage = totalContents > 0
     ? Math.round((actualCompletedCount / totalContents) * 100)
     : (progressData?.progreso_general || 0);
+
   useEffect(() => {
     if (progressPercentage === 100 && courseData) {
       const timer = setTimeout(() => {
@@ -526,6 +551,7 @@ const CourseDetail = () => {
       return () => clearTimeout(timer);
     }
   }, [progressPercentage, courseData, courseId, navigate]);
+
   if (isLoadingCourse) {
     return (
       <div className="container mx-auto px-4 py-6 text-center flex justify-center items-center h-screen">
@@ -671,16 +697,30 @@ const CourseDetail = () => {
           </div>
         ) : (
           modules.map((module) => {
+            // Obtener datos de progreso del backend para este módulo
+            const moduleBackendData = moduleProgressData.get(module.id);
+
+            // Calcular contenidos completados SIEMPRE excluyendo contenido_extra
+            // No usar contenidos_completados del backend porque podría incluir contenido_extra
             const moduleCompletedCount = module.contenido
-              ? module.contenido.filter((c) => {
-                const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
-                return completedContents.has(cId);
+              ? module.contenido.filter((c, index) => {
+                // Excluir contenido_extra del conteo
+                if (c.tipo_contenido === "contenido_extra") {
+                  return false;
+                }
+                const contentKey = `${module.id}-${index}`;
+                return completedContents.has(contentKey);
               }).length
               : 0;
-            const moduleProgress = module.contenido
-              ? Math.round(
-                (moduleCompletedCount / module.contenido.length) * 100
-              )
+
+            // Calcular el total de contenidos (SIEMPRE excluyendo contenido_extra)
+            // No usar contenidos_totales del backend porque podría incluir contenido_extra
+            const modulesQuantity = module.contenido
+              ? module.contenido.filter((c) => c.tipo_contenido !== "contenido_extra").length
+              : 0;
+
+            const moduleProgress = modulesQuantity > 0
+              ? Math.round((moduleCompletedCount / modulesQuantity) * 100)
               : 0;
 
             return (
@@ -705,7 +745,7 @@ const CourseDetail = () => {
                                 variant="secondary"
                                 className="self-start text-xs sm:text-sm"
                               >
-                                {moduleCompletedCount}/{module.contenido.length}
+                                {moduleCompletedCount}/{modulesQuantity}
                               </Badge>
                             )}
                           </div>
