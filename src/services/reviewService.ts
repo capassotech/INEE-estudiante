@@ -2,7 +2,8 @@ import axios from "axios";
 import { auth } from "../../config/firebase-client";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
+  import.meta.env.VITE_API_URL;
+
 const api = axios.create({
   baseURL: `${API_BASE_URL}`,
   headers: {
@@ -40,7 +41,16 @@ class ReviewService {
 
   async getReviewsByCourse(courseId: string) {
     try {
-      const response = await api.get(`/api/reviews/course/${courseId}`);
+      const response = await api.get(`/api/reviews/course/${courseId}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        params: {
+          _t: Date.now() // Timestamp para evitar caché
+        }
+      });
       return response.data;
     } catch (error) {
       console.error("Error getting reviews:", error);
