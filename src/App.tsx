@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import TestVocacional from "./pages/TestVocacional";
 import Memberships from "./pages/Memberships";
+import ValidateCertificate from "./pages/ValidateCertificate";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,8 @@ const App = () => (
         >
           <AuthProvider>
             <Routes>
+              {/* Ruta pública para validación de certificados - DEBE IR PRIMERO */}
+              <Route path="/validar-certificado/:certificadoId" element={<ValidateCertificate />} />
               <Route element={<AuthRedirectRoute />}>
                 <Route path="/login" element={<Login />} />
                 <Route path="/registro" element={<Register />} />
