@@ -12,7 +12,6 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  console.log("📡 Request URL completa:", config.baseURL + config.url);
   try {
     const user = auth.currentUser;
     if (user) {

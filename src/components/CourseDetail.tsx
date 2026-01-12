@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +23,14 @@ import VideoModal from "@/components/video-modal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 import progressService from "@/services/progressService";
+import reviewService from "@/services/reviewService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const location = useLocation();
   const { user } = useAuth();
   const [courseData, setCourseData] = useState<Course | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
@@ -37,6 +39,7 @@ const CourseDetail = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
+  const [hasUserReview, setHasUserReview] = useState(false);
 
   // Función para guardar progreso en localStorage como respaldo
   // Usar userId en la clave para que sea específico por usuario
@@ -65,6 +68,7 @@ const CourseDetail = () => {
     }
     return new Set<string>();
   };
+
   const [progressData, setProgressData] = useState<{
     progreso_general: number;
     total_contenidos: number;
@@ -84,6 +88,36 @@ const CourseDetail = () => {
     };
     fetchCourse();
   }, [courseId]);
+
+  useEffect(() => {
+    const checkUserReview = async () => {
+      if (!user?.uid || !courseId) return;
+      
+      try {
+        const responseReviews = await reviewService.getReviewsByCourse(courseId);
+        console.log(responseReviews.reviews);
+        console.log(user.uid);
+        let foundReview = false;
+        
+        if (responseReviews?.reviews && Array.isArray(responseReviews.reviews)) {
+          for (const review of responseReviews.reviews) {
+            if (review.userId === user.uid) {
+              console.log("tiene review el usuario");
+              foundReview = true;
+              break;
+            }
+          }
+        }
+        
+        setHasUserReview(foundReview);
+      } catch (error) {
+        console.warn("Error al verificar reseña del usuario:", error);
+        setHasUserReview(false);
+      }
+    };
+
+    checkUserReview();
+  }, [user?.uid, courseId]);
 
   useEffect(() => {
     if (courseData) {
@@ -163,8 +197,15 @@ const CourseDetail = () => {
           const moduloBackend = modulosBackendMap.get(module.id);
           const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
 
-          // Verificar TODOS los contenidos del módulo usando el índice
+          // Verificar TODOS los contenidos del módulo usando el índice (excluyendo contenido_extra)
           for (let index = 0; index < module.contenido.length; index++) {
+            const content = module.contenido[index];
+            
+            // Excluir contenido_extra de la verificación de progreso
+            if (content.tipo_contenido === "contenido_extra") {
+              continue;
+            }
+
             const contentKey = `${module.id}-${index}`;
 
             // Crear promesa para verificar estado usando el índice
@@ -172,10 +213,10 @@ const CourseDetail = () => {
               .obtenerEstadoContenido(module.id, index.toString())
               .then((estadoResponse) => {
                 const completed = estadoResponse.success && estadoResponse.data.completado;
-                console.log(`🔍 Verificando contenido ${module.id}-${index}:`, {
-                  completado: completed,
-                  respuesta: estadoResponse.data
-                });
+                // console.log(`🔍 Verificando contenido ${module.id}-${index}:`, {
+                //   completado: completed,
+                //   respuesta: estadoResponse.data
+                // });
                 return { contentKey, completed, moduleId: module.id };
               })
               .catch((error) => {
@@ -201,14 +242,12 @@ const CourseDetail = () => {
             const { contentKey, completed } = result.value;
             if (completed) {
               completedSet.add(contentKey);
-              console.log(`✅ Contenido completado encontrado: ${contentKey}`);
             }
           } else {
             console.error('❌ Error al procesar resultado de progreso:', result.reason);
           }
         });
 
-        console.log(`📊 Total contenidos completados cargados: ${completedSet.size}`, Array.from(completedSet));
 
         // Guardar en localStorage como respaldo
         saveProgressToLocalStorage(courseId, completedSet);
@@ -240,8 +279,15 @@ const CourseDetail = () => {
               const contenidosCompletadosModulo = moduloBackend?.contenidos_completados || 0;
 
               if (contenidosCompletadosModulo > 0) {
-                // Verificar cada contenido del módulo
+                // Verificar cada contenido del módulo (excluyendo contenido_extra)
                 for (let index = 0; index < module.contenido.length; index++) {
+                  const content = module.contenido[index];
+                  
+                  // Excluir contenido_extra de la verificación de progreso
+                  if (content.tipo_contenido === "contenido_extra") {
+                    continue;
+                  }
+
                   const contentKey = `${module.id}-${index}`;
 
                   try {
@@ -269,7 +315,7 @@ const CourseDetail = () => {
                 total_contenidos: total_contenidos,
                 contenidos_completados: completedByBackend.size,
               });
-              saveProgressToLocalStorage(courseId, completedByIndex);
+              saveProgressToLocalStorage(courseId, completedByBackend);
             } else {
               // Si todo falla, mantener el progreso del backend aunque no podamos marcar checkboxes
               setProgressData({
@@ -306,7 +352,6 @@ const CourseDetail = () => {
           saveProgressToLocalStorage(courseId, completedSet);
         }
 
-        console.log(`🔄 Actualizando completedContents con ${completedSet.size} items:`, Array.from(completedSet));
         setCompletedContents(completedSet);
       } else {
         console.warn("⚠️ Respuesta del backend sin éxito:", response);
@@ -352,23 +397,30 @@ const CourseDetail = () => {
 
     const targetContent = targetModule.contenido[contentIndex];
 
-    console.log("✅ Contenido encontrado para marcar/desmarcar:", {
-      contentIndex,
-      moduloId: targetModule.id,
-      cursoId: courseId,
-      userId: user.uid,
-      contenido: targetContent
-    });
+    // Prevenir que contenido_extra se marque como completado (aunque no debería ser posible desde la UI)
+    if (targetContent.tipo_contenido === "contenido_extra") {
+      console.warn("⚠️ Intento de marcar contenido_extra como completado, ignorando...");
+      toast.error("La bibliografía complementaria no se puede marcar como completada");
+      return;
+    }
+
+    // console.log("✅ Contenido encontrado para marcar/desmarcar:", {
+    //   contentIndex,
+    //   moduloId: targetModule.id,
+    //   cursoId: courseId,
+    //   userId: user.uid,
+    //   contenido: targetContent
+    // });
 
     const contentKey = `${moduleId}-${contentIndex}`;
     const isCurrentlyCompleted = completedContents.has(contentKey);
 
-    console.log(`🔄 Estado antes de toggle:`, {
-      contentKey,
-      isCurrentlyCompleted,
-      totalCompletados: completedContents.size,
-      todosLosCompletados: Array.from(completedContents)
-    });
+    // console.log(`🔄 Estado antes de toggle:`, {
+    //   contentKey,
+    //   isCurrentlyCompleted,
+    //   totalCompletados: completedContents.size,
+    //   todosLosCompletados: Array.from(completedContents)
+    // });
 
     // Optimistic update
     setUpdatingContent((prev) => new Set(prev).add(contentKey));
@@ -403,7 +455,7 @@ const CourseDetail = () => {
         contenidoId: contentIndex.toString(), // Enviar el índice como string
       };
 
-      console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
+      // console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
 
       if (isCurrentlyCompleted) {
         // Desmarcar
@@ -413,15 +465,15 @@ const CourseDetail = () => {
         response = await progressService.marcarCompletado(dataToSend);
       }
 
-      console.log("📥 Respuesta del backend:", response);
+      // console.log("📥 Respuesta del backend:", response);
 
       if (response.success) {
-        console.log(`✅ Backend confirmó la operación. Estado optimista aplicado:`, {
-          contentKey,
-          estaCompletadoEnUpdatedSet: updatedSet.has(contentKey),
-          deberiaEstar: !isCurrentlyCompleted,
-          coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
-        });
+        // console.log(`✅ Backend confirmó la operación. Estado optimista aplicado:`, {
+        //   contentKey,
+        //   estaCompletadoEnUpdatedSet: updatedSet.has(contentKey),
+        //   deberiaEstar: !isCurrentlyCompleted,
+        //   coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
+        // });
 
         // NO hay necesidad de actualizar el estado nuevamente porque ya hicimos optimistic update
         // Solo actualizar el progreso general
@@ -481,8 +533,10 @@ const CourseDetail = () => {
     setSelectedContent(null);
   };
 
-  const totalContents = progressData?.total_contenidos || modules.reduce(
-    (acc, m) => acc + (m.contenido?.length || 0),
+  // Excluir contenido_extra del cálculo del progreso ya que no se pueden marcar como completados
+  // Siempre calcular desde los módulos locales para excluir contenido_extra, no usar el valor del backend
+  const totalContents = modules.reduce(
+    (acc, m) => acc + (m.contenido?.filter(c => c.tipo_contenido !== "contenido_extra").length || 0),
     0
   );
 
@@ -495,14 +549,24 @@ const CourseDetail = () => {
   const progressPercentage = totalContents > 0
     ? Math.round((actualCompletedCount / totalContents) * 100)
     : (progressData?.progreso_general || 0);
+
+  // Consideramos el curso completado cuando el progreso llega al 100%
+  const isCourseCompleted = progressPercentage === 100;
+
   useEffect(() => {
-    if (progressPercentage === 100 && courseData) {
+    const fromReview = (location.state as any)?.fromReview;
+
+    // Solo redirigir a la reseña cuando se completa el curso
+    // y NO venimos de haber omitido/completado la reseña en esta visita
+    // y el usuario NO tiene ya una reseña enviada
+    if (progressPercentage === 100 && courseData && !fromReview && !hasUserReview) {
       const timer = setTimeout(() => {
         navigate(`/course/${courseId}/review`, { state: { course: courseData } });
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [progressPercentage, courseData, courseId, navigate]);
+  }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview]);
+  
   if (isLoadingCourse) {
     return (
       <div className="container mx-auto px-4 py-6 text-center flex justify-center items-center h-screen">
@@ -726,6 +790,7 @@ const CourseDetail = () => {
                                   completed: completedContents.has(contentKey),
                                 }}
                                 contentIndex={index}
+                                isCourseCompleted={isCourseCompleted}
                                 onToggleComplete={() =>
                                   toggleContentComplete(module.id, index)
                                 }
