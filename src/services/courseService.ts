@@ -39,7 +39,6 @@ class CourseService {
       const modules = [];
       for (const id of ids) {
         const response = await api.get(`/modulos/${id}`);
-        console.log(response.data)
         modules.push(response.data);
       }
       return modules;

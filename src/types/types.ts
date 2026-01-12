@@ -48,11 +48,11 @@ export interface ContentItem {
     descripcion: string;
     duracion: string | number;
     titulo: string;
-    tipo_contenido: "VIDEO" | "PDF" | "DOCX" | "QUIZ" | "IMAGE" | "video" | "pdf";
+    tipo_contenido: "video" | "pdf" | "contenido_extra"
     url_contenido?: string; // URL individual (opcional, puede usar urls_contenido en su lugar)
     urls_contenido?: string[]; // Array de URLs (usado por videos y PDFs)
     url_miniatura: string | null;
-    urls_bibliografia: string | null;
+    urls_bibliografia: string | string[] | null;
     completed?: boolean;
 }
 

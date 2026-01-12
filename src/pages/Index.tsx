@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChevronRight, Loader2, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
 import userService from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Course } from "@/types/types";
@@ -25,9 +25,10 @@ import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   
   // Estados de paginación
@@ -37,10 +38,16 @@ const Index = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [lastId, setLastId] = useState<string | null>(null);
   const [pageHistory, setPageHistory] = useState<Map<number, string | null>>(new Map([[1, null]]));
+  const pageHistoryRef = useRef<Map<number, string | null>>(new Map([[1, null]]));
   
   // Estado de búsqueda
   const [searchQuery, setSearchQuery] = useState("");
   const isInitialMount = useRef(true);
+  
+  // Mantener el ref sincronizado con el estado
+  useEffect(() => {
+    pageHistoryRef.current = pageHistory;
+  }, [pageHistory]);
   const banners = [
     "https://universidad.gruposuperior.com.co/wp-content/uploads/2021/05/BANNER-PROMOCIONAL-1.png",
     "https://alehlatam.org/wp-content/uploads/2024/12/BANNER-V-Curso-HCC.png",
@@ -58,7 +65,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  const loadCourses = async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
+  const loadCourses = useCallback(async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
     if (!user?.uid) {
       setIsLoading(false);
       setCourses([]);
@@ -72,10 +79,12 @@ const Index = () => {
         setPageHistory(new Map([[1, null]]));
       }
 
+      // Usar la función de actualización de estado para obtener el valor actual de pageHistory
       let lastIdForPage: string | null = null;
       if (page > 1 && !currentSearch) {
-        // Solo construir historial si no hay búsqueda activa
-        lastIdForPage = pageHistory.get(page - 1) || null;
+        // Obtener el historial actual usando el ref
+        lastIdForPage = pageHistoryRef.current.get(page - 1) || null;
+        
         if (!lastIdForPage && page > 1) {
           // Construir historial si no existe
           let currentLastId: string | null = null;
@@ -146,14 +155,20 @@ const Index = () => {
       
       setCourses(uniqueCourses);
     } catch (error) {
-      console.error("Error al cargar los cursos:", error);
+      console.error("❌ Error al cargar los cursos:", error);
       setCourses([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.uid]);
 
   useEffect(() => {
+    
+    // Esperar a que AuthContext termine de cargar antes de intentar cargar cursos
+    if (authLoading) {
+      return;
+    }
+    
     if (user?.uid) {
       loadCourses(currentPage, pageSize, currentPage === 1, searchQuery);
       isInitialMount.current = false;
@@ -161,7 +176,7 @@ const Index = () => {
       setIsLoading(false);
       setCourses([]);
     }
-  }, [user?.uid, currentPage, pageSize]);
+  }, [user?.uid, authLoading, currentPage, pageSize, location.pathname, loadCourses, searchQuery]);
 
   // Recargar cuando cambie searchQuery (pero no en el mount inicial)
   useEffect(() => {
@@ -169,7 +184,7 @@ const Index = () => {
       setCurrentPage(1);
       loadCourses(1, pageSize, true, searchQuery);
     }
-  }, [searchQuery]);
+  }, [searchQuery, loadCourses, pageSize, user?.uid]);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {

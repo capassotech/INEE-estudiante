@@ -1,80 +1,55 @@
-# INEE Tienda
+# INEE Estudiante
 
-Plataforma de alumnos INEE.
+Portal de alumnos de la plataforma INEE.
 
 ## 🚀 Inicio Rápido
 
 ```sh
-# 1. Instalar dependencias
 npm i
-
-# 2. Configurar entorno (ver sección abajo)
-
-# 3. Iniciar servidor de desarrollo
+cp env.local .env  # Usa env.qa o env.production según necesites
 npm run dev
 ```
 
-## 🔧 Configuración de Entornos (QA / Producción)
+## 🔧 Configuración de Entornos
 
-Este proyecto **ya tiene un archivo `.env`**. Solo necesitas **reemplazar su contenido** con la configuración que te proporcionen.
+El proyecto soporta **QA** y **Producción** mediante variables de entorno.
 
-### ⚙️ Cómo Configurar el Entorno
+### Archivos de Configuración
 
-1. **Abre** el archivo `.env` en este proyecto (`INEE-tienda/.env`)
+- `env.local` - Configuración para desarrollo local (usa datos de QA)
+- `env.qa` - Configuración para entorno QA
+- `env.production` - Configuración para producción
 
-2. **Comenta** todo el contenido actual 
+**Para desarrollo local:** Copia `env.local` a `.env`:
+```sh
+cp env.local .env
+```
 
-3. **Copia** todo el contenido del archivo de configuración que te proporcionaron:
-   - Para **QA**: archivo con variables de entorno de pruebas
-   - Para **Producción**: archivo con variables de entorno de producción
+### Variables Requeridas
 
-4. **Pega** el contenido en el archivo `.env`
+- `VITE_FIREBASE_API_KEY_QA` / `VITE_FIREBASE_API_KEY_PROD`
+- `VITE_FIREBASE_AUTH_DOMAIN_QA` / `VITE_FIREBASE_AUTH_DOMAIN_PROD`
+- `VITE_FIREBASE_PROJECT_ID_QA` / `VITE_FIREBASE_PROJECT_ID_PROD`
+- `VITE_FIREBASE_STORAGE_BUCKET_QA` / `VITE_FIREBASE_STORAGE_BUCKET_PROD`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID_QA` / `VITE_FIREBASE_MESSAGING_SENDER_ID_PROD`
+- `VITE_FIREBASE_APP_ID_QA` / `VITE_FIREBASE_APP_ID_PROD`
+- `VITE_FIREBASE_MEASUREMENT_ID_QA` / `VITE_FIREBASE_MEASUREMENT_ID_PROD`
+- `VITE_API_URL` - URL del backend
+- `VITE_ENVIRONMENT` - `qa` o `prod` (se establece automáticamente en CI/CD)
 
+### Indicador Visual
 
-### 🔄 Cambiar de Entorno
+Cuando el entorno es **QA**, se muestra un banner "ENTORNO PARA PRUEBAS" en la esquina superior derecha.
 
-Para cambiar entre QA y Producción, repite los pasos anteriores con el archivo de configuración del nuevo entorno.
+### CI/CD (GitHub Actions)
 
-
-### Verificar Entorno Actual
-
-Para verificar qué entorno estás usando, revisa el archivo `.env` y busca:
-- Si `VITE_FIREBASE_PROJECT_ID=inee-qa` → Estás en **QA**
-- Si `VITE_FIREBASE_PROJECT_ID=tu-proyecto-prod` → Estás en **Producción**
-
-## 🚢 Configuración para Despliegue (GitHub Actions)
-
-Para que el despliegue automático funcione correctamente, necesitas configurar los **GitHub Secrets** con las mismas variables de entorno que tienes en tu archivo `.env`.
-
-### 📋 Secrets Requeridos
-
-Configura estos secrets en GitHub (Settings → Secrets and variables → Actions) con los **mismos nombres** que usas en tu `.env`:
-
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID` (opcional)
-
-### 🔧 Cómo Configurar los Secrets
-
-1. Ve a tu repositorio en GitHub
-2. Click en **Settings** → **Secrets and variables** → **Actions**
-3. Click en **New repository secret**
-4. Agrega cada variable con el **mismo nombre** que tienes en tu `.env` y su valor correspondiente
-5. Repite para todas las variables
-
-**Nota:** Los valores deben ser exactamente los mismos que tienes en tu archivo `.env` local. El workflow usará estas variables tanto para QA como para Producción.
+Los despliegues automáticos usan GitHub Secrets con sufijos `_QA` y `_PROD`:
+- `VITE_FIREBASE_API_KEY_QA`, `VITE_FIREBASE_API_KEY_PROD`
+- `VITE_FIREBASE_AUTH_DOMAIN_QA`, `VITE_FIREBASE_AUTH_DOMAIN_PROD`
+- ... (mismo patrón para todas las variables)
 
 ## 📦 Tecnologías
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-
-
+- Vite + TypeScript + React
+- shadcn-ui + Tailwind CSS
+- Firebase (Auth, Storage, Firestore)
