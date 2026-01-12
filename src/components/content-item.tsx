@@ -16,6 +16,7 @@ import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 interface ContentItemProps {
   content: ContentItemType;
   contentIndex: number;
+  isCourseCompleted?: boolean;
   onToggleComplete: (contentIndex: number) => void;
   onContentClick: (content: ContentItemType) => void;
 }
@@ -23,6 +24,7 @@ interface ContentItemProps {
 const ContentItem = ({
   content,
   contentIndex,
+  isCourseCompleted,
   onToggleComplete,
   onContentClick,
 }: ContentItemProps) => {
@@ -71,6 +73,7 @@ const ContentItem = ({
         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
           {content.tipo_contenido !== "contenido_extra" && (
             <button
+              disabled={isCourseCompleted}
               onClick={() =>
                 onToggleComplete(contentIndex)
               }

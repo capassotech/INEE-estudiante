@@ -47,7 +47,6 @@ class UserService {
           'Pragma': 'no-cache'
         }
       });
-      console.log(response.data);
       // Si la respuesta tiene estructura paginada
       if (response.data && response.data.courses) {
         return response.data;
