@@ -2,8 +2,7 @@ import axios from "axios";
 import { auth } from "../../config/firebase-client";
 
 const API_BASE_URL =
-  // import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
-  "http://localhost:3000";
+  import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}`,
