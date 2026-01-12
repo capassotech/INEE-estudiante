@@ -24,9 +24,11 @@ import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 import progressService from "@/services/progressService";
 import reviewService from "@/services/reviewService";
+import certificateService from "@/services/certificateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
+import { Download } from "lucide-react";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -78,6 +80,7 @@ const CourseDetail = () => {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItemType | null>(null);
+  const [isDownloadingCertificate, setIsDownloadingCertificate] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -533,6 +536,27 @@ const CourseDetail = () => {
     setSelectedContent(null);
   };
 
+  /**
+   * Descargar certificado
+   */
+  const handleDownloadCertificate = async () => {
+    if (!courseId || progressPercentage < 100) {
+      toast.error("Debes completar el curso para descargar el certificado");
+      return;
+    }
+
+    setIsDownloadingCertificate(true);
+    try {
+      await certificateService.generarCertificado(courseId);
+      toast.success("Certificado descargado exitosamente");
+    } catch (error: any) {
+      console.error("Error al descargar certificado:", error);
+      toast.error(error.message || "Error al descargar el certificado");
+    } finally {
+      setIsDownloadingCertificate(false);
+    }
+  };
+
   // Excluir contenido_extra del cálculo del progreso ya que no se pueden marcar como completados
   // Siempre calcular desde los módulos locales para excluir contenido_extra, no usar el valor del backend
   const totalContents = modules.reduce(
@@ -693,12 +717,23 @@ const CourseDetail = () => {
             </p>
             <Button
               variant={progressPercentage === 100 ? "default" : "outline"}
-              disabled={progressPercentage < 100}
+              disabled={progressPercentage < 100 || isDownloadingCertificate}
+              onClick={handleDownloadCertificate}
               className="w-full sm:w-auto text-sm sm:text-base"
             >
-              {progressPercentage === 100
-                ? "Descargar Certificado"
-                : "Certificado Bloqueado"}
+              {isDownloadingCertificate ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generando certificado...
+                </>
+              ) : progressPercentage === 100 ? (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar Certificado
+                </>
+              ) : (
+                "Certificado Bloqueado"
+              )}
             </Button>
           </CardContent>
         </Card>
