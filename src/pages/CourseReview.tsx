@@ -38,6 +38,16 @@ const CourseReview = () => {
       setLoading(true);
       await reviewService.createReview(course.id, rating, comment);
 
+      // Marcar que el usuario ya envió la reseña para este curso
+      if (user?.uid) {
+        try {
+          const key = `review_sent_${user.uid}_${course.id}`;
+          localStorage.setItem(key, "true");
+        } catch (error) {
+          console.warn("Error al guardar flag de reseña enviada:", error);
+        }
+      }
+
       toast({
         title: "¡Reseña enviada!",
         description: "Gracias por tu opinión. Serás redirigido al inicio.",
@@ -66,14 +76,29 @@ const CourseReview = () => {
         description: "Muchas gracias por tu tiempo.",
         variant: "default",
       });
-      navigate('/');
+      // Volver al detalle del curso con todos los contenidos completados
+      // y evitar que se vuelva a disparar inmediatamente el flujo de reseña
+      if (course?.id) {
+        navigate(`/curso/${course.id}`, {
+          state: { fromReview: true },
+        });
+      } else {
+        navigate("/");
+      }
     } catch (err: any) {
       console.error(err);
       toast({
-        title: "Error",
-        description: err.response?.data?.error || "No se pudo omitir la reseña.",
-        variant: "destructive",
+        title: "Reseña omitida.",
+        description: err.response?.data?.error,
+        variant: "default",
       });
+      if (course?.id) {
+        navigate(`/curso/${course.id}`, {
+          state: { fromReview: true },
+        });
+      } else {
+        navigate("/");
+      }
     } finally {
       setLoadingSkip(false);
     }

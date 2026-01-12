@@ -74,7 +74,6 @@ const Index = () => {
 
     try {
       setIsLoading(true);
-      console.log("🔄 Cargando cursos - Página:", page, "Usuario:", user.uid);
       
       if (resetHistory) {
         setPageHistory(new Map([[1, null]]));
@@ -119,9 +118,7 @@ const Index = () => {
         params.search = currentSearch.trim();
       }
 
-      console.log("📡 Llamando al backend con params:", params);
       const data = await userService.getCoursesPerUser(user.uid, params);
-      console.log("✅ Respuesta del backend:", data);
       
       let coursesData: Course[] = [];
       if (data.courses) {
@@ -166,20 +163,16 @@ const Index = () => {
   }, [user?.uid]);
 
   useEffect(() => {
-    console.log("🔍 useEffect ejecutado - user?.uid:", user?.uid, "authLoading:", authLoading, "currentPage:", currentPage, "pathname:", location.pathname);
     
     // Esperar a que AuthContext termine de cargar antes de intentar cargar cursos
     if (authLoading) {
-      console.log("⏳ AuthContext aún cargando, esperando...");
       return;
     }
     
     if (user?.uid) {
-      console.log("✅ Usuario encontrado, cargando cursos...");
       loadCourses(currentPage, pageSize, currentPage === 1, searchQuery);
       isInitialMount.current = false;
     } else {
-      console.log("❌ Usuario no disponible");
       setIsLoading(false);
       setCourses([]);
     }
@@ -204,8 +197,6 @@ const Index = () => {
     setCurrentPage(1);
     await loadCourses(1, size, true);
   };
-
-  console.log(courses);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
