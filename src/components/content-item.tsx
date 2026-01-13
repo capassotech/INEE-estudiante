@@ -9,9 +9,12 @@ import {
   HelpCircle,
   FileImage,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { ContentItem as ContentItemType } from "@/types/types";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
+import { useState } from "react";
 
 interface ContentItemProps {
   content: ContentItemType;
@@ -28,6 +31,7 @@ const ContentItem = ({
   onToggleComplete,
   onContentClick,
 }: ContentItemProps) => {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const getIcon = () => {
     switch (content.tipo_contenido) {
@@ -192,9 +196,33 @@ const ContentItem = ({
               </Badge>
             </div>
             {content.descripcion && (
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-2 break-words">
-                {content.descripcion}
-              </p>
+              <div className="mb-2">
+                <p 
+                  className={`text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words ${
+                    !isDescriptionExpanded ? 'line-clamp-2' : ''
+                  }`}
+                >
+                  {content.descripcion}
+                </p>
+                {content.descripcion.length > 100 && (
+                  <button
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-1 flex items-center gap-1 transition-colors"
+                  >
+                    {isDescriptionExpanded ? (
+                      <>
+                        <ChevronUp className="w-3 h-3" />
+                        Ver menos
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-3 h-3" />
+                        Ver más
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
