@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,10 +26,12 @@ import progressService from "@/services/progressService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
+import reviewService from "@/services/reviewService";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
+  const location = useLocation();
   const [courseData, setCourseData] = useState<Course | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isLoadingModules, setIsLoadingModules] = useState(true);
@@ -37,7 +39,7 @@ const CourseDetail = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
-
+  const [hasUserReview, setHasUserReview] = useState(false);
   // Función para guardar progreso en localStorage como respaldo
   // Usar userId en la clave para que sea específico por usuario
   const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
@@ -85,6 +87,36 @@ const CourseDetail = () => {
     };
     fetchCourse();
   }, [courseId]);
+
+  useEffect(() => {
+    const checkUserReview = async () => {
+      if (!user?.uid || !courseId) return;
+      
+      try {
+        const responseReviews = await reviewService.getReviewsByCourse(courseId);
+        console.log(responseReviews.reviews);
+        console.log(user.uid);
+        let foundReview = false;
+        
+        if (responseReviews?.reviews && Array.isArray(responseReviews.reviews)) {
+          for (const review of responseReviews.reviews) {
+            if (review.userId === user.uid) {
+              console.log("tiene review el usuario");
+              foundReview = true;
+              break;
+            }
+          }
+        }
+        
+        setHasUserReview(foundReview);
+      } catch (error) {
+        console.warn("Error al verificar reseña del usuario:", error);
+        setHasUserReview(false);
+      }
+    };
+
+    checkUserReview();
+  }, [user?.uid, courseId]);
 
   useEffect(() => {
     if (courseData) {
@@ -673,16 +705,24 @@ const CourseDetail = () => {
           </div>
         ) : (
           modules.map((module) => {
-            const moduleCompletedCount = module.contenido
-              ? module.contenido.filter((c) => {
-                const cId = c.id || (c.titulo + (c.descripcion ? " " + c.descripcion : ""));
-                return completedContents.has(cId);
-              }).length
-              : 0;
-            const moduleProgress = module.contenido
-              ? Math.round(
-                (moduleCompletedCount / module.contenido.length) * 100
-              )
+            // Filtrar contenidos del módulo excluyendo contenido_extra
+            const moduleContents = module.contenido
+              ? module.contenido.filter(c => c.tipo_contenido !== "contenido_extra")
+              : [];
+            
+            const moduleTotalCount = moduleContents.length;
+            
+            const moduleCompletedCount = moduleContents
+              .map((_, index) => {
+                // Encontrar el índice real en el array original
+                const originalIndex = module.contenido?.indexOf(moduleContents[index]) ?? -1;
+                const contentKey = `${module.id}-${originalIndex}`;
+                return completedContents.has(contentKey);
+              })
+              .filter(Boolean).length;
+            
+            const moduleProgress = moduleTotalCount > 0
+              ? Math.round((moduleCompletedCount / moduleTotalCount) * 100)
               : 0;
 
             return (
@@ -702,12 +742,12 @@ const CourseDetail = () => {
                             <CardTitle className="text-base sm:text-lg break-words">
                               {module.titulo}
                             </CardTitle>
-                            {module.contenido && (
+                            {moduleTotalCount > 0 && (
                               <Badge
                                 variant="secondary"
                                 className="self-start text-xs sm:text-sm"
                               >
-                                {moduleCompletedCount}/{module.contenido.length}
+                                {moduleCompletedCount}/{moduleTotalCount}
                               </Badge>
                             )}
                           </div>
