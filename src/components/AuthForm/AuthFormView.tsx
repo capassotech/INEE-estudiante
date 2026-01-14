@@ -162,7 +162,7 @@ export default function AuthFormView({
             </div>
 
             <div className="space-y-2">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-4">
                     <Checkbox
                         id="terms"
                         checked={formData.acceptTerms as boolean}
@@ -170,7 +170,7 @@ export default function AuthFormView({
                             onInputChange("acceptTerms", checked === true)
                         }
                         disabled={isSubmitting}
-                        className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        className="border border-zinc-500 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <Label htmlFor="terms" className="text-sm text-foreground">
                         Acepto los{" "}
