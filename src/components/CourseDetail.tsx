@@ -552,7 +552,7 @@ const CourseDetail = () => {
   const isCourseCompleted = progressPercentage === 100;
 
   useEffect(() => {
-    if (progressPercentage === 100 && courseData) {
+    if (progressPercentage === 100 && courseData && !hasUserReview) {
       const timer = setTimeout(() => {
         navigate(`/course/${courseId}/review`, { state: { course: courseData } });
       }, 1000);
