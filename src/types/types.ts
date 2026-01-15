@@ -92,3 +92,30 @@ export interface Membership {
     fecha_alta: string;
     old_price: number;
 }
+
+export interface Ebook {
+    id: string;
+    title: string;
+    description: string;
+    imagen: string;
+    author: string;
+    archivoUrl: string;
+    estado: string;
+    pilares: string;
+    price: number;
+    tags: string[];
+    temas: string[];
+}
+
+export interface Evento {
+    id: string;
+    titulo: string;
+    descripcion: string;
+    imagen: string;
+    fecha: Date;
+    hora: string;
+    modalidad: string;
+    membresiaId: string
+    estado: string;
+    precio: number;
+}
