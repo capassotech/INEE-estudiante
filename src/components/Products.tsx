@@ -174,7 +174,7 @@ export default function Products({
                     </div>
 
                     <a
-                        href="https://inee-beta.web.app/formaciones"
+                        href="https://ineeoficial.com/formaciones"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block"
@@ -260,7 +260,7 @@ export default function Products({
                     </div>
 
                     <a
-                        href="https://inee-beta.web.app/ebooks"
+                        href="https://ineeoficial.com/ebooks"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block"
