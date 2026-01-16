@@ -52,6 +52,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!firebaseUser && !!user;
 
+  // Detectar token en URL y autenticar automáticamente
+  useEffect(() => {
+    const handleTokenFromUrl = async () => {
+      // Solo procesar si no hay usuario autenticado
+      if (auth.currentUser || isLoading) return;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      if (token) {
+        try {
+          setIsLoading(true);
+          // Remover el token de la URL para no mostrarlo
+          window.history.replaceState({}, '', window.location.pathname);
+          
+          // Autenticar con el token
+          await authService.loginWithToken(token);
+          // El onAuthStateChanged manejará el resto
+        } catch (error) {
+          console.error("Error autenticando con token de URL:", error);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    handleTokenFromUrl();
+  }, []); // Solo ejecutar una vez al montar
+
   // Escuchar cambios en el estado de autenticación de Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
