@@ -1,6 +1,7 @@
 import { Evento } from "@/types/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
+import { getValidatedInEeUrl } from "@/utils/urlValidator";
 
 export default function EventCard({
     evento,
@@ -33,11 +34,29 @@ export default function EventCard({
         });
     };
 
+    const handleCardClick = async () => {
+        if (!clickeable) return;
+        
+        try {
+            const validatedUrl = await getValidatedInEeUrl(`/evento/${evento.id}`);
+            window.open(validatedUrl, '_blank');
+        } catch (error) {
+            console.error('Error al validar URL del evento:', error);
+            // En caso de error, intentar nuevamente con la función (que maneja el fallback)
+            // Si falla nuevamente, usar una URL por defecto según el entorno
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const fallbackUrl = apiUrl.includes('qa') 
+                ? `https://tienda-qa.ineeoficial.com/evento/${evento.id}`
+                : `https://inee-beta.web.app/evento/${evento.id}`;
+            window.open(fallbackUrl, '_blank');
+        }
+    };
+
     return (
         <Card
             key={evento.id}
             className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 overflow-hidden ${clickeable ? "cursor-pointer" : ""}`}
-            onClick={() => clickeable ? window.open(`https://ineeoficial.com/evento/${evento.id}`, '_blank') : null}
+            onClick={handleCardClick}
         >
             <CardContent className="p-0 flex flex-col sm:flex-row">
                 <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
