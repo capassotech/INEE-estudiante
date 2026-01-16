@@ -41,12 +41,12 @@ const Header = () => {
               <img
                 src="/logo.png"
                 alt="Logo"
-                className="w-20 block dark:hidden"
+                className="h-10 block dark:hidden"
               />
               <img
                 src="/logo-blanco.png"
                 alt="Logo blanco"
-                className="w-20 hidden dark:block"
+                className="h-10 hidden dark:block"
               />
             </div>
           </div>

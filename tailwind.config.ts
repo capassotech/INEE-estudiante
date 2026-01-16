@@ -9,6 +9,11 @@ export default {
 		"./app/**/*.{ts,tsx}",
 		"./src/**/*.{ts,tsx}",
 	],
+	safelist: [
+		"[&>div]:!bg-red-500",
+		"[&>div]:!bg-yellow-500",
+		"[&>div]:!bg-green-500",
+	],
 	prefix: "",
 	theme: {
 		container: {

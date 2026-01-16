@@ -78,6 +78,7 @@ const CourseDetail = () => {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItemType | null>(null);
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -549,8 +550,34 @@ const CourseDetail = () => {
     ? Math.round((actualCompletedCount / totalContents) * 100)
     : (progressData?.progreso_general || 0);
 
+  // Actualizar el progreso en localStorage para que el listado lo use
+  useEffect(() => {
+    if (courseId && progressPercentage >= 0 && totalContents > 0) {
+      try {
+        const key = `courseProgress_${courseId}`;
+        localStorage.setItem(key, JSON.stringify({
+          progress: progressPercentage,
+          timestamp: Date.now()
+        }));
+      } catch (error) {
+        console.warn("Error al guardar progreso en localStorage:", error);
+      }
+    }
+  }, [courseId, progressPercentage, totalContents]);
+
   // Consideramos el curso completado cuando el progreso llega al 100%
   const isCourseCompleted = progressPercentage === 100;
+
+  // Función para determinar el color del progreso según el porcentaje
+  const getProgressColorClass = (percentage: number): string => {
+    if (percentage < 33) {
+      return "[&>div]:!bg-red-500"; // Rojo para progreso bajo
+    } else if (percentage < 67) {
+      return "[&>div]:!bg-yellow-500"; // Amarillo para progreso medio
+    } else {
+      return "[&>div]:!bg-green-500"; // Verde para progreso alto
+    }
+  };
 
   useEffect(() => {
     if (progressPercentage === 100 && courseData && !hasUserReview) {
@@ -569,10 +596,10 @@ const CourseDetail = () => {
     return (
       <div className="container mx-auto px-4 py-6 text-center">
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          Curso no encontrado
+          Formacion no encontrado
         </h1>
         <p className="text-gray-600 dark:text-gray-300 mt-2">
-          No pudimos encontrar el curso que buscas.
+          No pudimos encontrar la formación que buscas.
         </p>
         <Button onClick={() => navigate("/")} className="mt-4">
           Volver al inicio
@@ -597,9 +624,41 @@ const CourseDetail = () => {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
             {courseData.titulo}
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 break-words">
-            {courseData.descripcion}
-          </p>
+          <div className="mt-1">
+            {showFullDescription ? (
+              <div className="space-y-2">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line">
+                  {courseData.descripcion}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs sm:text-sm text-primary hover:text-primary/80 p-0 h-auto"
+                  onClick={() => setShowFullDescription(false)}
+                >
+                  Ver menos
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words">
+                  {courseData.descripcion && courseData.descripcion.length > 200
+                    ? `${courseData.descripcion.substring(0, 200)}...`
+                    : courseData.descripcion}
+                </p>
+                {courseData.descripcion && courseData.descripcion.length > 200 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs sm:text-sm text-primary hover:text-primary/80 p-0 h-auto mt-1"
+                    onClick={() => setShowFullDescription(true)}
+                  >
+                    Ver más
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
             <Badge variant="outline" className="text-xs sm:text-sm">
               {courseData.nivel}
@@ -611,32 +670,6 @@ const CourseDetail = () => {
         </div>
       </div>
 
-      {/* IMAGEN DEL CURSO */}
-      <div className="relative h-40 sm:h-48 md:h-56 lg:h-64 rounded-lg overflow-hidden">
-        <ImageWithPlaceholder
-          src={courseData.imagen || "/placeholder.svg"}
-          alt={courseData.titulo}
-          className="rounded-lg"
-          aspectRatio="auto"
-          style={{ width: '100%', height: '100%' }}
-          placeholderIcon="book"
-          placeholderText=""
-        />
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center p-4 z-10">
-          <div className="text-center text-white max-w-full">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 break-words">
-              {courseData.titulo}
-            </h2>
-            <Badge
-              variant="secondary"
-              className="bg-white/20 text-white text-xs sm:text-sm"
-            >
-              Nivel {courseData.nivel}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
       {/* PANEL DE PROGRESO GENERAL */}
       {totalContents > 0 && (
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -644,7 +677,7 @@ const CourseDetail = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
-                  Progreso del Curso
+                  Progreso de la formación
                   {isLoadingProgress && (
                     <Loader2 className="w-4 h-4 inline-block ml-2 animate-spin" />
                   )}
@@ -662,7 +695,7 @@ const CourseDetail = () => {
             </div>
             <Progress
               value={progressPercentage}
-              className="mt-4 h-2 sm:h-3 [&>div]:bg-primary"
+              className={`mt-4 h-2 sm:h-3 ${getProgressColorClass(progressPercentage)}`}
             />
           </CardHeader>
         </Card>
@@ -722,27 +755,48 @@ const CourseDetail = () => {
               ? Math.round((moduleCompletedCount / moduleTotalCount) * 100)
               : 0;
 
+            const isModuleCompleted = moduleProgress === 100;
+
             return (
               <Card
                 key={module.id}
-                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                className={`${
+                  isModuleCompleted
+                    ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700"
+                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                } transition-colors`}
               >
                 <Collapsible
                   open={expandedModules.has(module.id)}
                   onOpenChange={() => toggleModule(module.id)}
                 >
                   <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors p-4 sm:p-6">
+                    <CardHeader className={`cursor-pointer transition-colors p-4 sm:p-6 ${
+                      isModuleCompleted
+                        ? "hover:bg-green-100 dark:hover:bg-green-900/30"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                            <CardTitle className="text-base sm:text-lg break-words">
-                              {module.titulo}
-                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                              <CardTitle className={`text-base sm:text-lg break-words ${
+                                isModuleCompleted ? "text-green-700 dark:text-green-400" : ""
+                              }`}>
+                                {module.titulo}
+                              </CardTitle>
+                              {isModuleCompleted && (
+                                <Award className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              )}
+                            </div>
                             {moduleTotalCount > 0 && (
                               <Badge
-                                variant="secondary"
-                                className="self-start text-xs sm:text-sm"
+                                variant={isModuleCompleted ? "default" : "secondary"}
+                                className={`self-start text-xs sm:text-sm ${
+                                  isModuleCompleted
+                                    ? "bg-green-600 hover:bg-green-700 text-white"
+                                    : ""
+                                }`}
                               >
                                 {moduleCompletedCount}/{moduleTotalCount}
                               </Badge>
@@ -753,7 +807,7 @@ const CourseDetail = () => {
                           </p>
                           <Progress
                             value={moduleProgress}
-                            className="h-2 mt-2"
+                            className={`h-2 mt-2 ${getProgressColorClass(moduleProgress)}`}
                           />
                         </div>
                         <div className="flex-shrink-0 mt-1">

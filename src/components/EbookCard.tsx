@@ -11,7 +11,7 @@ export default function EbookCard({ ebook }: { ebook: Ebook }) {
             className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 overflow-hidden"
         >
             <CardContent className="p-0 flex flex-col sm:flex-row">
-                <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
+                <div className="w-full sm:w-20 md:w-24 lg:w-28 relative overflow-hidden flex-shrink-0" style={{ aspectRatio: '9/16', backgroundColor: '#2d2d2d' }}>
                     <ImageWithPlaceholder
                         src={ebook.imagen || "/placeholder.svg"}
                         alt={ebook.title}
@@ -19,36 +19,41 @@ export default function EbookCard({ ebook }: { ebook: Ebook }) {
                         aspectRatio="auto"
                         style={{ width: '100%', height: '100%' }}
                         placeholderIcon="book"
-                        placeholderText=""
+                        placeholderText="E-book"
                     />
                 </div>
-                <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
-                    <div className="mb-3 sm:mb-4">
-                        <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100 break-words">
+                <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
+                    <div className="mb-2 sm:mb-3">
+                        <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 break-words leading-tight mb-1">
                             {ebook.title}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 break-words">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 break-words leading-snug mb-1">
                             {ebook.description}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                             Por: {ebook.author}
                         </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                            {ebook.temas.map((tema, index) => (
-                                <span key={index} className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full whitespace-nowrap">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            {ebook.temas.slice(0, 3).map((tema, index) => (
+                                <span key={index} className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full whitespace-nowrap">
                                     {tema}
                                 </span>
                             ))}
+                            {ebook.temas.length > 3 && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5">
+                                    +{ebook.temas.length - 3}
+                                </span>
+                            )}
                         </div>
                         <Button
                             size="sm"
                             onClick={() => window.open(ebook.archivoUrl, 'download')}
-                            className="self-start sm:self-center"
+                            className="self-start sm:self-center text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
                         >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Descargar Ebook
+                            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                            Descargar
                         </Button>
                     </div>
                 </div>

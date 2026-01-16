@@ -4,6 +4,7 @@ import userService from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Course, Ebook, Evento } from "@/types/types";
 import Products from "@/components/Products";
+import progressService from "@/services/progressService";
 
 const Index = () => {
   const location = useLocation();
@@ -21,6 +22,7 @@ const Index = () => {
   const [pageHistoryCourses, setPageHistoryCourses] = useState<Map<number, string | null>>(new Map([[1, null]]));
   const pageHistoryCoursesRef = useRef<Map<number, string | null>>(new Map([[1, null]]));
   const [searchQueryCourses, setSearchQueryCourses] = useState("");
+  const [coursesProgress, setCoursesProgress] = useState<Map<string, number>>(new Map());
 
   // Estados para ebooks
   const [ebooks, setEbooks] = useState<Ebook[]>([]);
@@ -66,6 +68,54 @@ const Index = () => {
     }, 4000);
     return () => clearInterval(interval);
   }, [banners.length]);
+
+  // Función para cargar el progreso de múltiples cursos
+  const loadCoursesProgress = useCallback(async (courseIds: string[]) => {
+    if (!user?.uid || courseIds.length === 0) return;
+
+    try {
+      const progressPromises = courseIds.map(async (courseId) => {
+        // Primero intentar obtener el progreso desde localStorage (calculado en CourseDetail)
+        try {
+          const key = `courseProgress_${courseId}`;
+          const saved = localStorage.getItem(key);
+          if (saved) {
+            const { progress, timestamp } = JSON.parse(saved);
+            // Usar progreso de localStorage si es reciente (menos de 5 minutos)
+            if (progress !== undefined && Date.now() - timestamp < 5 * 60 * 1000) {
+              return { courseId, progress };
+            }
+          }
+        } catch (error) {
+          // Si hay error leyendo localStorage, continuar con el backend
+        }
+
+        // Si no hay progreso en localStorage o es antiguo, obtener del backend
+        try {
+          const response = await progressService.obtenerProgresoCurso(courseId);
+          if (response.success && response.data) {
+            const progress = response.data.progreso_general || 0;
+            return { courseId, progress };
+          }
+        } catch (error) {
+          console.warn(`Error al cargar progreso del curso ${courseId}:`, error);
+        }
+        return { courseId, progress: 0 };
+      });
+
+      const results = await Promise.all(progressPromises);
+      setCoursesProgress(prev => {
+        const newMap = new Map(prev);
+        results.forEach(({ courseId, progress }) => {
+          newMap.set(courseId, progress);
+        });
+        // Crear un nuevo Map para forzar la actualización de React
+        return new Map(newMap);
+      });
+    } catch (error) {
+      console.error("Error al cargar progreso de cursos:", error);
+    }
+  }, [user?.uid]);
 
   const loadCourses = useCallback(async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
     if (!user?.uid) {
@@ -150,13 +200,18 @@ const Index = () => {
       );
       
       setCourses(uniqueCourses);
+
+      // Cargar progreso de los cursos
+      if (uniqueCourses.length > 0 && user?.uid) {
+        loadCoursesProgress(uniqueCourses.map(c => c.id));
+      }
     } catch (error) {
       console.error("❌ Error al cargar los cursos:", error);
       setCourses([]);
     } finally {
       setIsLoadingCourses(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, loadCoursesProgress]);
 
   const loadEbooks = useCallback(async (page: number, size: number, resetHistory = false, currentSearch?: string) => {
     if (!user?.uid) {
@@ -352,6 +407,15 @@ const Index = () => {
     }
   }, [user?.uid, authLoading, currentPageCourses, pageSizeCourses, location.pathname, loadCourses, searchQueryCourses, activeTab]);
 
+  // Actualizar progreso cuando el usuario vuelve al listado después de estar en el detalle
+  useEffect(() => {
+    if (location.pathname === "/" && activeTab === "formaciones" && courses.length > 0 && user?.uid) {
+      // Recargar progreso de los cursos visibles para obtener valores actualizados de localStorage
+      const courseIds = courses.map(c => c.id);
+      loadCoursesProgress(courseIds);
+    }
+  }, [location.pathname, activeTab, courses, user?.uid, loadCoursesProgress]);
+
   useEffect(() => {
     if (authLoading) { return }
     
@@ -513,6 +577,7 @@ const Index = () => {
         // Tab activa
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        coursesProgress={coursesProgress}
       />
       
     </div>

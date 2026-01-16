@@ -59,38 +59,37 @@ export default function EventCard({
             onClick={handleCardClick}
         >
             <CardContent className="p-0 flex flex-col sm:flex-row">
-                <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
+                <div className="w-full sm:w-48 md:w-64 lg:w-80 relative overflow-hidden flex-shrink-0 aspect-video">
                     <ImageWithPlaceholder
                         src={evento.imagen}
                         alt={evento.titulo}
-                        className="rounded-none transition-transform hover:scale-105"
-                        aspectRatio="auto"
-                        style={{ width: '100%', height: '100%' }}
+                        className="rounded-none transition-transform hover:scale-105 w-full h-full"
+                        aspectRatio="video"
                         placeholderIcon="image"
                         placeholderText=""
                     />
                 </div>
-                <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
+                <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
                     <div className="mb-2">
-                        <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100 break-words">
+                        <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 break-words leading-tight mb-1">
                             {evento.titulo}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 break-words">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 break-words leading-snug mb-1">
                             {evento.descripcion}
                         </p>
-                        <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <span>📅 {formatEventDate(evento.fecha)}</span>
                             {evento.hora && <span>🕒 {evento.hora}</span>}
                         </div>
                     </div>
                     {showPrice && (
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-sm mb-2">
-                            <p className="text-zinc-600">Precio: <span className="font-bold text-zinc-800">${evento.precio}</span></p>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm mb-2">
+                            <p className="text-zinc-600 dark:text-zinc-400">Precio: <span className="font-bold text-zinc-800 dark:text-zinc-200">${evento.precio}</span></p>
                         </div>
                     )}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                            <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full whitespace-nowrap">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full whitespace-nowrap">
                                 {evento.modalidad}
                             </span>
                         </div>

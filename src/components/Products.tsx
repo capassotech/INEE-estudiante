@@ -54,6 +54,7 @@ interface ProductsProps {
 
     activeTab: string;
     setActiveTab: (tab: string) => void;
+    coursesProgress?: Map<string, number>;
 }
 
 export default function Products({
@@ -88,7 +89,8 @@ export default function Products({
     handleSetPageSizeEventos,
     goToPageEventos,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    coursesProgress = new Map()
 }: ProductsProps) {
     const handleFormacionesClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -128,7 +130,7 @@ export default function Products({
                     <TabsTrigger value="formaciones" className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4" />
                         <span className="hidden sm:inline">Formaciones</span>
-                        <span className="sm:hidden">Cursos</span>
+                        <span className="sm:hidden">Formaciones</span>
                     </TabsTrigger>
                     <TabsTrigger value="ebooks" className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
@@ -191,7 +193,16 @@ export default function Products({
                                         Aún no tienes cursos activos. Cuando adquieras una formación, aparecerá aquí.
                                     </p>
                                 </div>
-                            ) : courses.map((course) => <CourseCard key={course.id} course={course} />)}
+                            ) : courses.map((course) => {
+                                const progress = coursesProgress.get(course.id);
+                                return (
+                                    <CourseCard 
+                                        key={course.id} 
+                                        course={course} 
+                                        progress={progress !== undefined ? progress : undefined}
+                                    />
+                                );
+                            })}
                         </div>
 
                         {courses.length > 0 && totalPagesCourses > 1 && (
