@@ -431,7 +431,8 @@ const Index = () => {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
-      <div className="relative w-full overflow-hidden rounded-lg sm:rounded-xl shadow-lg mb-6 sm:mb-10">
+      {/* OCULTADO HASTA QUE SE DEFINA QUE IMAGENES MOSTRAR */}
+      {/* <div className="relative w-full overflow-hidden rounded-lg sm:rounded-xl shadow-lg mb-6 sm:mb-10">
         <div
           className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
@@ -458,7 +459,7 @@ const Index = () => {
             />
           ))}
         </div>
-      </div>
+      </div> */}
 
       <div className="text-center mt-4">
         <div className="rounded-lg flex items-center justify-center">
