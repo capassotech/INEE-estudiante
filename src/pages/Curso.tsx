@@ -77,7 +77,7 @@ const Curso = () => {
               <div className="flex-1 min-w-0">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg break-words">
                   <Play className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  Módulos del Curso
+                  Módulos de la formación
                 </CardTitle>
                 <CardDescription className="text-white/80 text-sm sm:text-base break-words">
                   Accede a todo el contenido organizado
