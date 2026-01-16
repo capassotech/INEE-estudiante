@@ -15,6 +15,7 @@ import { EventsList } from "@/components/EventsList";
 import EventCard from "@/components/EventCard";
 import EbookCard from "./EbookCard";
 import CourseCard from "./CourseCard";
+import { getValidatedInEeUrl } from "@/utils/urlValidator";
 
 
 interface ProductsProps {
@@ -89,6 +90,37 @@ export default function Products({
     activeTab,
     setActiveTab
 }: ProductsProps) {
+    const handleFormacionesClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        try {
+            const validatedUrl = await getValidatedInEeUrl('/formaciones');
+            window.open(validatedUrl, '_blank');
+        } catch (error) {
+            console.error('Error al validar URL de formaciones:', error);
+            // Fallback según el entorno
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const fallbackUrl = apiUrl.includes('qa') 
+                ? 'https://tienda-qa.ineeoficial.com/formaciones'
+                : 'https://inee-beta.web.app/formaciones';
+            window.open(fallbackUrl, '_blank');
+        }
+    };
+
+    const handleEbooksClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        try {
+            const validatedUrl = await getValidatedInEeUrl('/ebooks');
+            window.open(validatedUrl, '_blank');
+        } catch (error) {
+            console.error('Error al validar URL de ebooks:', error);
+            // Fallback según el entorno
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const fallbackUrl = apiUrl.includes('qa') 
+                ? 'https://tienda-qa.ineeoficial.com/ebooks'
+                : 'https://inee-beta.web.app/ebooks';
+            window.open(fallbackUrl, '_blank');
+        }
+    };
     return (
         <div>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -178,6 +210,7 @@ export default function Products({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block"
+                        onClick={handleFormacionesClick}
                     >
                         <Card className="bg-primary hover:bg-primary/90 border-2 border-primary text-white dark:bg-primary dark:hover:bg-primary/90 dark:border-primary transition-colors duration-300">
                             <CardHeader className="text-center py-6 sm:py-8">
@@ -264,6 +297,7 @@ export default function Products({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block"
+                        onClick={handleEbooksClick}
                     >
                         <Card className="bg-primary hover:bg-primary/90 border-2 border-primary text-white dark:bg-primary dark:hover:bg-primary/90 dark:border-primary transition-colors duration-300">
                             <CardHeader className="text-center py-6 sm:py-8">
