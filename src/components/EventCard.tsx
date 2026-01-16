@@ -37,7 +37,7 @@ export default function EventCard({
         <Card
             key={evento.id}
             className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 overflow-hidden ${clickeable ? "cursor-pointer" : ""}`}
-            onClick={() => clickeable ? window.open(`https://inee-beta.web.app/evento/${evento.id}`, '_blank') : null}
+            onClick={() => clickeable ? window.open(`https://ineeoficial.com/evento/${evento.id}`, '_blank') : null}
         >
             <CardContent className="p-0 flex flex-col sm:flex-row">
                 <div className="w-full sm:w-1/3 h-40 sm:h-32 md:h-40 relative overflow-hidden flex-shrink-0">
