@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, XCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
 import certificateService from "@/services/certificateService";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/Header";
 import EnvironmentBanner from "@/components/EnvironmentBanner";
+import { Loader } from "@/components/ui/loader";
 
 interface CertificadoInfo {
   certificadoId: string;
@@ -67,10 +68,7 @@ const ValidateCertificate = () => {
         <EnvironmentBanner />
         <Header />
         <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8 min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Validando certificado...</p>
-          </div>
+          <Loader size="lg" showText={true} />
         </main>
       </div>
     );

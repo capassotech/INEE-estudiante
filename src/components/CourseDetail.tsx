@@ -12,6 +12,7 @@ import {
   Trophy,
   Award,
 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import {
   Collapsible,
   CollapsibleContent,
@@ -561,11 +562,7 @@ const CourseDetail = () => {
   }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview]);
   
   if (isLoadingCourse) {
-    return (
-      <div className="container mx-auto px-4 py-6 text-center flex justify-center items-center h-screen">
-        <Loader2 className="w-5 h-5 animate-spin" />
-      </div>
-    );
+    return <Loader fullScreen size="lg" showText={true} />;
   }
 
   if (!courseData) {
