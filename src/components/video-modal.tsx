@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, ExternalLink, Video as VideoIcon } from "lucide-react";
+import { ExternalLink, Video as VideoIcon } from "lucide-react";
 import { useState } from "react";
 
 interface VideoModalProps {
@@ -188,13 +188,6 @@ const VideoModal = ({ isOpen, onClose, content }: VideoModalProps) => {
 
           {/* Video Info */}
           <div className="space-y-3">
-            {content.duration && (
-              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-                <Clock className="w-4 h-4" />
-                <span>Duración: {content.duration}</span>
-              </div>
-            )}
-
             {content.description && (
               <div>
                 <h3 className="font-semibold mb-2">Descripción</h3>
