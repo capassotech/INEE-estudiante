@@ -439,6 +439,36 @@ class AuthService {
       throw new Error(error.response?.data?.error || "Error al actualizar la ruta de aprendizaje");
     }
   }
+
+  // Autenticar con token de otra aplicación (tienda)
+  async loginWithToken(idToken: string): Promise<AuthResponse> {
+    try {
+      const response = await api.post("/auth/validate-token", { idToken });
+      
+      if (response.data.customToken) {
+        await signInWithCustomToken(auth, response.data.customToken);
+        
+        // Esperar a que el token esté disponible
+        let retries = 0;
+        while (!auth.currentUser && retries < 10) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        // Esperar un momento adicional para que el token se propague
+        if (auth.currentUser) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error al validar token");
+      }
+      throw new Error("Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
 }
 
 const authService = new AuthService();

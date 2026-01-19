@@ -30,7 +30,7 @@ const CourseReview = () => {
     }
 
     if (!course?.id) {
-      setError("Curso no válido.");
+      setError("Formación no válida.");
       return;
     }
 
