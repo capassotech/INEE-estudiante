@@ -97,6 +97,124 @@ class UserService {
       console.error("Error getting membresia:", error);
     }
   }
+
+  async getEbooksPerUser(uid: string, params?: { limit?: number; lastId?: string; search?: string }) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.limit) {
+        queryParams.append('limit', params.limit.toString());
+      }
+      if (params?.lastId) {
+        queryParams.append('lastId', params.lastId);
+      }
+      if (params?.search) {
+        queryParams.append('search', params.search);
+      }
+      queryParams.append('_t', Date.now().toString());
+      
+      const url = `/ebooks/user/${uid}?${queryParams.toString()}`;
+      const response = await api.get(url, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      if (response.data && response.data.ebooks) {
+        return response.data;
+      }
+      
+      if (Array.isArray(response.data)) {
+        return {
+          ebooks: response.data,
+          pagination: {
+            hasMore: false,
+            lastId: null,
+            limit: response.data.length,
+            count: response.data.length
+          }
+        };
+      }
+      
+      return {
+        ebooks: [],
+        pagination: {
+          hasMore: false,
+          lastId: null,
+          limit: 0,
+          count: 0
+        }
+      };
+    } catch (error) {
+      console.error("Error getting ebooks:", error);
+      return {
+        ebooks: [],
+        pagination: {
+          hasMore: false,
+          lastId: null,
+          limit: 0,
+          count: 0
+        }
+      };
+    }
+  }
+
+  async getEventosPerUser(uid: string, params?: { limit?: number; lastId?: string; search?: string }) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.limit) {
+        queryParams.append('limit', params.limit.toString());
+      }
+      if (params?.lastId) {
+        queryParams.append('lastId', params.lastId);
+      }
+      if (params?.search) {
+        queryParams.append('search', params.search);
+      }
+      queryParams.append('_t', Date.now().toString());
+      
+      const url = `/eventos/user/${uid}?${queryParams.toString()}`;
+      const response = await api.get(url, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (Array.isArray(response.data.events)) {
+        return {
+          eventos: response.data.events,
+          pagination: {
+            hasMore: response.data.pagination.hasMore,
+            lastId: response.data.pagination.lastId,
+            limit: response.data.pagination.limit,
+            count: response.data.pagination.count
+          }
+        };
+      }
+      
+      return {
+        eventos: [],
+        pagination: {
+          hasMore: false,
+          lastId: null,
+          limit: 0,
+          count: 0
+        }
+      };
+    } catch (error) {
+      console.error("Error getting eventos:", error);
+      return {
+        eventos: [],
+        pagination: {
+          hasMore: false,
+          lastId: null,
+          limit: 0,
+          count: 0
+        }
+      };
+    }
+  }
 }
 
 const userService = new UserService();

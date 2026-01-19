@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Membership } from "@/types/types";
 import membershipService from "@/services/membershipService";
 import { Card, CardContent } from "@/components/ui/card";
+import { Loader } from "@/components/ui/loader";
 
 export default function Profile() {
   const { user, isLoading, refreshUser, updateRouteUser } = useAuth();
@@ -95,13 +96,7 @@ export default function Profile() {
   }
 
   if (isLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      </div>
-    )
+    return <Loader fullScreen size="lg" showText={true} />;
   }
 
   const getPerfilNombre = (ruta: string | null): string => {

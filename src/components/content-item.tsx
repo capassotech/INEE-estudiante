@@ -24,6 +24,7 @@ interface ContentItemProps {
   onContentClick: (content: ContentItemType) => void;
 }
 
+
 const ContentItem = ({
   content,
   contentIndex,
