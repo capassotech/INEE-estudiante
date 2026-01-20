@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -49,6 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isProcessingTokenRef = useRef(false);
 
   const isAuthenticated = !!firebaseUser && !!user;
 
@@ -60,7 +62,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (token) {
         try {
+          isProcessingTokenRef.current = true;
           setIsLoading(true);
+          
+          console.log("[AUTH] Token detectado en URL, iniciando proceso de autenticación...");
           
           // Remover el token de la URL para no mostrarlo
           window.history.replaceState({}, '', window.location.pathname);
@@ -77,68 +82,85 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   
                   // Si el token corresponde al usuario actual, no hacer nada
                   if (tokenUid && tokenUid === auth.currentUser.uid) {
-                    console.log("Token corresponde al usuario actual, no se requiere re-autenticación");
-                    setIsLoading(false);
+                    console.log("[AUTH] Token corresponde al usuario actual, no se requiere re-autenticación");
+                    isProcessingTokenRef.current = false;
+                    // No establecer isLoading en false aquí, dejar que onAuthStateChanged lo maneje
                     return;
                   }
                   
                   // Si el token es de otro usuario, hacer logout primero
                   if (tokenUid && tokenUid !== auth.currentUser.uid) {
-                    console.log("Token corresponde a otro usuario, cerrando sesión actual...");
+                    console.log("[AUTH] Token corresponde a otro usuario, cerrando sesión actual...");
                     await authService.logout();
                   }
                 } catch (parseError) {
-                  console.warn("No se pudo decodificar el token, procediendo con autenticación:", parseError);
+                  console.warn("[AUTH] No se pudo decodificar el token, procediendo con autenticación:", parseError);
                   // Si no se puede decodificar, hacer logout por seguridad y proceder con el login
                   await authService.logout();
                 }
               } else {
                 // Token no tiene formato JWT válido, hacer logout por seguridad
-                console.warn("Token no tiene formato JWT válido, cerrando sesión actual...");
+                console.warn("[AUTH] Token no tiene formato JWT válido, cerrando sesión actual...");
                 await authService.logout();
               }
             } catch (decodeError) {
-              console.error("Error procesando token:", decodeError);
+              console.error("[AUTH] Error procesando token:", decodeError);
               // Si hay error, hacer logout por seguridad y proceder con el login
               await authService.logout();
             }
           }
           
           // Autenticar con el token (ya sea porque no hay usuario o porque es diferente)
+          console.log("[AUTH] Autenticando con token de la URL...");
           await authService.loginWithToken(token);
+          console.log("[AUTH] Token procesado, esperando que onAuthStateChanged complete...");
           // El onAuthStateChanged manejará el resto
-        } catch (error) {
-          console.error("Error autenticando con token de URL:", error);
+        } catch (error: any) {
+          console.error("[AUTH] Error autenticando con token de URL:", error);
+          // Mostrar mensaje de error al usuario si es necesario
+          if (error.message) {
+            console.error("[AUTH] Mensaje de error:", error.message);
+          }
+          isProcessingTokenRef.current = false;
           setIsLoading(false);
         }
+      } else {
+        // No hay token, marcar que no se está procesando
+        isProcessingTokenRef.current = false;
       }
     };
 
-    // Esperar un momento para que el estado inicial se establezca
-    const timer = setTimeout(() => {
-      handleTokenFromUrl();
-    }, 100);
-
-    return () => clearTimeout(timer);
+    // Ejecutar inmediatamente para detectar el token
+    handleTokenFromUrl();
   }, []); // Solo ejecutar una vez al montar
 
   // Escuchar cambios en el estado de autenticación de Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const isProcessing = isProcessingTokenRef.current;
+      console.log("[AUTH] onAuthStateChanged - Usuario:", firebaseUser?.uid || "ninguno", "Procesando token:", isProcessing);
+      
       setFirebaseUser(firebaseUser);
 
       if (firebaseUser) {
         try {
+          // Si se está procesando un token, esperar un poco más para asegurar que el proceso complete
+          if (isProcessing) {
+            console.log("[AUTH] Esperando a que se complete el procesamiento del token...");
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
           // Esperar un momento para asegurar que el token esté completamente propagado
           await new Promise(resolve => setTimeout(resolve, 300));
           
           // Obtener el perfil del backend pasando el UID esperado
           const expectedUid = firebaseUser.uid;
+          console.log("[AUTH] Obteniendo perfil para UID:", expectedUid);
           const profile = await authService.getProfile(expectedUid);
           
           // Verificar que el perfil corresponde al usuario actual de Firebase
           if (profile.uid !== expectedUid) {
-            console.error("Error: El perfil obtenido no corresponde al usuario actual", {
+            console.error("[AUTH] Error: El perfil obtenido no corresponde al usuario actual", {
               expected: expectedUid,
               received: profile.uid
             });
@@ -150,6 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (retryProfile.uid !== expectedUid) {
                 await authService.logout();
                 setUser(null);
+                isProcessingTokenRef.current = false;
                 setIsLoading(false);
                 return;
               }
@@ -169,13 +192,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 lastProfileUpdate: new Date().toISOString(),
               });
             } catch (retryError) {
-              console.error("Error en reintento de obtener perfil:", retryError);
+              console.error("[AUTH] Error en reintento de obtener perfil:", retryError);
               await authService.logout();
               setUser(null);
+              isProcessingTokenRef.current = false;
               setIsLoading(false);
               return;
             }
           } else {
+            console.log("[AUTH] Perfil obtenido exitosamente");
             setUser(profile);
             
             // Actualizar localStorage con los datos correctos del perfil
@@ -192,18 +217,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
           }
         } catch (error) {
-          console.error("Error al obtener perfil:", error);
+          console.error("[AUTH] Error al obtener perfil:", error);
           // Si falla obtener el perfil, limpiar todo
           await authService.logout();
           setUser(null);
         }
       } else {
         // Si no hay usuario de Firebase, limpiar todo
+        console.log("[AUTH] No hay usuario de Firebase, limpiando datos");
         localStorage.removeItem("studentData");
         setUser(null);
       }
 
-      setIsLoading(false);
+      // Solo establecer isLoading en false si no se está procesando un token
+      // o si ya se completó el procesamiento
+      if (!isProcessing) {
+        console.log("[AUTH] Estableciendo isLoading en false");
+        setIsLoading(false);
+      } else {
+        console.log("[AUTH] Manteniendo isLoading en true (procesando token)");
+        // Marcar que se completó el procesamiento después de un breve delay
+        setTimeout(() => {
+          isProcessingTokenRef.current = false;
+          setIsLoading(false);
+          console.log("[AUTH] Procesamiento del token completado");
+        }, 1000);
+      }
     });
 
     return () => unsubscribe();
