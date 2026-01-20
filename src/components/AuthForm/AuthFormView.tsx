@@ -518,7 +518,7 @@ export default function AuthFormView({
     );
 
     return (
-        <div className="min-h-screen bg-gradient-hero dark:bg-gradient-hero-dark flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-b from-[#8B3740] via-[#a3676c] to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center">
                     <Link to="/" className="inline-flex items-center space-x-2 mb-6">
