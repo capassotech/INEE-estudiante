@@ -1,3 +1,4 @@
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock, Mail, CreditCard, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -113,7 +114,7 @@ export default function Profile() {
   };
 
   return (
-    <>
+    <React.Fragment>
       <div className="fixed inset-0 bg-[#f4f2f0] -z-10" style={{ top: 0 }}></div>
       <div className="font-sans min-h-screen relative" style={{ backgroundColor: '#f4f2f0' }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
@@ -317,15 +318,16 @@ export default function Profile() {
             </CardContent>
           </Card>
         </div> */}
+        </div>
+        </div>
+        
+        <RutasAprendizajeModal 
+          isOpen={isOpen} 
+          onClose={() => setIsOpen(false)} 
+          perfilActual={user.ruta_aprendizaje || ''} 
+          onSelectRoute={onSelectRoute} 
+        />
       </div>
-      
-      <RutasAprendizajeModal 
-        isOpen={isOpen} 
-        onClose={() => setIsOpen(false)} 
-        perfilActual={user.ruta_aprendizaje || ''} 
-        onSelectRoute={onSelectRoute} 
-      />
-      </div>
-    </>
+    </React.Fragment>
   );
 }
