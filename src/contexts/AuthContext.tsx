@@ -55,19 +55,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Detectar token en URL y autenticar automáticamente
   useEffect(() => {
     const handleTokenFromUrl = async () => {
-      // Solo procesar si no hay usuario autenticado
-      if (auth.currentUser || isLoading) return;
-
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
       if (token) {
         try {
           setIsLoading(true);
+          
           // Remover el token de la URL para no mostrarlo
           window.history.replaceState({}, '', window.location.pathname);
           
-          // Autenticar con el token
+          // Si ya hay un usuario autenticado, verificar si el token corresponde al mismo usuario
+          if (auth.currentUser) {
+            try {
+              // Decodificar el token JWT para obtener el UID
+              const tokenParts = token.split('.');
+              if (tokenParts.length === 3) {
+                try {
+                  const payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                  const tokenUid = payload.user_id || payload.sub || payload.uid;
+                  
+                  // Si el token corresponde al usuario actual, no hacer nada
+                  if (tokenUid && tokenUid === auth.currentUser.uid) {
+                    console.log("Token corresponde al usuario actual, no se requiere re-autenticación");
+                    setIsLoading(false);
+                    return;
+                  }
+                  
+                  // Si el token es de otro usuario, hacer logout primero
+                  if (tokenUid && tokenUid !== auth.currentUser.uid) {
+                    console.log("Token corresponde a otro usuario, cerrando sesión actual...");
+                    await authService.logout();
+                  }
+                } catch (parseError) {
+                  console.warn("No se pudo decodificar el token, procediendo con autenticación:", parseError);
+                  // Si no se puede decodificar, hacer logout por seguridad y proceder con el login
+                  await authService.logout();
+                }
+              } else {
+                // Token no tiene formato JWT válido, hacer logout por seguridad
+                console.warn("Token no tiene formato JWT válido, cerrando sesión actual...");
+                await authService.logout();
+              }
+            } catch (decodeError) {
+              console.error("Error procesando token:", decodeError);
+              // Si hay error, hacer logout por seguridad y proceder con el login
+              await authService.logout();
+            }
+          }
+          
+          // Autenticar con el token (ya sea porque no hay usuario o porque es diferente)
           await authService.loginWithToken(token);
           // El onAuthStateChanged manejará el resto
         } catch (error) {
@@ -77,7 +114,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    handleTokenFromUrl();
+    // Esperar un momento para que el estado inicial se establezca
+    const timer = setTimeout(() => {
+      handleTokenFromUrl();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []); // Solo ejecutar una vez al montar
 
   // Escuchar cambios en el estado de autenticación de Firebase
