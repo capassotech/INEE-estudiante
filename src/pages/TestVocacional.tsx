@@ -280,7 +280,7 @@ export default function TestVocacional() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f4f2f0' }}>
             <div className="max-w-2xl mx-auto">
                 <div className="text-center mb-8">
                     <Link to="/" className="inline-flex items-center space-x-2 mb-8">
