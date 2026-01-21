@@ -117,7 +117,6 @@ const VideoModal = ({ isOpen, onClose, content }: VideoModalProps) => {
       console.error("❌ No hay URL para abrir");
       return;
     }
-    console.log("🔗 Abriendo video en nueva pestaña:", content.url);
     window.open(content.url, '_blank');
   };
 
