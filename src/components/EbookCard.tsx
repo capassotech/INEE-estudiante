@@ -14,13 +14,12 @@ export default function EbookCard({ ebook }: { ebook: Ebook }) {
             className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 overflow-hidden"
         >
             <CardContent className="p-0 flex flex-col sm:flex-row">
-                <div className="w-full sm:w-20 md:w-24 lg:w-28 relative overflow-hidden flex-shrink-0" style={{ aspectRatio: '9/16', backgroundColor: '#2d2d2d' }}>
+                <div className="w-full sm:w-20 md:w-24 lg:w-28 relative overflow-hidden flex-shrink-0">
                     <ImageWithPlaceholder
                         src={ebook.imagen || "/placeholder.svg"}
                         alt={ebook.title}
-                        className="rounded-none transition-transform hover:scale-105"
-                        aspectRatio="auto"
-                        style={{ width: '100%', height: '100%' }}
+                        className="rounded-none transition-transform hover:scale-105 w-full h-full"
+                        aspectRatio="a4"
                         placeholderIcon="book"
                         placeholderText="E-book"
                     />
