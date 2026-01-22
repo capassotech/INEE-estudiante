@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,8 @@ import VideoModal from "@/components/video-modal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 import progressService from "@/services/progressService";
+import examenService from "@/services/examenService";
+import certificateService from "@/services/certificateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
@@ -41,6 +43,12 @@ const CourseDetail = () => {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
   const [hasUserReview, setHasUserReview] = useState(false);
+  const [hasExamen, setHasExamen] = useState(false);
+  const [examenAprobado, setExamenAprobado] = useState(false);
+  const [intento, setIntento] = useState(1);
+  const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
+  const [downloadingCertificate, setDownloadingCertificate] = useState(false);
+  const isCheckingExamen = useRef(false);
   // Función para guardar progreso en localStorage como respaldo
   // Usar userId en la clave para que sea específico por usuario
   const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
@@ -96,8 +104,6 @@ const CourseDetail = () => {
       
       try {
         const responseReviews = await reviewService.getReviewsByCourse(courseId);
-        console.log(responseReviews.reviews);
-        console.log(user.uid);
         let foundReview = false;
         
         if (responseReviews?.reviews && Array.isArray(responseReviews.reviews)) {
@@ -128,19 +134,12 @@ const CourseDetail = () => {
           setModules(modulesData || []);
           setIsLoadingModules(false);
 
-          // Cargar progreso desde localStorage primero (para mostrar algo inmediatamente)
-          let cachedProgress = new Set<string>();
-          if (courseId && user?.uid) {
-            cachedProgress = loadProgressFromLocalStorage(courseId);
-            if (cachedProgress.size > 0) {
-              setCompletedContents(cachedProgress);
-            }
-          }
-
-          // Cargar progreso desde el backend después de cargar los módulos
-          // Pasar el cache como parámetro para usarlo como respaldo
+          // NO usar caché de localStorage para evitar mostrar datos de otro usuario
+          // Esperar siempre a que el backend responda
+          
+          // Cargar progreso desde el backend
           if (user?.uid && courseId && modulesData) {
-            await loadProgressFromBackend(modulesData, cachedProgress);
+            await loadProgressFromBackend(modulesData, new Set<string>());
           } else {
             setIsLoadingProgress(false);
           }
@@ -214,10 +213,6 @@ const CourseDetail = () => {
               .obtenerEstadoContenido(module.id, index.toString())
               .then((estadoResponse) => {
                 const completed = estadoResponse.success && estadoResponse.data.completado;
-                console.log(`🔍 Verificando contenido ${module.id}-${index}:`, {
-                  completado: completed,
-                  respuesta: estadoResponse.data
-                });
                 return { contentKey, completed, moduleId: module.id };
               })
               .catch((error) => {
@@ -243,7 +238,6 @@ const CourseDetail = () => {
             const { contentKey, completed } = result.value;
             if (completed) {
               completedSet.add(contentKey);
-              console.log(`✅ Contenido completado encontrado: ${contentKey}`);
             }
           } else {
             console.error('❌ Error al procesar resultado de progreso:', result.reason);
@@ -406,23 +400,10 @@ const CourseDetail = () => {
       return;
     }
 
-    console.log("✅ Contenido encontrado para marcar/desmarcar:", {
-      contentIndex,
-      moduloId: targetModule.id,
-      cursoId: courseId,
-      userId: user.uid,
-      contenido: targetContent
-    });
 
     const contentKey = `${moduleId}-${contentIndex}`;
     const isCurrentlyCompleted = completedContents.has(contentKey);
 
-    console.log(`🔄 Estado antes de toggle:`, {
-      contentKey,
-      isCurrentlyCompleted,
-      totalCompletados: completedContents.size,
-      todosLosCompletados: Array.from(completedContents)
-    });
 
     // Optimistic update
     setUpdatingContent((prev) => new Set(prev).add(contentKey));
@@ -431,10 +412,8 @@ const CourseDetail = () => {
       const newSet = new Set(prev);
       if (isCurrentlyCompleted) {
         newSet.delete(contentKey);
-        console.log(`➖ Eliminando ${contentKey} del estado local`);
       } else {
         newSet.add(contentKey);
-        console.log(`➕ Agregando ${contentKey} al estado local`);
       }
       updatedSet = newSet;
       // Guardar en localStorage inmediatamente después de la actualización optimista
@@ -457,8 +436,6 @@ const CourseDetail = () => {
         contenidoId: contentIndex.toString(), // Enviar el índice como string
       };
 
-      console.log(`📤 Enviando al backend (${isCurrentlyCompleted ? 'desmarcar' : 'marcar'}):`, dataToSend);
-
       if (isCurrentlyCompleted) {
         // Desmarcar
         response = await progressService.desmarcarCompletado(dataToSend);
@@ -470,13 +447,6 @@ const CourseDetail = () => {
       console.log("📥 Respuesta del backend:", response);
 
       if (response.success) {
-        console.log(`✅ Backend confirmó la operación. Estado optimista aplicado:`, {
-          contentKey,
-          estaCompletadoEnUpdatedSet: updatedSet.has(contentKey),
-          deberiaEstar: !isCurrentlyCompleted,
-          coincide: updatedSet.has(contentKey) === !isCurrentlyCompleted
-        });
-
         // NO hay necesidad de actualizar el estado nuevamente porque ya hicimos optimistic update
         // Solo actualizar el progreso general
         if (response.progreso) {
@@ -522,6 +492,35 @@ const CourseDetail = () => {
     } else if (content.tipo_contenido.toUpperCase() === "VIDEO") {
       setSelectedContent(content);
       setVideoModalOpen(true);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!courseId) return;
+    
+    try {
+      setDownloadingCertificate(true);
+      toast.loading('Generando certificado...', { id: 'certificate-download' });
+      
+      await certificateService.generarCertificado(courseId);
+      
+      toast.success('Certificado descargado exitosamente', { id: 'certificate-download' });
+    } catch (error: any) {
+      console.error('Error downloading certificate:', error);
+      
+      // Verificar si el error es porque falta aprobar el examen
+      if (error.message && error.message.includes('aprobar el examen')) {
+        toast.error('Debes aprobar el examen final para obtener el certificado', { id: 'certificate-download' });
+        // Forzar re-verificación del estado del examen
+        setLoadingExamenStatus(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        toast.error(error.message || 'Error al descargar el certificado', { id: 'certificate-download' });
+      }
+    } finally {
+      setDownloadingCertificate(false);
     }
   };
 
@@ -578,6 +577,120 @@ const CourseDetail = () => {
       return "[&>div]:!bg-green-500"; // Verde para progreso alto
     }
   };
+
+  // Verificar si hay examen y si está aprobado
+  useEffect(() => {
+    const checkExamen = async () => {
+      if (!courseId || !user?.uid) {
+        setLoadingExamenStatus(false);
+        return;
+      }
+      
+      // Solo proceder si el progreso está completamente cargado
+      if (isLoadingProgress) {
+        return;
+      }
+      
+      // Solo verificar examen si el progreso es 100%
+      if (progressPercentage !== 100) {
+        setLoadingExamenStatus(false);
+        setHasExamen(false);
+        setExamenAprobado(false);
+        return;
+      }
+      
+      // Evitar ejecuciones simultáneas
+      if (isCheckingExamen.current) {
+        return;
+      }
+      isCheckingExamen.current = true;
+      
+      setLoadingExamenStatus(true);
+      
+      // Verificar si viene del examen con resultado
+      const examenState = location.state as { 
+        certificadoListo?: boolean; 
+        aprobado?: boolean; 
+        intento?: number;
+        examenYaAprobado?: boolean;
+        mostrarCertificado?: boolean;
+      } | undefined;
+      
+      // Si viene con examenYaAprobado desde la página de examen
+      if (examenState?.examenYaAprobado && examenState?.mostrarCertificado) {
+        setHasExamen(true);
+        setExamenAprobado(true);
+        setLoadingExamenStatus(false);
+        isCheckingExamen.current = false;
+        
+        console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación ya aprobada → MOSTRANDO CERTIFICADO');
+        
+        // Limpiar el state
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      }
+      
+      // Si viene del examen aprobado, usar esos datos INMEDIATAMENTE (optimistic)
+      if (examenState?.certificadoListo && examenState?.aprobado) {
+        setHasExamen(true);
+        setExamenAprobado(true);
+        setIntento(examenState.intento || 1);
+        setLoadingExamenStatus(false);
+        isCheckingExamen.current = false;
+        
+        console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación recién aprobada → MOSTRANDO CERTIFICADO');
+        
+        // Limpiar el state
+        navigate(location.pathname, { replace: true, state: {} });
+        
+        // NO verificar en segundo plano - confiar en el estado que viene del examen
+        return;
+      }
+      
+      try {
+        // Consultar el backend para obtener el estado real
+        const examen = await examenService.getExamenByFormacion(courseId);
+        
+        if (examen) {
+          setHasExamen(true);
+          
+          // Obtener el último intento del usuario
+          const ultimoIntento = await examenService.getUltimoIntento(user.uid, courseId);
+          
+          if (ultimoIntento) {
+            setIntento(ultimoIntento.intento);
+            setExamenAprobado(ultimoIntento.aprobado);
+            
+            // Log del estado del estudiante
+            if (ultimoIntento.aprobado) {
+              console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación aprobada → MOSTRANDO CERTIFICADO');
+            } else {
+              console.log('📝 ESTADO DEL ESTUDIANTE: Curso completado → MOSTRANDO EVALUACIÓN (Intento ' + (ultimoIntento.intento + 1) + ')');
+            }
+          } else {
+            setIntento(1);
+            setExamenAprobado(false);
+            console.log('📝 ESTADO DEL ESTUDIANTE: Curso completado → MOSTRANDO EVALUACIÓN (Primer intento)');
+          }
+        } else {
+          setHasExamen(false);
+          setExamenAprobado(false);
+          setIntento(1);
+          console.log('✅ ESTADO DEL ESTUDIANTE: Curso completado → MOSTRANDO CERTIFICADO (Sin examen)');
+        }
+      } catch (error) {
+        console.error('❌ Error checking examen:', error);
+        setHasExamen(false);
+        setExamenAprobado(false);
+        setIntento(1);
+      } finally {
+        setLoadingExamenStatus(false);
+        isCheckingExamen.current = false;
+      }
+    };
+
+    checkExamen();
+  }, [progressPercentage, courseId, user?.uid, isLoadingProgress, location.key]);
 
   useEffect(() => {
     if (progressPercentage === 100 && courseData && !hasUserReview) {
@@ -701,31 +814,79 @@ const CourseDetail = () => {
         </Card>
       )}
 
-      {/* CERTIFICADO */}
-      {progressPercentage > 0 && (
-        <Card className="border-2 border-dashed border-primary/50">
+      {/* LOADING EXAMEN STATUS */}
+      {progressPercentage === 100 && loadingExamenStatus && (
+        <Card className="border-2 border-dashed border-gray-300">
           <CardContent className="p-4 sm:p-6 text-center">
-            <Award className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-primary" />
+            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400 animate-spin" />
+            <h3 className="font-semibold mb-2 text-sm sm:text-base text-gray-600">
+              Verificando estado de evaluación...
+            </h3>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* EVALUACIÓN */}
+      {progressPercentage === 100 && !loadingExamenStatus && hasExamen && !examenAprobado && (
+        <Card className={`border-2 ${intento === 1 ? 'border-primary' : 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'}`}>
+          <CardContent className="p-4 sm:p-6 text-center">
+            <Trophy className={`w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 ${intento === 1 ? 'text-primary' : 'text-orange-600 dark:text-orange-400'}`} />
             <h3 className="font-semibold mb-2 text-sm sm:text-base">
-              Certificado de Finalización
+              Evaluación Final
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-4">
-              {progressPercentage === 100
-                ? "¡Felicitaciones! Has completado el curso."
-                : `Completa el ${100 - progressPercentage}% restante para obtener tu certificado.`}
+              {intento === 1 
+                ? "Has completado todos los módulos. Ahora debes aprobar la evaluación final (nota mínima 70%) para obtener tu certificado."
+                : `El intento anterior no alcanzó el 70% requerido. No te preocupes, puedes intentarlo nuevamente todas las veces que necesites. Este sería tu intento número ${intento}.`
+              }
             </p>
             <Button
-              variant={progressPercentage === 100 ? "default" : "outline"}
-              disabled={progressPercentage < 100}
-              className="w-full sm:w-auto text-sm sm:text-base"
+              variant="default"
+              onClick={() => navigate(`/curso/${courseId}/examen`)}
+              className={`w-full sm:w-auto text-sm sm:text-base ${intento > 1 ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
             >
-              {progressPercentage === 100
-                ? "Descargar Certificado"
-                : "Certificado Bloqueado"}
+              {intento === 1 ? "Realizar Evaluación" : `Reintentar Examen (Intento ${intento})`}
             </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* CERTIFICADO */}
+      {progressPercentage === 100 && !loadingExamenStatus && (!hasExamen || examenAprobado) && (
+        <Card className="border-2 border-solid border-green-500 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20">
+          <CardContent className="p-4 sm:p-6 text-center">
+            <Award className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 text-green-600 dark:text-green-400 animate-pulse" />
+            <h3 className="font-bold text-lg sm:text-xl mb-2 text-green-800 dark:text-green-300">
+              🎉 Certificado de Finalización Disponible
+            </h3>
+            <p className="text-sm sm:text-base text-gray-700 dark:text-gray-200 mb-4 font-medium">
+              {hasExamen && examenAprobado
+                ? "¡Excelente! Has completado el curso y aprobado la evaluación final. Tu certificado está listo."
+                : "¡Excelente! Has completado el curso. Tu certificado está listo."}
+            </p>
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full sm:w-auto text-sm sm:text-base bg-green-600 hover:bg-green-700 font-semibold"
+              onClick={handleDownloadCertificate}
+              disabled={downloadingCertificate}
+            >
+              {downloadingCertificate ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generando Certificado...
+                </>
+              ) : (
+                <>
+                  <Award className="w-4 h-4 mr-2" />
+                  Descargar Certificado
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* MÓDULOS */}
       <div className="space-y-3 sm:space-y-4">
