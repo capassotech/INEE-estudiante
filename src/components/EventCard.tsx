@@ -1,4 +1,5 @@
 import { Evento } from "@/types/types";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 import { getValidatedInEeUrl } from "@/utils/urlValidator";
@@ -12,6 +13,8 @@ export default function EventCard({
     showPrice?: boolean | undefined,
     clickeable?: boolean | undefined
 }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     const convertFirestoreDate = (fecha: { _seconds: number, _nanoseconds: number } | Date | string): Date => {
         if (fecha && typeof fecha === 'object' && '_seconds' in fecha) {
             return new Date(fecha._seconds * 1000);
@@ -74,9 +77,20 @@ export default function EventCard({
                         <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 break-words leading-tight mb-1">
                             {evento.titulo}
                         </h3>
-                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 break-words leading-snug mb-1">
+                        <p className={`text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug mb-1 ${!isExpanded ? 'line-clamp-2' : ''}`}>
                             {evento.descripcion}
                         </p>
+                        {evento.descripcion && evento.descripcion.length > 100 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsExpanded(!isExpanded);
+                                }}
+                                className="text-xs text-blue-600 hover:underline self-start"
+                            >
+                                {isExpanded ? 'Ver menos' : 'Ver más'}
+                            </button>
+                        )}
                         <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <span>📅 {formatEventDate(evento.fecha)}</span>
                             {evento.hora && <span>🕒 {evento.hora}</span>}
