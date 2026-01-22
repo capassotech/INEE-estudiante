@@ -5,7 +5,7 @@ interface ImageWithPlaceholderProps {
   src: string;
   alt: string;
   className?: string;
-  aspectRatio?: "video" | "square" | "auto";
+  aspectRatio?: "video" | "square" | "a4" | "auto";
   placeholderIcon?: "book" | "image";
   placeholderText?: string;
   style?: React.CSSProperties;
@@ -23,12 +23,30 @@ export const ImageWithPlaceholder: React.FC<ImageWithPlaceholderProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const aspectClass = aspectRatio === "video" ? "aspect-video" : aspectRatio === "square" ? "aspect-square" : "";
+  const getAspectClass = () => {
+    switch (aspectRatio) {
+      case "video":
+        return "aspect-video"; // 16:9
+      case "square":
+        return "aspect-square"; // 1:1
+      case "a4":
+        return ""; // Usaremos aspect-ratio CSS personalizado para A4 (1:1.414)
+      default:
+        return "";
+    }
+  };
+
+  const aspectClass = getAspectClass();
+  
+  // Estilo inline para A4 si es necesario
+  const a4Style = aspectRatio === "a4" 
+    ? { aspectRatio: "1 / 1.414", ...style } 
+    : style;
 
   const IconComponent = placeholderIcon === "book" ? Book : ImageIcon;
 
   return (
-    <div className={`relative bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 rounded-lg overflow-hidden ${aspectClass} ${className}`} style={style}>
+    <div className={`relative bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 rounded-lg overflow-hidden ${aspectClass} ${className}`} style={a4Style}>
       {/* Skeleton loader mientras carga */}
       {!imageLoaded && !imageError && (
         <div className="absolute inset-0">
