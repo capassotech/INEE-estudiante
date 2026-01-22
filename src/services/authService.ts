@@ -443,9 +443,11 @@ class AuthService {
   // Autenticar con token de otra aplicación (tienda)
   async loginWithToken(idToken: string): Promise<AuthResponse> {
     try {
+      console.log("[AUTH] Intentando validar token desde la tienda...");
       const response = await api.post("/auth/validate-token", { idToken });
       
       if (response.data.customToken) {
+        console.log("[AUTH] Token validado, autenticando con customToken...");
         await signInWithCustomToken(auth, response.data.customToken);
         
         // Esperar a que el token esté disponible
@@ -455,18 +457,30 @@ class AuthService {
           retries++;
         }
         
+        if (retries >= 10) {
+          console.error("[AUTH] Timeout esperando usuario después de signInWithCustomToken");
+          throw new Error("Timeout al autenticar con el token");
+        }
+        
         // Esperar un momento adicional para que el token se propague
         if (auth.currentUser) {
+          console.log("[AUTH] Usuario autenticado exitosamente:", auth.currentUser.uid);
           await new Promise(resolve => setTimeout(resolve, 500));
         }
+      } else {
+        console.warn("[AUTH] No se recibió customToken en la respuesta");
       }
 
       return response.data;
     } catch (error: any) {
+      console.error("[AUTH] Error al autenticar con token:", error);
       if (error.response?.data) {
-        throw new Error(error.response.data.error || "Error al validar token");
+        const errorMessage = error.response.data.error || "Error al validar token";
+        const errorDetails = error.response.data.details;
+        console.error("[AUTH] Error del backend:", errorMessage, errorDetails);
+        throw new Error(errorMessage + (errorDetails ? `: ${errorDetails}` : ""));
       }
-      throw new Error("Error de conexión. Verifica tu conexión a internet.");
+      throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
     }
   }
 }
