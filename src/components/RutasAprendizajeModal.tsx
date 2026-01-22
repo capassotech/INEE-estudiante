@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DialogHeader, Dialog, DialogContent, DialogDescription, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -76,10 +76,11 @@ export default function RutasAprendizajeModal({
         setSelectedRoute(routeId);
     };
 
-    const handleConfirmSelection = () => {
+    const handleConfirmSelection = async () => {
         if (selectedRoute && onSelectRoute) {
             const selectedRouteName = rutasAprendizaje.find(r => r.id === selectedRoute)?.route_name || '';
-            onSelectRoute(selectedRouteName);
+            await onSelectRoute(selectedRouteName);
+            setSelectedRoute(null);
         }
         onClose();
     };
@@ -88,6 +89,13 @@ export default function RutasAprendizajeModal({
         setSelectedRoute(null);
         onClose();
     };
+
+    // Resetear la selección cuando se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedRoute(null);
+        }
+    }, [isOpen]);
 
     return (
         <Dialog open={isOpen} onOpenChange={handleCancel}>
@@ -102,7 +110,7 @@ export default function RutasAprendizajeModal({
                     {perfilActual && (
                         <div className="flex justify-center mt-2">
                             <Badge variant="outline" className="text-sm">
-                                Perfil actual: {perfilActual}
+                                Perfil actual: {rutasAprendizaje.find(r => r.route_name === perfilActual)?.nombre || perfilActual}
                             </Badge>
                         </div>
                     )}

@@ -324,7 +324,7 @@ export default function Profile() {
         <RutasAprendizajeModal 
           isOpen={isOpen} 
           onClose={() => setIsOpen(false)} 
-          perfilActual={user.ruta_aprendizaje || ''} 
+          perfilActual={rutaAprendizaje || user.ruta_aprendizaje || ''} 
           onSelectRoute={onSelectRoute} 
         />
       </div>
