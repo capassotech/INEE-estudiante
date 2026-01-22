@@ -21,7 +21,6 @@ const PDFModal = ({ isOpen, onClose, pdfUrl, title }: PDFModalProps) => {
       console.error("❌ No hay URL para abrir");
       return;
     }
-    console.log("🔗 Abriendo PDF en nueva pestaña:", pdfUrl);
     window.open(pdfUrl, '_blank');
   };
 
