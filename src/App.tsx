@@ -14,7 +14,8 @@ import AuthRedirectRoute from "./components/AuthRedirectRoute";
 import NotFound from "./pages/NotFound";
 import Curso from "./pages/Curso";
 import CourseDetail from "./components/CourseDetail";
-import CourseReview from "./pages/CourseReview"; 
+import CourseReview from "./pages/CourseReview";
+import ExamenPage from "./pages/ExamenPage"; 
 import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import Register from "./pages/Register";
@@ -53,6 +54,7 @@ const App = () => (
                   <Route path="/test-vocacional" element={<TestVocacional />} />
                   <Route path="/curso" element={<Curso />} />
                   <Route path="/curso/:courseId" element={<CourseDetail />} />
+                  <Route path="/curso/:courseId/examen" element={<ExamenPage />} />
                   <Route path="/course/:courseId/review" element={<CourseReview />} /> 
                   <Route path="/teoria" element={<Theory />} />
                   <Route path="/teoria/:contentId" element={<TheoryDetail />} />

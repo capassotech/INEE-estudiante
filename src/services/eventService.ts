@@ -29,7 +29,6 @@ class EventService {
   async getAll(): Promise<Evento[]> {
     try {
       const response = await api.get(`/eventos`);
-      console.log(response.data);
       return response.data.events;
     } catch (error) {
       console.error("Error getting eventos:", error);
