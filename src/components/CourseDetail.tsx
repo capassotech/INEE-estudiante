@@ -614,6 +614,8 @@ const CourseDetail = () => {
         intento?: number;
         examenYaAprobado?: boolean;
         mostrarCertificado?: boolean;
+        examenFallido?: boolean;
+        examenCompletado?: boolean;
       } | undefined;
       
       // Si viene con examenYaAprobado desde la página de examen
@@ -647,6 +649,13 @@ const CourseDetail = () => {
         return;
       }
       
+      // Si viene de un examen fallido, forzar actualización del estado
+      if (examenState?.examenFallido || (examenState?.examenCompletado && !examenState?.aprobado)) {
+        // Limpiar el state primero
+        navigate(location.pathname, { replace: true, state: {} });
+        // Continuar con la verificación normal del backend para obtener el estado actualizado
+      }
+      
       try {
         // Consultar el backend para obtener el estado real
         const examen = await examenService.getExamenByFormacion(courseId);
@@ -658,7 +667,9 @@ const CourseDetail = () => {
           const ultimoIntento = await examenService.getUltimoIntento(user.uid, courseId);
           
           if (ultimoIntento) {
-            setIntento(ultimoIntento.intento);
+            // Si hay un intento previo, el siguiente intento es ultimoIntento.intento + 1
+            // Si el último intento fue desaprobado, mostrar interfaz de reintento
+            setIntento(ultimoIntento.intento + 1);
             setExamenAprobado(ultimoIntento.aprobado);
             
             // Log del estado del estudiante
