@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 import reviewService from "@/services/reviewService";
+import html2pdf from "html2pdf.js";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -502,7 +503,315 @@ const CourseDetail = () => {
       setDownloadingCertificate(true);
       toast.loading('Generando certificado...', { id: 'certificate-download' });
       
-      await certificateService.generarCertificado(courseId);
+      const certificado = await certificateService.generarCertificado(courseId);
+
+      const safeCourseName = certificado.nombreCurso
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "");
+
+      // Crear elemento HTML temporal para el certificado
+      const certificateDiv = document.createElement("div");
+      certificateDiv.id = "certificate-temp-container";
+      certificateDiv.style.position = "fixed";
+      certificateDiv.style.top = "0";
+      certificateDiv.style.left = "0";
+      certificateDiv.style.width = "1123px";
+      certificateDiv.style.height = "794px";
+      certificateDiv.style.zIndex = "99999";
+      certificateDiv.style.overflow = "visible";
+      certificateDiv.style.backgroundColor = "#f5f5f0";
+      certificateDiv.style.transform = "translate(0, 0)";
+      certificateDiv.style.visibility = "visible";
+      certificateDiv.style.opacity = "1";
+      
+      certificateDiv.innerHTML = `
+        <div style="
+          width: 1123px;
+          height: 794px;
+          padding: 0;
+          margin: 0;
+          background: #f5f5f0;
+          color: #2c2c2c;
+          position: relative;
+          border: 8px solid #8B2635;
+          box-sizing: border-box;
+          font-family: 'Arial', 'Helvetica', sans-serif;
+        ">
+          <!-- Borde interior con múltiples líneas -->
+          <div style="
+            position: absolute;
+            top: 57px;
+            left: 57px;
+            right: 57px;
+            bottom: 57px;
+            border: 1px solid #5a2a2a;
+            box-sizing: border-box;
+          ">
+            <div style="
+              position: absolute;
+              top: 8px;
+              left: 8px;
+              right: 8px;
+              bottom: 8px;
+              border-top: 1px solid #d4d4d0;
+              border-bottom: 1px solid #d4d4d0;
+              border-left: 1px solid #5a2a2a;
+              border-right: 1px solid #5a2a2a;
+            "></div>
+            <div style="
+              position: absolute;
+              top: 15px;
+              left: 15px;
+              right: 15px;
+              bottom: 15px;
+              border-top: 1px solid #d4d4d0;
+              border-bottom: 1px solid #d4d4d0;
+              border-left: 1px solid #5a2a2a;
+              border-right: 1px solid #5a2a2a;
+            "></div>
+            <div style="
+              position: absolute;
+              top: 23px;
+              left: 23px;
+              right: 23px;
+              bottom: 23px;
+              border: 1px solid #5a2a2a;
+            "></div>
+          </div>
+
+          <!-- Contenido principal -->
+          <div style="
+            position: absolute;
+            top: 95px;
+            left: 95px;
+            right: 95px;
+            bottom: 95px;
+            background: #fafafa;
+            padding: 57px;
+            box-sizing: border-box;
+          ">
+            <!-- Logo INEE arriba -->
+            <div style="text-align: center; margin-bottom: 45px;">
+              <div style="display: inline-flex; align-items: center; gap: 12px;">
+                <img 
+                  src="/logo.png" 
+                  alt="Logo INEE" 
+                  style="width: 50px; height: 40px; object-fit: contain;"
+                />
+                <div style="text-align: left;">
+                  <div style="font-size: 24px; font-weight: bold; color: #2c2c2c; line-height: 1.2;">INEE</div>
+                  <div style="font-size: 8px; color: #2c2c2c; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
+                    INSTITUTO DE NEGOCIOS EMPRENDEDOR EMPRESARIAL
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Líneas decorativas arriba del título -->
+            <div style="display: flex; align-items: center; margin-bottom: 30px;">
+              <div style="flex: 1; height: 1px; background: #5a2a2a;"></div>
+              <div style="font-size: 7px; color: #2c2c2c; text-transform: uppercase; margin: 0 8px; letter-spacing: 1px;">
+                INSTITUTO DE NEGOCIOS EMPRENDEDOR EMPRESARIAL
+              </div>
+              <div style="flex: 1; height: 1px; background: #5a2a2a;"></div>
+            </div>
+
+            <!-- Título principal -->
+            <div style="text-align: center; margin-bottom: 35px;">
+              <div style="font-size: 20px; font-weight: bold; color: #2c2c2c; margin-bottom: 12px;">
+                INEE - INSTITUTO DE NEGOCIOS EMPRENDEDOR EMPRESARIAL<sup style="font-size: 12px;">®</sup>
+              </div>
+              <div style="font-size: 14px; color: #2c2c2c; font-weight: 500;">
+                Certificado de Participación
+              </div>
+            </div>
+
+            <!-- Contenido del certificado -->
+            <div style="margin-top: 35px; line-height: 1.8; margin-bottom: 40px;">
+              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 20px;">
+                <span>Por cuanto</span>
+                <span style="
+                  font-style: italic;
+                  text-decoration: underline;
+                  color: #8B2635;
+                  font-weight: 600;
+                  font-size: 13px;
+                  margin-left: 8px;
+                ">${certificado.nombreCompleto}</span>
+              </div>
+
+              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 20px;">
+                <span>DNI: <strong>${certificado.dni}</strong></span>
+                <span style="margin-left: 20px;">Ha finalizado el</span>
+                <span style="
+                  color: #8B2635;
+                  font-weight: bold;
+                  font-size: 12px;
+                  margin-left: 8px;
+                ">${certificado.fechaFinalizacionTexto}</span>
+              </div>
+
+              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 12px;">
+                Los estudios correspondientes a la formación ejecutiva
+              </div>
+
+              <div style="
+                font-size: 13px;
+                color: #8B2635;
+                font-weight: bold;
+                margin-bottom: 18px;
+                word-wrap: break-word;
+              ">
+                ${certificado.nombreCurso}
+              </div>
+
+              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 20px;">
+                Habiendo completado de manera satisfactoria las actividades teóricas y prácticas del programa.
+              </div>
+            </div>
+
+            <!-- Footer con firmas y QR -->
+            <div style="
+              position: absolute;
+              bottom: 60px;
+              left: 57px;
+              right: 57px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+            ">
+              <!-- Firma izquierda -->
+              <div style="text-align: left; width: 280px; flex-shrink: 0;">
+                <div style="border-top: 1px solid #2c2c2c; padding-top: 12px;">
+                  <div style="font-size: 10px; font-weight: bold; color: #2c2c2c; margin-bottom: 3px;">
+                    Saenz Beatriz
+                  </div>
+                  <div style="font-size: 9px; color: #2c2c2c; margin-bottom: 2px;">
+                    Directora de Negocios y Estrategia.
+                  </div>
+                  <div style="font-size: 9px; color: #2c2c2c;">
+                    Especialista en Liderazgo corporativo.
+                  </div>
+                </div>
+              </div>
+
+              <!-- QR Code en el centro -->
+              <div style="text-align: center; width: 200px; flex-shrink: 0;">
+                <img 
+                  src="${certificado.qrCodeUrl}" 
+                  alt="QR de validación" 
+                  style="width: 160px; height: 160px; border: 1px solid #d4d4d0; display: block; margin: 0 auto 8px;"
+                />
+                <div style="font-size: 9px; color: #2c2c2c;">
+                  Fecha ${certificado.fechaQR}
+                </div>
+              </div>
+
+              <!-- Firma derecha -->
+              <div style="text-align: right; width: 280px; flex-shrink: 0;">
+                <div style="border-top: 1px solid #2c2c2c; padding-top: 12px;">
+                  <div style="font-size: 10px; font-weight: bold; color: #2c2c2c; margin-bottom: 3px;">
+                    Krämer. Rocio Ailen.
+                  </div>
+                  <div style="font-size: 9px; color: #2c2c2c; margin-bottom: 2px;">
+                    Directora Creativa.
+                  </div>
+                  <div style="font-size: 9px; color: #2c2c2c;">
+                    Especialista en Liderazgo Transformacional.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(certificateDiv);
+
+      // Esperar a que el DOM se renderice completamente
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Esperar a que las imágenes se carguen completamente (logo y QR)
+      const images = certificateDiv.querySelectorAll('img') as NodeListOf<HTMLImageElement>;
+      if (images.length > 0) {
+        await Promise.all(
+          Array.from(images).map((img) => {
+            return new Promise((resolve) => {
+              const checkImage = () => {
+                if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+                  resolve(true);
+                } else {
+                  setTimeout(checkImage, 100);
+                }
+              };
+              
+              img.onload = () => {
+                setTimeout(() => resolve(true), 200);
+              };
+              img.onerror = () => {
+                console.warn('Error cargando imagen, continuando de todas formas');
+                resolve(true);
+              };
+              
+              // Iniciar verificación
+              checkImage();
+              // Timeout de seguridad
+              setTimeout(() => resolve(true), 5000);
+            });
+          })
+        );
+      }
+
+      // Esperar un momento adicional para asegurar el renderizado completo
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Configuración de html2pdf con mejor configuración para captura
+      const opt: any = {
+        margin: 0,
+        filename: `certificado-${safeCourseName || certificado.cursoId || courseId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: true, // Habilitar logging para debug
+          letterRendering: true,
+          allowTaint: false, // Cambiar a false para evitar problemas de seguridad
+          backgroundColor: '#f5f5f0',
+          width: 1123,
+          height: 794,
+          windowWidth: 1123,
+          windowHeight: 794,
+          scrollX: 0,
+          scrollY: 0
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: [297, 210], 
+          orientation: 'landscape'
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // Obtener el elemento interno que contiene el contenido
+      const innerDiv = certificateDiv.querySelector('div') as HTMLElement;
+      const elementToCapture = innerDiv || certificateDiv;
+
+      // Generar y descargar PDF
+      try {
+        await html2pdf().set(opt).from(elementToCapture).save();
+      } catch (error) {
+        console.error('Error generando PDF:', error);
+        // Intentar de nuevo con el elemento completo
+        await html2pdf().set(opt).from(certificateDiv).save();
+      }
+
+      // Limpiar elemento temporal después de un delay
+      setTimeout(() => {
+        if (certificateDiv.parentNode) {
+          document.body.removeChild(certificateDiv);
+        }
+      }, 1000);
       
       toast.success('Certificado descargado exitosamente', { id: 'certificate-download' });
     } catch (error: any) {
