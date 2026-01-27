@@ -41,35 +41,43 @@ export interface CertificadoValidationResponse {
   mensaje: string;
 }
 
+export interface CertificadoGenerado {
+  certificadoId: string;
+  usuarioId: string;
+  cursoId: string;
+  nombreCompleto: string;
+  dni: string;
+  nombreCurso: string;
+  fechaFinalizacion: string;
+  fechaEmision: string;
+  qrCodeUrl: string;
+  validationUrl: string;
+  fechaFinalizacionTexto: string;
+  fechaQR: string;
+}
+
 class CertificateService {
   /**
-   * Generar y descargar certificado PDF
+   * Solicitar generación de certificado y devolver los datos
    */
-  async generarCertificado(cursoId: string): Promise<void> {
+  async generarCertificado(cursoId: string): Promise<CertificadoGenerado> {
     try {
-      const response = await api.post(
-        `/certificados/generar/${cursoId}`,
-        {},
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await api.post<{
+        message: string;
+        certificado: CertificadoGenerado;
+      }>(`/certificados/generar/${cursoId}`);
 
-      // Crear un blob del PDF
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `certificado-${cursoId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
+      const certificado = response.data?.certificado;
+
+      if (!certificado) {
+        throw new Error("No se pudo generar el certificado");
+      }
+      return certificado;
+    } catch (error) {
       console.error("Error al generar certificado:", error);
+      const axiosError = error as { response?: { data?: { error?: string } } };
       throw new Error(
-        error.response?.data?.error ||
-        "Error al generar el certificado"
+        axiosError.response?.data?.error || "Error al generar el certificado"
       );
     }
   }
@@ -77,7 +85,9 @@ class CertificateService {
   /**
    * Validar certificado (público, sin autenticación)
    */
-  async validarCertificado(certificadoId: string): Promise<CertificadoValidationResponse> {
+  async validarCertificado(
+    certificadoId: string
+  ): Promise<CertificadoValidationResponse> {
     try {
       // Crear una instancia de axios sin interceptor para llamadas públicas
       const publicApi = axios.create({
@@ -87,15 +97,14 @@ class CertificateService {
         },
       });
 
-      const response = await publicApi.get<CertificadoValidationResponse>(
-        `/certificados/validar/${certificadoId}`
-      );
+      const response = await publicApi.get<CertificadoValidationResponse>(`/certificados/validar/${certificadoId}`);
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error al validar certificado:", error);
+      const axiosError = error as { response?: { data?: { mensaje?: string } } };
       // Si hay un mensaje de error del servidor, usarlo
-      if (error.response?.data?.mensaje) {
-        throw new Error(error.response.data.mensaje);
+      if (axiosError.response?.data?.mensaje) {
+        throw new Error(axiosError.response.data.mensaje);
       }
       throw new Error("Error al validar el certificado");
     }
