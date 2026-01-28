@@ -78,18 +78,25 @@ class AuthService {
     } catch (error: any) {
       localStorage.removeItem("studentData");
       
-      if (error.response?.data?.code === "USER_EXISTS_WITH_GOOGLE") {
-        throw {
-          code: "USER_EXISTS_WITH_GOOGLE",
-          message: error.response.data.message,
-          email: error.response.data.email,
-          existingUid: error.response.data.existingUid,
-        };
-      }
-
+      // Si el backend devuelve un error estructurado
       if (error.response?.data) {
-        throw error.response.data;
+        const errorData = error.response.data;
+        
+        // Verificar si tiene el código de error especial
+        if (errorData.code === "USER_EXISTS_WITH_GOOGLE") {
+          // Lanzar el error con todas las propiedades
+          throw errorData;
+        }
+        
+        // Para otros errores, lanzar como Error normal
+        if (errorData.error) {
+          throw new Error(errorData.error);
+        }
+        
+        // Si no tiene ni code ni error, lanzar el objeto completo
+        throw errorData;
       }
+      
       throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
     }
   }
