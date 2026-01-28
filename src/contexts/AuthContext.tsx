@@ -1,4 +1,3 @@
-
 import type React from "react";
 import {
   createContext,
@@ -22,8 +21,10 @@ interface AuthContextType {
   register: (userData: any) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  googleRegister: (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => Promise<any>;
-  googleLogin: () => Promise<any>;
+  googleAuth: (dni?: string, aceptaTerminos?: boolean) => Promise<any>;
+  linkGoogleToPassword: (email: string, password: string) => Promise<any>;
+  linkPasswordToGoogle: (email: string, password: string, nombre: string, apellido: string, dni: string, aceptaTerminos: boolean) => Promise<any>;
+  updateDni: (dni: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   changePassword: (oobCode: string, password: string) => Promise<void>;
   testVocacional: (responses: string[]) => Promise<void>;
@@ -67,57 +68,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           console.log("[AUTH] Token detectado en URL, iniciando proceso de autenticación...");
           
-          // Remover el token de la URL para no mostrarlo
           window.history.replaceState({}, '', window.location.pathname);
           
-          // Si ya hay un usuario autenticado, verificar si el token corresponde al mismo usuario
           if (auth.currentUser) {
             try {
-              // Decodificar el token JWT para obtener el UID
               const tokenParts = token.split('.');
               if (tokenParts.length === 3) {
                 try {
                   const payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
                   const tokenUid = payload.user_id || payload.sub || payload.uid;
                   
-                  // Si el token corresponde al usuario actual, no hacer nada
                   if (tokenUid && tokenUid === auth.currentUser.uid) {
                     console.log("[AUTH] Token corresponde al usuario actual, no se requiere re-autenticación");
                     isProcessingTokenRef.current = false;
-                    // No establecer isLoading en false aquí, dejar que onAuthStateChanged lo maneje
                     return;
                   }
                   
-                  // Si el token es de otro usuario, hacer logout primero
                   if (tokenUid && tokenUid !== auth.currentUser.uid) {
                     console.log("[AUTH] Token corresponde a otro usuario, cerrando sesión actual...");
                     await authService.logout();
                   }
                 } catch (parseError) {
                   console.warn("[AUTH] No se pudo decodificar el token, procediendo con autenticación:", parseError);
-                  // Si no se puede decodificar, hacer logout por seguridad y proceder con el login
                   await authService.logout();
                 }
               } else {
-                // Token no tiene formato JWT válido, hacer logout por seguridad
                 console.warn("[AUTH] Token no tiene formato JWT válido, cerrando sesión actual...");
                 await authService.logout();
               }
             } catch (decodeError) {
               console.error("[AUTH] Error procesando token:", decodeError);
-              // Si hay error, hacer logout por seguridad y proceder con el login
               await authService.logout();
             }
           }
           
-          // Autenticar con el token (ya sea porque no hay usuario o porque es diferente)
           console.log("[AUTH] Autenticando con token de la URL...");
           await authService.loginWithToken(token);
           console.log("[AUTH] Token procesado, esperando que onAuthStateChanged complete...");
-          // El onAuthStateChanged manejará el resto
         } catch (error: any) {
           console.error("[AUTH] Error autenticando con token de URL:", error);
-          // Mostrar mensaje de error al usuario si es necesario
           if (error.message) {
             console.error("[AUTH] Mensaje de error:", error.message);
           }
@@ -125,16 +114,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsLoading(false);
         }
       } else {
-        // No hay token, marcar que no se está procesando
         isProcessingTokenRef.current = false;
       }
     };
 
-    // Ejecutar inmediatamente para detectar el token
     handleTokenFromUrl();
-  }, []); // Solo ejecutar una vez al montar
+  }, []);
 
-  // Escuchar cambios en el estado de autenticación de Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       const isProcessing = isProcessingTokenRef.current;
@@ -144,27 +130,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (firebaseUser) {
         try {
-          // Si se está procesando un token, esperar un poco más para asegurar que el proceso complete
           if (isProcessing) {
             console.log("[AUTH] Esperando a que se complete el procesamiento del token...");
             await new Promise(resolve => setTimeout(resolve, 500));
           }
           
-          // Esperar un momento para asegurar que el token esté completamente propagado
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          // Obtener el perfil del backend pasando el UID esperado
           const expectedUid = firebaseUser.uid;
           console.log("[AUTH] Obteniendo perfil para UID:", expectedUid);
           const profile = await authService.getProfile(expectedUid);
           
-          // Verificar que el perfil corresponde al usuario actual de Firebase
           if (profile.uid !== expectedUid) {
             console.error("[AUTH] Error: El perfil obtenido no corresponde al usuario actual", {
               expected: expectedUid,
               received: profile.uid
             });
-            // No hacer logout inmediatamente, intentar refrescar el token y reintentar
             try {
               await firebaseUser.getIdToken(true);
               await new Promise(resolve => setTimeout(resolve, 500));
@@ -176,10 +157,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setIsLoading(false);
                 return;
               }
-              // Si el reintento fue exitoso, usar ese perfil
               setUser(retryProfile);
               
-              // Actualizar localStorage con los datos correctos del perfil
               authService.updateStudentDataInStorage({
                 uid: retryProfile.uid,
                 email: retryProfile.email,
@@ -203,7 +182,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log("[AUTH] Perfil obtenido exitosamente");
             setUser(profile);
             
-            // Actualizar localStorage con los datos correctos del perfil
             authService.updateStudentDataInStorage({
               uid: profile.uid,
               email: profile.email,
@@ -218,25 +196,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } catch (error) {
           console.error("[AUTH] Error al obtener perfil:", error);
-          // Si falla obtener el perfil, limpiar todo
           await authService.logout();
           setUser(null);
         }
       } else {
-        // Si no hay usuario de Firebase, limpiar todo
         console.log("[AUTH] No hay usuario de Firebase, limpiando datos");
         localStorage.removeItem("studentData");
         setUser(null);
       }
 
-      // Solo establecer isLoading en false si no se está procesando un token
-      // o si ya se completó el procesamiento
       if (!isProcessing) {
         console.log("[AUTH] Estableciendo isLoading en false");
         setIsLoading(false);
       } else {
         console.log("[AUTH] Manteniendo isLoading en true (procesando token)");
-        // Marcar que se completó el procesamiento después de un breve delay
         setTimeout(() => {
           isProcessingTokenRef.current = false;
           setIsLoading(false);
@@ -251,10 +224,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      
-      // Los datos ya se guardaron en localStorage en el servicio
       const response = await authService.login({ email, password });
-      return response; // Retornar respuesta para usar en el componente
+      return response;
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -274,21 +245,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         aceptaTerminos: userData.acceptTerms,
       });
 
-      // Los datos ya se guardaron en localStorage en el servicio
-      setIsLoading(false);
-      return response; // Retornar respuesta para usar en el componente
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
-    }
-  };
-
-  const googleRegister = async (firstName: string, lastName: string, dni: string, acceptTerms: boolean) => {
-    try {
-      setIsLoading(true);
-
-      const response = await authService.googleRegister(firstName, lastName, dni, acceptTerms);
-
       setIsLoading(false);
       return response;
     } catch (error) {
@@ -297,12 +253,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const googleLogin = async () => {
+  const googleAuth = async (dni?: string, aceptaTerminos?: boolean) => {
     try {
       setIsLoading(true);
-      const response = await authService.googleLogin();
+      const response = await authService.googleAuth(dni, aceptaTerminos);
       setIsLoading(false);
       return response;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const linkGoogleToPassword = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const response = await authService.linkGoogleToPassword(email, password);
+      setIsLoading(false);
+      return response;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const linkPasswordToGoogle = async (
+    email: string,
+    password: string,
+    nombre: string,
+    apellido: string,
+    dni: string,
+    aceptaTerminos: boolean
+  ) => {
+    try {
+      setIsLoading(true);
+      const response = await authService.linkPasswordToGoogle(
+        email,
+        password,
+        nombre,
+        apellido,
+        dni,
+        aceptaTerminos
+      );
+      setIsLoading(false);
+      return response;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const updateDni = async (dni: string) => {
+    try {
+      setIsLoading(true);
+      await authService.updateDni(dni);
+      await refreshUser();
+      setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -339,11 +345,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const forgotPassword = async (email: string) => {
-    try {
-      await authService.forgotPassword(email);
-    } catch (error: any) {
-      throw error;
-    }
+    await authService.forgotPassword(email);
   };
 
   const changePassword = async (oobCode: string, password: string) => {
@@ -371,7 +373,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       await authService.savePartialAnswer(user.uid, questionId, answer);
       
-      // Actualizar solo la parte relevante del usuario en lugar de hacer refresh completo
       if (user) {
         const updatedAnswers = [...(user.respuestas_test_vocacional || [])];
         const existingIndex = updatedAnswers.findIndex(resp => resp.id_pregunta === questionId);
@@ -402,7 +403,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const testVocacional = async (responses: string[]) => {
     try {
       await authService.testVocacional(user.uid, responses);
-      // Actualizar el perfil del usuario después del test para obtener la ruta_aprendizaje
       await refreshUser();
     } catch (error) {
       console.error("Error al realizar el test vocacional:", error);
@@ -432,8 +432,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshUser,
-    googleRegister,
-    googleLogin,
+    googleAuth,
+    linkGoogleToPassword,
+    linkPasswordToGoogle,
+    updateDni,
     forgotPassword,
     changePassword,
     testVocacional,
