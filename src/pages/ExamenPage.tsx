@@ -8,8 +8,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function ExamenPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -23,6 +31,8 @@ export default function ExamenPage() {
   const [processingResult, setProcessingResult] = useState(false);
   const [respuestas, setRespuestas] = useState<RespuestaUsuario[]>([]);
   const [intento, setIntento] = useState(1);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [notaFallida, setNotaFallida] = useState<number | null>(null);
 
   useEffect(() => {
     if (courseId && user?.uid) {
@@ -224,18 +234,9 @@ export default function ExamenPage() {
           replace: false
         });
       } else {
-        toast.error(`No has aprobado el examen. Tu nota fue ${notaCalculada}%. Puedes volver a intentarlo.`);
-        
-        // Volver al curso después de un breve delay
-        setTimeout(() => {
-          navigate(`/curso/${courseId}`, { 
-            state: { 
-              examenCompletado: true,
-              aprobado: false,
-              intento: intento
-            } 
-          });
-        }, 2000);
+        // Mostrar modal de desaprobación en lugar de solo toast
+        setNotaFallida(notaCalculada);
+        setShowFailureModal(true);
       }
     } catch (error: any) {
       console.error('Error submitting examen:', error);
@@ -293,8 +294,66 @@ export default function ExamenPage() {
     );
   }
 
+  const handleReintentarExamen = () => {
+    setShowFailureModal(false);
+    // Recargar la página para obtener un nuevo examen aleatorio
+    window.location.reload();
+  };
+
+  const handleVolverAFormacion = () => {
+    setShowFailureModal(false);
+    navigate(`/curso/${courseId}`, { 
+      state: { 
+        examenCompletado: true,
+        aprobado: false,
+        intento: intento,
+        examenFallido: true
+      } 
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
+      {/* Modal de desaprobación */}
+      <Dialog open={showFailureModal} onOpenChange={setShowFailureModal}>
+        <DialogContent className="sm:max-w-md border-2 border-primary/20">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <XCircle className="w-16 h-16 text-primary" />
+            </div>
+            <DialogTitle className="text-center text-xl text-primary">
+              Examen Desaprobado
+            </DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              No has alcanzado el 70% requerido para aprobar el examen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 text-center">
+            <p className="text-3xl font-bold text-primary mb-2">
+              {notaFallida?.toFixed(1)}%
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Tu puntuación obtenida
+            </p>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={handleVolverAFormacion}
+              className="w-full sm:w-auto border-primary/20 hover:bg-primary/10 hover:text-primary"
+            >
+              Volver a la formación
+            </Button>
+            <Button
+              onClick={handleReintentarExamen}
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Reintentar examen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <Card>
