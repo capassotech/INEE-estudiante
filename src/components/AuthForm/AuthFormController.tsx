@@ -154,15 +154,22 @@ const AuthFormController: React.FC<AuthFormProps> = ({
         handleSuccessRedirect(userName, true);
       }
     } catch (error: any) {
+      console.log("Error capturado:", error);
+      console.log("error.code:", error.code);
+      console.log("Comparación:", error.code === "USER_EXISTS_WITH_GOOGLE");
+      
       // Caso: Usuario existe con Google, ofrecer vincular password
       if (error.code === "USER_EXISTS_WITH_GOOGLE") {
+        console.log("✅ Entrando al if de USER_EXISTS_WITH_GOOGLE");
         setPendingGoogleData({
           email: error.email,
           existingUid: error.existingUid,
         });
-        setShowLinkGoogleModal(true);
+        console.log("✅ setShowLinkPasswordModal(true)");
+        setShowLinkPasswordModal(true);
       } else {
-        toast.error(error instanceof Error ? error.message : "Error en el proceso");
+        console.log("❌ NO entró al if, mostrando toast error");
+        toast.error(error.message || error.error || "Error en el proceso");
       }
     } finally {
       setIsSubmitting(false);
