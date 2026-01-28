@@ -29,7 +29,6 @@ api.interceptors.request.use(async (config) => {
 class AuthService {
   async register(userData: RegisterData): Promise<AuthResponse> {
     try {
-      // Limpiar datos antiguos antes de registrar
       localStorage.removeItem("studentData");
       
       const response = await api.post("/auth/register", userData);
@@ -37,27 +36,22 @@ class AuthService {
       if (response.data.customToken) {
         await signInWithCustomToken(auth, response.data.customToken);
         
-        // Esperar a que el token esté disponible
         let retries = 0;
         while (!auth.currentUser && retries < 10) {
           await new Promise(resolve => setTimeout(resolve, 100));
           retries++;
         }
         
-        // Esperar un momento adicional para que el token se propague
         if (auth.currentUser) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
-      // Obtener el perfil real del backend inmediatamente después del registro
       if (auth.currentUser) {
         try {
           const currentUid = auth.currentUser.uid;
-          // Pasar el UID esperado para que getProfile lo verifique
           const profile = await this.getProfile(currentUid);
           
-          // Verificar que el perfil corresponde al usuario actual (doble verificación)
           if (profile.uid !== currentUid) {
             console.error("Error: El perfil obtenido no corresponde al usuario actual");
             await this.logout();
@@ -75,7 +69,6 @@ class AuthService {
           localStorage.setItem("studentData", JSON.stringify(studentData));
         } catch (profileError) {
           console.error("Error al obtener perfil después del registro:", profileError);
-          // Si falla obtener el perfil, limpiar y lanzar error
           await this.logout();
           throw profileError;
         }
@@ -83,8 +76,17 @@ class AuthService {
 
       return response.data;
     } catch (error: any) {
-      // Limpiar localStorage si el registro falla
       localStorage.removeItem("studentData");
+      
+      if (error.response?.data?.code === "USER_EXISTS_WITH_GOOGLE") {
+        throw {
+          code: "USER_EXISTS_WITH_GOOGLE",
+          message: error.response.data.message,
+          email: error.response.data.email,
+          existingUid: error.response.data.existingUid,
+        };
+      }
+
       if (error.response?.data) {
         throw error.response.data;
       }
@@ -92,115 +94,8 @@ class AuthService {
     }
   }
 
-
-  async googleLogin() {
-    try {
-      // Limpiar datos antiguos antes de hacer login
-      localStorage.removeItem("studentData");
-      
-      const googleProvider = new GoogleAuthProvider();
-      const auth = getAuth();
-
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      const userExists = await this.userExists(user.uid);
-      if (!userExists) {
-        await this.logout();
-        throw new Error("El usuario no está registrado");
-      }
-
-      // Obtener el perfil real del backend inmediatamente después del login
-      try {
-        const profile = await this.getProfile(user.uid);
-        const studentData = {
-          uid: profile.uid,
-          email: profile.email,
-          nombre: profile.nombre,
-          apellido: profile.apellido,
-          role: profile.role || "student",
-          loginTime: new Date().toISOString(),
-        };
-        localStorage.setItem("studentData", JSON.stringify(studentData));
-      } catch (profileError) {
-        console.error("Error al obtener perfil después de Google login:", profileError);
-        // No lanzar error aquí, el onAuthStateChanged lo manejará
-      }
-
-      const idToken = await user.getIdToken();
-      return { idToken, user };
-    } catch (error: any) {
-      // Limpiar localStorage si el login falla
-      localStorage.removeItem("studentData");
-      throw new Error(error.message);
-    }
-  }
-
-  async googleRegister(firstName: string, lastName: string, dni: string, acceptTerms: boolean): Promise<void> {
-    // Limpiar datos antiguos antes de registrar
-    localStorage.removeItem("studentData");
-    
-    const googleProvider = new GoogleAuthProvider();
-    const auth = getAuth();
-
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    const idToken = await user.getIdToken();
-
-    const userExists = await this.userExists(user.uid);
-    if (userExists) {
-      await this.logout();
-      throw new Error("El usuario ya está registrado");
-    }
-
-    try {
-      const response = await api.post("/auth/google-register", {
-        idToken,
-        email: user.email,
-        nombre: firstName,
-        apellido: lastName,
-        dni: dni,
-        aceptaTerminos: acceptTerms,
-      });
-
-      // Obtener el perfil real del backend inmediatamente después del registro
-      try {
-        const profile = await this.getProfile(user.uid);
-        const studentData = {
-          uid: profile.uid,
-          email: profile.email,
-          nombre: profile.nombre,
-          apellido: profile.apellido,
-          role: profile.role || "student",
-          registrationTime: new Date().toISOString(),
-        };
-        localStorage.setItem("studentData", JSON.stringify(studentData));
-      } catch (profileError) {
-        // Si falla obtener el perfil, usar los datos proporcionados como fallback
-        const studentData = {
-          uid: user.uid,
-          email: user.email,
-          nombre: firstName,
-          apellido: lastName,
-          role: "student",
-          registrationTime: new Date().toISOString(),
-        };
-        localStorage.setItem("studentData", JSON.stringify(studentData));
-      }
-
-      return response.data;
-    } catch (error: any) {
-      // Limpiar localStorage si el registro falla
-      localStorage.removeItem("studentData");
-      console.error("Error en googleRegister: ", error.response?.data?.error);
-      throw new Error(error.response?.data?.error || error.message);
-    }
-  }
-
-  // Iniciar sesión
   async login(credentials: LoginData): Promise<AuthResponse> {
     try {
-      // Limpiar datos antiguos antes de hacer login
       localStorage.removeItem("studentData");
       
       const response = await api.post("/auth/login", credentials);
@@ -208,27 +103,22 @@ class AuthService {
       if (response.data.customToken) {
         await signInWithCustomToken(auth, response.data.customToken);
         
-        // Esperar a que el token esté disponible
         let retries = 0;
         while (!auth.currentUser && retries < 10) {
           await new Promise(resolve => setTimeout(resolve, 100));
           retries++;
         }
         
-        // Esperar un momento adicional para que el token se propague
         if (auth.currentUser) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
-      // Obtener el perfil real del backend inmediatamente después del login
       if (auth.currentUser) {
         try {
           const currentUid = auth.currentUser.uid;
-          // Pasar el UID esperado para que getProfile lo verifique
           const profile = await this.getProfile(currentUid);
           
-          // Verificar que el perfil corresponde al usuario actual (doble verificación)
           if (profile.uid !== currentUid) {
             console.error("Error: El perfil obtenido no corresponde al usuario actual");
             await this.logout();
@@ -246,7 +136,6 @@ class AuthService {
           localStorage.setItem("studentData", JSON.stringify(studentData));
         } catch (profileError) {
           console.error("Error al obtener perfil después del login:", profileError);
-          // Si falla obtener el perfil, limpiar y lanzar error
           await this.logout();
           throw profileError;
         }
@@ -254,13 +143,152 @@ class AuthService {
 
       return response.data;
     } catch (error: any) {
-      // Limpiar localStorage si el login falla
       localStorage.removeItem("studentData");
       if (error.response?.data) {
         throw error.response.data;
       }
       throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
     }
+  }
+
+  async googleAuth(dni?: string, aceptaTerminos?: boolean): Promise<AuthResponse> {
+    try {
+      const googleProvider = new GoogleAuthProvider();
+      const authInstance = getAuth();
+
+      // Abrir popup de Google
+      const result = await signInWithPopup(authInstance, googleProvider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      // Llamar al backend con el idToken (y opcionalmente DNI)
+      const response = await api.post("/auth/google", {
+        idToken,
+        dni,
+        aceptaTerminos,
+      });
+
+      // Si todo salió bien, hacer login con el custom token
+      if (response.data.token) {
+        await signInWithCustomToken(auth, response.data.token);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      // Hacer logout si hay error
+      await this.logout();
+
+      // Caso 1: Necesita completar registro con DNI
+      if (error.response?.data?.code === "NEEDS_REGISTRATION_DATA") {
+        throw {
+          code: "NEEDS_REGISTRATION_DATA",
+          message: error.response.data.message,
+          userData: error.response.data.userData,
+        };
+      }
+
+      // Caso 2: Necesita vincular con password
+      if (error.response?.data?.code === "NEEDS_PASSWORD_TO_LINK") {
+        throw {
+          code: "NEEDS_PASSWORD_TO_LINK",
+          message: error.response.data.message,
+          email: error.response.data.email,
+          existingUid: error.response.data.existingUid,
+        };
+      }
+
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error con Google");
+      }
+
+      throw new Error(error.message || "Error de conexión");
+    }
+  }
+
+  async linkGoogleToPassword(email: string, password: string): Promise<AuthResponse> {
+    try {
+      const googleProvider = new GoogleAuthProvider();
+      const authInstance = getAuth();
+
+      // Abrir popup de Google
+      const result = await signInWithPopup(authInstance, googleProvider);
+      const user = result.user;
+      const googleIdToken = await user.getIdToken();
+
+      // Llamar al endpoint de vinculación
+      const response = await api.post("/auth/link-google", {
+        email,
+        password,
+        googleIdToken,
+      });
+
+      // Login con el token
+      if (response.data.token) {
+        await signInWithCustomToken(auth, response.data.token);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      await this.logout();
+
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error vinculando Google");
+      }
+
+      throw new Error(error.message || "Error de conexión");
+    }
+  }
+
+  async linkPasswordToGoogle(
+    email: string,
+    password: string,
+    nombre: string,
+    apellido: string,
+    dni: string,
+    aceptaTerminos: boolean
+  ): Promise<AuthResponse> {
+    try {
+      const response = await api.post("/auth/link-password", {
+        email,
+        password,
+        nombre,
+        apellido,
+        dni,
+        aceptaTerminos,
+      });
+
+      if (response.data.token) {
+        await signInWithCustomToken(auth, response.data.token);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error vinculando contraseña");
+      }
+      throw new Error("Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
+  
+  async updateDni(dni: string): Promise<void> {
+    try {
+      await api.patch("/auth/update-dni", { dni });
+    } catch (error: any) {
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error actualizando DNI");
+      }
+      throw new Error("Error de conexión. Verifica tu conexión a internet.");
+    }
+  }
+
+  async googleLogin() {
+    console.warn("googleLogin está deprecado, usar googleAuth()");
+    return this.googleAuth();
+  }
+
+  async googleRegister(firstName: string, lastName: string, dni: string, acceptTerms: boolean): Promise<void> {
+    console.warn("googleRegister está deprecado, usar googleAuth(dni, acceptTerms)");
+    return this.googleAuth(dni, acceptTerms) as any;
   }
 
   async getUserById(uid: string): Promise<UserProfile> {
@@ -280,24 +308,19 @@ class AuthService {
       if (error.response?.status === 404) {
         return false;
       }
-      // Si es otro tipo de error (500, 401, etc.), lo lanzamos
       throw new Error(error.response?.data?.error || "Error al verificar el usuario");
     }
   }
 
   async forgotPassword(email: string): Promise<void> {
     try {
-      // Validar si el usuario existe en la db
       await api.get(`/auth/check-email/${email}`);
-
       await sendPasswordResetEmail(auth, email, {
         url: `${FRONTEND_URL}/recuperar-contrasena`,
       });
-      
     } catch (error: any) {
       const customError = new Error(error.response?.data?.error || "Error al enviar email de recuperación");
       (customError as any).exists = error.response?.data?.exists || false;
-      
       throw customError;
     }
   }
@@ -310,22 +333,17 @@ class AuthService {
     }
   }
 
-  // Obtener perfil del usuario
   async getProfile(expectedUid?: string, retries: number = 3): Promise<UserProfile> {
     try {
-      // Asegurarse de que el token esté actualizado
       const currentUser = auth.currentUser;
       if (currentUser) {
-        // Forzar refresco del token para asegurar que esté actualizado
         await currentUser.getIdToken(true);
       }
       
       const response = await api.get("/auth/me");
       const profile = response.data;
       
-      // Si se espera un UID específico, verificar que coincida
       if (expectedUid && profile.uid !== expectedUid) {
-        // Si hay reintentos disponibles y el UID no coincide, reintentar
         if (retries > 0) {
           await new Promise(resolve => setTimeout(resolve, 500));
           return this.getProfile(expectedUid, retries - 1);
@@ -335,7 +353,6 @@ class AuthService {
       
       return profile;
     } catch (error: any) {
-      // Si hay reintentos disponibles, reintentar (excepto si es el error de UID no coincidente)
       if (retries > 0 && error.message !== "El perfil obtenido no corresponde al usuario actual") {
         await new Promise(resolve => setTimeout(resolve, 500));
         return this.getProfile(expectedUid, retries - 1);
@@ -343,17 +360,12 @@ class AuthService {
       
       if (error.response?.status === 401) {
         await this.logout();
-        throw new Error(
-          "Sesión expirada. Por favor, inicia sesión nuevamente."
-        );
+        throw new Error("Sesión expirada. Por favor, inicia sesión nuevamente.");
       }
-      throw new Error(
-        error.response?.data?.error || error.message || "Error al obtener el perfil"
-      );
+      throw new Error(error.response?.data?.error || error.message || "Error al obtener el perfil");
     }
   }
 
-  // Cerrar sesión
   async logout(): Promise<void> {
     try {
       await signOut(auth);
@@ -440,7 +452,6 @@ class AuthService {
     }
   }
 
-  // Autenticar con token de otra aplicación (tienda)
   async loginWithToken(idToken: string): Promise<AuthResponse> {
     try {
       console.log("[AUTH] Intentando validar token desde la tienda...");
@@ -450,7 +461,6 @@ class AuthService {
         console.log("[AUTH] Token validado, autenticando con customToken...");
         await signInWithCustomToken(auth, response.data.customToken);
         
-        // Esperar a que el token esté disponible
         let retries = 0;
         while (!auth.currentUser && retries < 10) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -462,7 +472,6 @@ class AuthService {
           throw new Error("Timeout al autenticar con el token");
         }
         
-        // Esperar un momento adicional para que el token se propague
         if (auth.currentUser) {
           console.log("[AUTH] Usuario autenticado exitosamente:", auth.currentUser.uid);
           await new Promise(resolve => setTimeout(resolve, 500));
