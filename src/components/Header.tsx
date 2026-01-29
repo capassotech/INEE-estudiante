@@ -1,5 +1,5 @@
 
-import { Search, Menu, LogOut, User } from "lucide-react";
+import { Search, Menu, LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import ThemeToggle from "./ThemeToggle";
@@ -121,6 +121,18 @@ export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => v
       </SheetHeader>
 
       <div className="flex flex-col gap-3 mt-6">
+        <Button
+          variant="ghost"
+          className="justify-start gap-4 p-4 rounded-md text-[#4B4B4C] dark:text-[#D8D3CA] hover:bg-[#8B3740] hover:text-white font-medium text-lg transition-colors duration-200"
+          onClick={() => {
+            setOpen(false);
+            navigate("/");
+          }}
+        >
+          <LayoutDashboard className="w-8 h-8" strokeWidth={1.5} />
+          <span>Mi Panel</span>
+        </Button>
+
         <Button
           variant="ghost"
           className="justify-start gap-4 p-4 rounded-md text-[#4B4B4C] dark:text-[#D8D3CA] hover:bg-[#8B3740] hover:text-white font-medium text-lg transition-colors duration-200"

@@ -172,8 +172,8 @@ export default function TestVocacional() {
             toast.success("Ruta de aprendizaje actualizada correctamente");
             // Esperar un momento para asegurar que el contexto se actualice
             await new Promise(resolve => setTimeout(resolve, 500));
-            // Navegar al perfil después de actualizar la ruta
-            navigate('/perfil');
+            // Navegar al inicio después de actualizar la ruta
+            navigate('/');
         } catch (error) {
             console.error('Error al actualizar la ruta:', error);
             toast.error('Error al actualizar la ruta de aprendizaje');
