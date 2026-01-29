@@ -76,6 +76,7 @@ class AuthService {
 
       return response.data;
     } catch (error: any) {
+      console.log("Error al registrar usuario:", error);
       localStorage.removeItem("studentData");
       
       // Si el backend devuelve un error estructurado
