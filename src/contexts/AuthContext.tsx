@@ -417,6 +417,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ruta_aprendizaje: routeName
       };
       await authService.updateRouteUser(user.uid, newUser);
+      // Actualizar el contexto después de actualizar en el backend
+      await refreshUser();
     } catch (error) {
       console.error("Error al actualizar la ruta de aprendizaje:", error);
       throw error;

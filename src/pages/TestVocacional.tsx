@@ -167,11 +167,17 @@ export default function TestVocacional() {
 
     const handleSelectRoute = async (routeName: string) => {
         setIsRutasModalOpen(false);
-        toast.success("Ruta de aprendizaje actualizada correctamente");
-        await updateRouteUser(routeName);
-        await refreshUser();
-        // Navegar al perfil después de actualizar la ruta
-        navigate('/perfil');
+        try {
+            await updateRouteUser(routeName);
+            toast.success("Ruta de aprendizaje actualizada correctamente");
+            // Esperar un momento para asegurar que el contexto se actualice
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Navegar al perfil después de actualizar la ruta
+            navigate('/perfil');
+        } catch (error) {
+            console.error('Error al actualizar la ruta:', error);
+            toast.error('Error al actualizar la ruta de aprendizaje');
+        }
     };
 
     const handleSubmit = async () => {
@@ -263,6 +269,10 @@ export default function TestVocacional() {
                 confirmButtonColor: "#475569",
                 cancelButtonColor: "#6366f1"
             });
+            
+            // Asegurar que el usuario se haya actualizado antes de navegar
+            await refreshUser();
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Si el usuario quiere ver todos los perfiles, abrir el modal
             if (result.isDismissed || result.dismiss === Swal.DismissReason.cancel) {
@@ -441,11 +451,11 @@ export default function TestVocacional() {
 
                                 <Button
                                     variant="outline"
-                                    asChild
+                                    onClick={() => setIsRutasModalOpen(true)}
                                     disabled={isLoading || isLoadingQuestion}
                                     className="px-6 py-2"
                                 >
-                                    <Link to="/perfil">Omitir</Link>
+                                    Omitir y elegir ruta
                                 </Button>
                             </div>
                         </div>
