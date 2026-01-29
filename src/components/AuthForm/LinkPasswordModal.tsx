@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,15 @@ export default function LinkPasswordModal({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
+  // ✅ Limpiar cuando el modal se cierra
+  useEffect(() => {
+    if (!isOpen) {
+      setPassword("");
+      setError("");
+      setShowPassword(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -45,26 +54,36 @@ export default function LinkPasswordModal({
     }
   };
 
+  const handleClose = () => {
+    setPassword("");
+    setError("");
+    setShowPassword(false);
+    onClose();
+  };
+
+  console.log("🎭 LinkPasswordModal render - isOpen:", isOpen);
+
+  // ✅ Usar isOpen directamente, sin estado interno
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Vincular cuenta de Google</DialogTitle>
           <DialogDescription>
-            Ya tenés una cuenta con <strong>{email}</strong> usando contraseña.
-            Ingresá tu contraseña para vincular tu cuenta de Google.
+            Ya tenés una cuenta con <strong>{email}</strong> usando Google.
+            Agregá una contraseña para poder iniciar sesión también con email y contraseña.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="link-password">Contraseña</Label>
+            <Label htmlFor="link-password">Nueva Contraseña</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="link-password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Tu contraseña"
+                placeholder="Ingresá tu contraseña"
                 className="pl-10 pr-10"
                 value={password}
                 onChange={(e) => {
@@ -72,11 +91,13 @@ export default function LinkPasswordModal({
                   setError("");
                 }}
                 disabled={isSubmitting}
+                autoFocus
               />
               <button
                 type="button"
                 className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -88,7 +109,7 @@ export default function LinkPasswordModal({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
             >
               Cancelar
