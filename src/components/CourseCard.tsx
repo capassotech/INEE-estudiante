@@ -2,8 +2,9 @@ import { Course } from "@/types/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Award } from "lucide-react";
+import { ChevronRight, Award, ChevronDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
 
 interface CourseCardProps {
     course: Course;
@@ -11,16 +12,16 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course, progress }: CourseCardProps) {
+    const [isExpanded, setIsExpanded] = useState(false);
     const navigate = useNavigate();
 
-    // Función para determinar el color del progreso según el porcentaje
     const getProgressColorClass = (percentage: number): string => {
         if (percentage < 33) {
-            return "[&>div]:!bg-red-500"; // Rojo para progreso bajo
+            return "[&>div]:!bg-red-500";
         } else if (percentage < 67) {
-            return "[&>div]:!bg-yellow-500"; // Amarillo para progreso medio
+            return "[&>div]:!bg-yellow-500";
         } else {
-            return "[&>div]:!bg-green-500"; // Verde para progreso alto
+            return "[&>div]:!bg-green-500"; 
         }
     };
 
@@ -61,9 +62,23 @@ export default function CourseCard({ course, progress }: CourseCardProps) {
                                 <Award className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                             )}
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 break-words leading-snug">
+                        <p className={`text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug ${!isExpanded ? 'line-clamp-2' : ''}`}>
                             {course.descripcion}
                         </p>
+                        {course.descripcion && course.descripcion.length > 100 && (
+                            <div className="flex items-center gap-1 mb-3">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsExpanded(!isExpanded);
+                                    }}
+                                    className="text-xs text-blue-600 hover:underline self-start"
+                                >
+                                    {isExpanded ? 'Ver menos' : 'Ver más'}
+                                </button>
+                                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </div>
+                        )}
                     </div>
                     <div>
                         {typeof progress === 'number' && (
