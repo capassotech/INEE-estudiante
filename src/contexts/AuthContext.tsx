@@ -245,7 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         aceptaTerminos: userData.acceptTerms,
       });
 
-      setIsLoading(false);
+      // El perfil se cargará automáticamente por el listener de onAuthStateChanged
       return response;
     } catch (error) {
       setIsLoading(false);

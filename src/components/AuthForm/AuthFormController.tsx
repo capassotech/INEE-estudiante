@@ -8,7 +8,6 @@ import AuthFormView from "./AuthFormView";
 import LinkPasswordModal from "./LinkPasswordModal";
 import LinkGoogleModal from "./LinkGoogleModal";
 import CompleteDniModal from "./CompleteDniModal";
-import { flushSync } from 'react-dom';
 
 interface AuthFormProps {
   isLogin?: boolean;
@@ -16,14 +15,14 @@ interface AuthFormProps {
   onSuccess?: () => void;
 }
 
-const AuthFormController: React.FC<AuthFormProps> = ({
-  isLogin = false,
-  isModal = false,
-  onSuccess
+const AuthFormController: React.FC<AuthFormProps> = ({ 
+  isLogin = false, 
+  isModal = false, 
+  onSuccess 
 }) => {
   const navigate = useNavigate();
   const { login, register, googleAuth, linkGoogleToPassword, linkPasswordToGoogle } = useAuth();
-
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,27 +54,27 @@ const AuthFormController: React.FC<AuthFormProps> = ({
 
   const validateForm = (googleAuth: boolean = false) => {
     const newErrors: Record<string, string> = {};
-
+    
     if (!googleAuth) {
       if (!formData.email) {
         newErrors.email = "El email es requerido";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = "El formato del email es inválido";
       }
-
+  
       if (!formData.password) {
         newErrors.password = "La contraseña es requerida";
       } else {
         const requirements = getPasswordRequirements(formData.password);
-        const allRequirementsMet = requirements.minLength &&
-          requirements.hasUppercase &&
-          requirements.hasSpecialChar &&
-          requirements.hasNumber;
-
+        const allRequirementsMet = requirements.minLength && 
+                                  requirements.hasUppercase && 
+                                  requirements.hasSpecialChar && 
+                                  requirements.hasNumber;
+        
         if (!allRequirementsMet) {
           newErrors.password = "La contraseña no cumple con todos los requisitos";
         }
-      }
+      } 
     }
 
     if (!isLogin) {
@@ -85,7 +84,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({
         } else if (formData.firstName.trim().length < 2) {
           newErrors.firstName = "El nombre debe tener al menos 2 caracteres";
         }
-
+  
         if (!formData.lastName.trim()) {
           newErrors.lastName = "El apellido es requerido";
         } else if (formData.lastName.trim().length < 2) {
@@ -109,10 +108,10 @@ const AuthFormController: React.FC<AuthFormProps> = ({
   };
 
   const handleSuccessRedirect = (userName: string, isNewUser: boolean = false) => {
-    const message = isNewUser
+    const message = isNewUser 
       ? `¡Bienvenido a INEE®, ${userName}!`
       : `¡Bienvenido de vuelta, ${userName}!`;
-
+    
     const description = isNewUser
       ? "Tu cuenta ha sido creada exitosamente"
       : "Has iniciado sesión exitosamente";
@@ -134,14 +133,14 @@ const AuthFormController: React.FC<AuthFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-  
+
     if (!isLogin && !validateForm()) {
       toast.error("Por favor, corrige los errores en el formulario");
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
@@ -149,36 +148,30 @@ const AuthFormController: React.FC<AuthFormProps> = ({
         const userName = studentData?.nombre || "Usuario";
         handleSuccessRedirect(userName, false);
       } else {
-        await register(formData);
+        // Llamar directamente a authService en lugar del contexto
+        // para evitar que setIsLoading(true) del contexto cause re-renders
+        await authService.register({
+          email: formData.email,
+          password: formData.password,
+          nombre: formData.firstName,
+          apellido: formData.lastName,
+          dni: formData.dni,
+          aceptaTerminos: formData.acceptTerms,
+        });
         const studentData = authService.getStudentDataFromStorage();
         const userName = studentData?.nombre || "Usuario";
         handleSuccessRedirect(userName, true);
       }
     } catch (error: any) {
-      console.log("🔍 Error capturado:", error);
-      console.log("🔍 Error code:", error.code);
-      
       // Caso: Usuario existe con Google, ofrecer vincular password
       if (error.code === "USER_EXISTS_WITH_GOOGLE") {
-        console.log("✅ Entrando al if de USER_EXISTS_WITH_GOOGLE");
-        console.log("📧 Email:", error.email);
-        
-        // ✅ SOLUCIÓN: Usar flushSync para forzar actualización sincrónica
-        flushSync(() => {
-          setIsSubmitting(false);
-          setPendingGoogleData({
-            email: error.email,
-            existingUid: error.existingUid,
-          });
-          setShowLinkPasswordModal(true);
+        setPendingGoogleData({
+          email: error.email,
+          existingUid: error.existingUid,
         });
-        
-        console.log("🎭 Modal abierto - showLinkPasswordModal: true");
-        return;
+        setShowLinkGoogleModal(true);
       } else {
-        console.log("❌ NO entró al if, mostrando toast error");
-        setIsSubmitting(false);
-        toast.error(error.message || error.error || "Error en el proceso");
+        toast.error(error instanceof Error ? error.message : "Error en el proceso");
       }
     } finally {
       setIsSubmitting(false);
@@ -211,7 +204,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({
       if (error.code === "NEEDS_REGISTRATION_DATA") {
         setPendingGoogleData(error.userData);
         setShowCompleteDniModal(true);
-      }
+      } 
       // Caso 2: Necesita vincular con password
       else if (error.code === "NEEDS_PASSWORD_TO_LINK") {
         setPendingGoogleData({
@@ -219,7 +212,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({
           existingUid: error.existingUid,
         });
         setShowLinkPasswordModal(true);
-      }
+      } 
       else {
         toast.error(error.message || "Error con Google");
       }
@@ -228,19 +221,19 @@ const AuthFormController: React.FC<AuthFormProps> = ({
     }
   };
 
+  // Handler para vincular Google con contraseña
   const handleLinkGoogleSubmit = async (password: string) => {
     try {
       setIsSubmitting(true);
       await linkGoogleToPassword(pendingGoogleData.email, password);
-
-      setShowLinkPasswordModal(false);
-      setPendingGoogleData(null);
-
+      
       const studentData = authService.getStudentDataFromStorage();
       const userName = studentData?.nombre || "Usuario";
       handleSuccessRedirect(userName, false);
+      
+      setShowLinkPasswordModal(false);
+      setPendingGoogleData(null);
     } catch (error: any) {
-      console.error("❌ Error vinculando:", error);
       toast.error(error.message || "Error vinculando cuenta");
       throw error;
     } finally {
@@ -260,11 +253,11 @@ const AuthFormController: React.FC<AuthFormProps> = ({
         formData.dni,
         formData.acceptTerms
       );
-
+      
       const studentData = authService.getStudentDataFromStorage();
       const userName = studentData?.nombre || "Usuario";
       handleSuccessRedirect(userName, true);
-
+      
       setShowLinkGoogleModal(false);
       setPendingGoogleData(null);
     } catch (error: any) {
@@ -280,10 +273,10 @@ const AuthFormController: React.FC<AuthFormProps> = ({
     try {
       setIsSubmitting(true);
       const response = await googleAuth(dni, acceptTerms);
-
+      
       const userName = response.user.nombre || "Usuario";
       handleSuccessRedirect(userName, true);
-
+      
       setShowCompleteDniModal(false);
       setPendingGoogleData(null);
     } catch (error: any) {
