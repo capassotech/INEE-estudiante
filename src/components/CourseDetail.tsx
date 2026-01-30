@@ -551,9 +551,9 @@ const CourseDetail = () => {
 
   // Actualizar el progreso en localStorage para que el listado lo use
   useEffect(() => {
-    if (courseId && progressPercentage >= 0 && totalContents > 0) {
+    if (courseId && progressPercentage >= 0 && totalContents > 0 && user?.uid) {
       try {
-        const key = `courseProgress_${courseId}`;
+        const key = `courseProgress_${user.uid}_${courseId}`;
         localStorage.setItem(key, JSON.stringify({
           progress: progressPercentage,
           timestamp: Date.now()
@@ -562,7 +562,7 @@ const CourseDetail = () => {
         console.warn("Error al guardar progreso en localStorage:", error);
       }
     }
-  }, [courseId, progressPercentage, totalContents]);
+  }, [courseId, progressPercentage, totalContents, user?.uid]);
 
   // Consideramos el curso completado cuando el progreso llega al 100%
   const isCourseCompleted = progressPercentage === 100;
