@@ -76,8 +76,9 @@ const Index = () => {
     try {
       const progressPromises = courseIds.map(async (courseId) => {
         // Primero intentar obtener el progreso desde localStorage (calculado en CourseDetail)
+        // Usar clave con userId para que sea específico por usuario
         try {
-          const key = `courseProgress_${courseId}`;
+          const key = `courseProgress_${user.uid}_${courseId}`;
           const saved = localStorage.getItem(key);
           if (saved) {
             const { progress, timestamp } = JSON.parse(saved);
