@@ -102,11 +102,11 @@ const CourseDetail = () => {
   useEffect(() => {
     const checkUserReview = async () => {
       if (!user?.uid || !courseId) return;
-      
+
       try {
         const responseReviews = await reviewService.getReviewsByCourse(courseId);
         let foundReview = false;
-        
+
         if (responseReviews?.reviews && Array.isArray(responseReviews.reviews)) {
           for (const review of responseReviews.reviews) {
             if (review.userId === user.uid) {
@@ -116,7 +116,7 @@ const CourseDetail = () => {
             }
           }
         }
-        
+
         setHasUserReview(foundReview);
       } catch (error) {
         console.warn("Error al verificar reseña del usuario:", error);
@@ -137,7 +137,7 @@ const CourseDetail = () => {
 
           // NO usar caché de localStorage para evitar mostrar datos de otro usuario
           // Esperar siempre a que el backend responda
-          
+
           // Cargar progreso desde el backend
           if (user?.uid && courseId && modulesData) {
             await loadProgressFromBackend(modulesData, new Set<string>());
@@ -201,7 +201,7 @@ const CourseDetail = () => {
           // Verificar TODOS los contenidos del módulo usando el índice (excluyendo contenido_extra)
           for (let index = 0; index < module.contenido.length; index++) {
             const content = module.contenido[index];
-            
+
             // Excluir contenido_extra de la verificación de progreso
             if (content.tipo_contenido === "contenido_extra") {
               continue;
@@ -279,7 +279,7 @@ const CourseDetail = () => {
                 // Verificar cada contenido del módulo (excluyendo contenido_extra)
                 for (let index = 0; index < module.contenido.length; index++) {
                   const content = module.contenido[index];
-                  
+
                   // Excluir contenido_extra de la verificación de progreso
                   if (content.tipo_contenido === "contenido_extra") {
                     continue;
@@ -498,11 +498,11 @@ const CourseDetail = () => {
 
   const handleDownloadCertificate = async () => {
     if (!courseId) return;
-    
+
     try {
       setDownloadingCertificate(true);
       toast.loading('Generando certificado...', { id: 'certificate-download' });
-      
+
       const certificado = await certificateService.generarCertificado(courseId);
 
       const safeCourseName = certificado.nombreCurso
@@ -510,222 +510,233 @@ const CourseDetail = () => {
         .replace(/[^a-z0-9]+/gi, "-")
         .replace(/^-+|-+$/g, "");
 
-      // Crear elemento HTML temporal para el certificado
       const certificateDiv = document.createElement("div");
       certificateDiv.id = "certificate-temp-container";
+
       certificateDiv.style.position = "fixed";
-      certificateDiv.style.top = "0";
-      certificateDiv.style.left = "0";
+      certificateDiv.style.top = "-10000px";  
+      certificateDiv.style.left = "-10000px"; 
       certificateDiv.style.width = "1123px";
       certificateDiv.style.height = "794px";
-      certificateDiv.style.zIndex = "99999";
+      certificateDiv.style.zIndex = "-1";   
       certificateDiv.style.overflow = "visible";
       certificateDiv.style.backgroundColor = "#f5f5f0";
-      certificateDiv.style.transform = "translate(0, 0)";
-      certificateDiv.style.visibility = "visible";
-      certificateDiv.style.opacity = "1";
-      
+      certificateDiv.style.visibility = "hidden"; 
+      certificateDiv.style.pointerEvents = "none";
+
       certificateDiv.innerHTML = `
-        <div style="
-          width: 1123px;
-          height: 794px;
-          padding: 0;
-          margin: 0;
-          background: #f5f5f0;
-          color: #2c2c2c;
-          position: relative;
-          border: 8px solid #8B2635;
-          box-sizing: border-box;
-          font-family: 'Arial', 'Helvetica', sans-serif;
-        ">
-          <!-- Borde interior con múltiples líneas -->
           <div style="
-            position: absolute;
-            top: 57px;
-            left: 57px;
-            right: 57px;
-            bottom: 57px;
-            border: 1px solid #5a2a2a;
+            width: 1123px;
+            height: 794px;
+            padding: 0;
+            margin: 0;
+            background: #f5f5f0;
+            color: #2c2c2c;
+            position: relative;
+            border: 8px solid #8B2635;
             box-sizing: border-box;
+            font-family: 'Arial', 'Helvetica', sans-serif;
           ">
+            <!-- Borde interior con múltiples líneas -->
             <div style="
               position: absolute;
-              top: 8px;
-              left: 8px;
-              right: 8px;
-              bottom: 8px;
-              border-top: 1px solid #d4d4d0;
-              border-bottom: 1px solid #d4d4d0;
-              border-left: 1px solid #5a2a2a;
-              border-right: 1px solid #5a2a2a;
-            "></div>
-            <div style="
-              position: absolute;
-              top: 15px;
-              left: 15px;
-              right: 15px;
-              bottom: 15px;
-              border-top: 1px solid #d4d4d0;
-              border-bottom: 1px solid #d4d4d0;
-              border-left: 1px solid #5a2a2a;
-              border-right: 1px solid #5a2a2a;
-            "></div>
-            <div style="
-              position: absolute;
-              top: 23px;
-              left: 23px;
-              right: 23px;
-              bottom: 23px;
-              border: 1px solid #5a2a2a;
-            "></div>
-          </div>
-
-          <!-- Contenido principal -->
-          <div style="
-            position: absolute;
-            top: 95px;
-            left: 95px;
-            right: 95px;
-            bottom: 95px;
-            background: #fafafa;
-            padding: 57px;
-            box-sizing: border-box;
-          ">
-            <!-- Logo INEE arriba -->
-            <div style="text-align: center; margin-bottom: 45px;">
-              <div style="display: inline-flex; align-items: center; gap: 12px;">
-                <img 
-                  src="/logo.png" 
-                  alt="Logo INEE" 
-                  style="width: 50px; height: 40px; object-fit: contain;"
-                />
-                <div style="text-align: left;">
-                  <div style="font-size: 24px; font-weight: bold; color: #2c2c2c; line-height: 1.2;">INEE</div>
-                  <div style="font-size: 8px; color: #2c2c2c; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
-                    INSTITUTO DE NEGOCIOS EMPRENDEDOR EMPRESARIAL
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Líneas decorativas arriba del título -->
-            <div style="display: flex; align-items: center; margin-bottom: 30px;">
-              <div style="flex: 1; height: 1px; background: #5a2a2a;"></div>
-              <div style="font-size: 7px; color: #2c2c2c; text-transform: uppercase; margin: 0 8px; letter-spacing: 1px;">
-                INSTITUTO DE NEGOCIOS EMPRENDEDOR EMPRESARIAL
-              </div>
-              <div style="flex: 1; height: 1px; background: #5a2a2a;"></div>
-            </div>
-
-            <!-- Título principal -->
-            <div style="text-align: center; margin-bottom: 35px;">
-              <div style="font-size: 20px; font-weight: bold; color: #2c2c2c; margin-bottom: 12px;">
-                INEE - INSTITUTO DE NEGOCIOS EMPRENDEDOR EMPRESARIAL<sup style="font-size: 12px;">®</sup>
-              </div>
-              <div style="font-size: 14px; color: #2c2c2c; font-weight: 500;">
-                Certificado de Participación
-              </div>
-            </div>
-
-            <!-- Contenido del certificado -->
-            <div style="margin-top: 35px; line-height: 1.8; margin-bottom: 40px;">
-              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 20px;">
-                <span>Por cuanto</span>
-                <span style="
-                  font-style: italic;
-                  text-decoration: underline;
-                  color: #8B2635;
-                  font-weight: 600;
-                  font-size: 13px;
-                  margin-left: 8px;
-                ">${certificado.nombreCompleto}</span>
-              </div>
-
-              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 20px;">
-                <span>DNI: <strong>${certificado.dni}</strong></span>
-                <span style="margin-left: 20px;">Ha finalizado el</span>
-                <span style="
-                  color: #8B2635;
-                  font-weight: bold;
-                  font-size: 12px;
-                  margin-left: 8px;
-                ">${certificado.fechaFinalizacionTexto}</span>
-              </div>
-
-              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 12px;">
-                Los estudios correspondientes a la formación ejecutiva
-              </div>
-
-              <div style="
-                font-size: 13px;
-                color: #8B2635;
-                font-weight: bold;
-                margin-bottom: 18px;
-                word-wrap: break-word;
-              ">
-                ${certificado.nombreCurso}
-              </div>
-
-              <div style="font-size: 11px; color: #2c2c2c; margin-bottom: 20px;">
-                Habiendo completado de manera satisfactoria las actividades teóricas y prácticas del programa.
-              </div>
-            </div>
-
-            <!-- Footer con firmas y QR -->
-            <div style="
-              position: absolute;
-              bottom: 60px;
+              top: 57px;
               left: 57px;
               right: 57px;
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-end;
+              bottom: 57px;
+              border: 1px solid #5a2a2a;
+              box-sizing: border-box;
             ">
-              <!-- Firma izquierda -->
-              <div style="text-align: left; width: 280px; flex-shrink: 0;">
-                <div style="border-top: 1px solid #2c2c2c; padding-top: 12px;">
-                  <div style="font-size: 10px; font-weight: bold; color: #2c2c2c; margin-bottom: 3px;">
-                    Saenz Beatriz
-                  </div>
-                  <div style="font-size: 9px; color: #2c2c2c; margin-bottom: 2px;">
-                    Directora de Negocios y Estrategia.
-                  </div>
-                  <div style="font-size: 9px; color: #2c2c2c;">
-                    Especialista en Liderazgo corporativo.
+              <div style="
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                right: 8px;
+                bottom: 8px;
+                border-top: 1px solid #d4d4d0;
+                border-bottom: 1px solid #d4d4d0;
+                border-left: 1px solid #5a2a2a;
+                border-right: 1px solid #5a2a2a;
+              "></div>
+              <div style="
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                bottom: 15px;
+                border-top: 1px solid #d4d4d0;
+                border-bottom: 1px solid #d4d4d0;
+                border-left: 1px solid #5a2a2a;
+                border-right: 1px solid #5a2a2a;
+              "></div>
+              <div style="
+                position: absolute;
+                top: 23px;
+                left: 23px;
+                right: 23px;
+                bottom: 23px;
+                border: 1px solid #5a2a2a;
+              "></div>
+            </div>
+
+            <!-- Contenido principal -->
+            <div style="
+              position: absolute;
+              top: 95px;
+              left: 95px;
+              right: 95px;
+              bottom: 95px;
+              background: #fafafa;
+              padding: 30px 50px 70px 50px;
+              box-sizing: border-box;
+            ">
+              <!-- Logo INEE arriba derecha -->
+              <div style="text-align: right; margin-bottom: 20px;">
+                <div style="display: inline-flex; align-items: center; gap: 12px;">
+                  <img 
+                    src="/logo.png" 
+                    alt="Logo INEE" 
+                    style="width: 60px; height: 48px; object-fit: contain;"
+                  />
+                  <div style="text-align: left;">
+                    <div style="font-size: 28px; font-weight: bold; color: #2c2c2c; line-height: 1;">
+                      INEE<sup style="font-size: 12px;">®</sup>
+                    </div>
+                    <div style="font-size: 8px; color: #2c2c2c; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; line-height: 1.3;">
+                      INSTITUTO DE NEGOCIOS<br/>EMPRENDEDOR EMPRESARIAL
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- QR Code en el centro -->
-              <div style="text-align: center; width: 200px; flex-shrink: 0;">
-                <img 
-                  src="${certificado.qrCodeUrl}" 
-                  alt="QR de validación" 
-                  style="width: 160px; height: 160px; border: 1px solid #d4d4d0; display: block; margin: 0 auto 8px;"
-                />
-                <div style="font-size: 9px; color: #2c2c2c;">
-                  Fecha ${certificado.fechaQR}
+              <!-- Título principal -->
+              <div style="text-align: center; margin-bottom: 35px;">
+                <div style="font-size: 24px; font-weight: bold; color: #2c2c2c; margin-bottom: 5px; letter-spacing: 0.3px; line-height: 1.3;">
+                  INEE - INSTITUTO DE NEGOCIOS<br/>EMPRENDEDOR EMPRESARIAL<sup style="font-size: 12px; margin-left: 3px;">®</sup>
+                </div>
+                <div style="font-size: 16px; color: #2c2c2c; font-weight: 500; margin-top: 12px;">
+                  Certificado de Participación
                 </div>
               </div>
 
-              <!-- Firma derecha -->
-              <div style="text-align: right; width: 280px; flex-shrink: 0;">
-                <div style="border-top: 1px solid #2c2c2c; padding-top: 12px;">
-                  <div style="font-size: 10px; font-weight: bold; color: #2c2c2c; margin-bottom: 3px;">
-                    Krämer. Rocio Ailen.
+              <!-- Contenido del certificado en dos columnas -->
+              <div style="display: flex; gap: 40px; margin-top: 45px;">
+                
+                <!-- Columna izquierda: Texto del certificado -->
+                <div style="flex: 1; padding-right: 20px;">
+                  
+                  <!-- Nombre del alumno -->
+                  <div style="font-size: 12px; color: #2c2c2c; margin-bottom: 18px;">
+                    <span>Por cuanto</span>
+                    <span style="
+                      font-style: italic;
+                      text-decoration: underline;
+                      color: #8B2635;
+                      font-weight: 600;
+                      font-size: 18px;
+                      margin-left: 10px;
+                      text-decoration-thickness: 1px;
+                      text-underline-offset: 2px;
+                    ">${certificado.nombreCompleto}</span>
                   </div>
-                  <div style="font-size: 9px; color: #2c2c2c; margin-bottom: 2px;">
-                    Directora Creativa.
+
+                  <!-- DNI -->
+                  <div style="font-size: 12px; color: #2c2c2c; margin-bottom: 10px;">
+                    <span>DNI: </span>
+                    <strong style="font-size: 14px; color: #2c2c2c;">${certificado.dni}</strong>
                   </div>
-                  <div style="font-size: 9px; color: #2c2c2c;">
-                    Especialista en Liderazgo Transformacional.
+
+                  <!-- Fecha -->
+                  <div style="font-size: 12px; color: #2c2c2c; margin-bottom: 18px;">
+                    <span>Ha finalizado el</span>
+                    <span style="
+                      color: #8B2635;
+                      font-weight: bold;
+                      font-size: 14px;
+                      margin-left: 8px;
+                    ">${certificado.fechaFinalizacionTexto}</span>
+                  </div>
+
+                  <!-- Texto descriptivo -->
+                  <div style="font-size: 12px; color: #2c2c2c; margin-bottom: 12px;">
+                    Los estudios correspondientes a la formación ejecutiva
+                  </div>
+
+                  <!-- Nombre del curso -->
+                  <div style="
+                    font-size: 16px;
+                    color: #8B2635;
+                    font-weight: bold;
+                    margin-bottom: 22px;
+                    word-wrap: break-word;
+                    line-height: 1.3;
+                  ">
+                    ${certificado.nombreCurso}
+                  </div>
+
+                  <!-- Firma izquierda (Saenz Beatriz) -->
+                  <div style="margin-top: 30px; margin-bottom: 25px;">
+                    <div style="border-top: 1px solid #2c2c2c; padding-top: 6px; margin-bottom: 2px; width: 180px;"></div>
+                    <div style="font-size: 10px; font-weight: bold; color: #2c2c2c; margin-bottom: 1px;">
+                      Saenz Beatriz
+                    </div>
+                    <div style="font-size: 8px; color: #2c2c2c; line-height: 1.4;">
+                      Directora de Negocios y Estrategia.<br/>
+                      Especialista en Liderazgo corporativo.
+                    </div>
+                  </div>
+
+                  <!-- Texto final -->
+                  <div style="font-size: 11px; color: #2c2c2c; line-height: 1.5;">
+                    Habiendo completado de manera satisfactoria las actividades técnicas y prácticas del programa.
+                  </div>
+                </div>
+
+                <!-- Columna derecha: QR y firma derecha -->
+                <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 10px;">
+                  
+                  <!-- QR Code con texto QR arriba -->
+                  <div style="text-align: center; margin-bottom: 30px; position: relative;">
+                    <!-- Texto QR gigante semitransparente -->
+                    <div style="
+                      font-size: 85px;
+                      font-weight: bold;
+                      color: rgba(200, 180, 180, 0.35);
+                      line-height: 0.65;
+                      margin-bottom: -18px;
+                      letter-spacing: 10px;
+                      font-family: Arial, sans-serif;
+                    ">QR</div>
+                    
+                    <!-- QR Code -->
+                    <img 
+                      src="${certificado.qrCodeUrl}" 
+                      alt="QR de validación" 
+                      style="width: 160px; height: 160px; border: 1px solid #d4d4d0; display: block; margin: 0 auto 8px;"
+                    />
+                    
+                    <!-- Fecha del QR -->
+                    <div style="font-size: 9px; color: #8B2635; font-weight: 400;">
+                      Fecha ${certificado.fechaQR}
+                    </div>
+                  </div>
+
+                  <!-- Firma derecha (Krämer) -->
+                  <div style="text-align: center; margin-top: auto;">
+                    <div style="border-top: 1px solid #2c2c2c; padding-top: 6px; margin-bottom: 2px; width: 180px; margin-left: auto; margin-right: auto;"></div>
+                    <div style="font-size: 10px; font-weight: bold; color: #2c2c2c; margin-bottom: 1px;">
+                      Krämer. Rocio Ailen.
+                    </div>
+                    <div style="font-size: 8px; color: #2c2c2c; line-height: 1.4;">
+                      Directora Creativa.<br/>
+                      Especialista en Liderazgo Transformacional.
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
 
       document.body.appendChild(certificateDiv);
 
@@ -745,7 +756,7 @@ const CourseDetail = () => {
                   setTimeout(checkImage, 100);
                 }
               };
-              
+
               img.onload = () => {
                 setTimeout(() => resolve(true), 200);
               };
@@ -753,10 +764,8 @@ const CourseDetail = () => {
                 console.warn('Error cargando imagen, continuando de todas formas');
                 resolve(true);
               };
-              
-              // Iniciar verificación
+
               checkImage();
-              // Timeout de seguridad
               setTimeout(() => resolve(true), 5000);
             });
           })
@@ -766,17 +775,17 @@ const CourseDetail = () => {
       // Esperar un momento adicional para asegurar el renderizado completo
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Configuración de html2pdf con mejor configuración para captura
+      // Configuración de html2pdf
       const opt: any = {
         margin: 0,
         filename: `certificado-${safeCourseName || certificado.cursoId || courseId}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
+        html2canvas: {
           scale: 2,
           useCORS: true,
-          logging: true, // Habilitar logging para debug
+          logging: false, // ✅ Desactivar logging
           letterRendering: true,
-          allowTaint: false, // Cambiar a false para evitar problemas de seguridad
+          allowTaint: false,
           backgroundColor: '#f5f5f0',
           width: 1123,
           height: 794,
@@ -785,15 +794,14 @@ const CourseDetail = () => {
           scrollX: 0,
           scrollY: 0
         },
-        jsPDF: { 
-          unit: 'mm', 
-          format: [297, 210], 
+        jsPDF: {
+          unit: 'mm',
+          format: [297, 210],
           orientation: 'landscape'
         },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      // Obtener el elemento interno que contiene el contenido
       const innerDiv = certificateDiv.querySelector('div') as HTMLElement;
       const elementToCapture = innerDiv || certificateDiv;
 
@@ -802,25 +810,20 @@ const CourseDetail = () => {
         await html2pdf().set(opt).from(elementToCapture).save();
       } catch (error) {
         console.error('Error generando PDF:', error);
-        // Intentar de nuevo con el elemento completo
         await html2pdf().set(opt).from(certificateDiv).save();
       }
 
-      // Limpiar elemento temporal después de un delay
-      setTimeout(() => {
-        if (certificateDiv.parentNode) {
-          document.body.removeChild(certificateDiv);
-        }
-      }, 1000);
-      
+      // Limpiar elemento temporal inmediatamente
+      if (certificateDiv.parentNode) {
+        document.body.removeChild(certificateDiv);
+      }
+
       toast.success('Certificado descargado exitosamente', { id: 'certificate-download' });
     } catch (error: any) {
       console.error('Error downloading certificate:', error);
-      
-      // Verificar si el error es porque falta aprobar el examen
+
       if (error.message && error.message.includes('aprobar el examen')) {
         toast.error('Debes aprobar el examen final para obtener el certificado', { id: 'certificate-download' });
-        // Forzar re-verificación del estado del examen
         setLoadingExamenStatus(true);
         setTimeout(() => {
           window.location.reload();
@@ -894,12 +897,12 @@ const CourseDetail = () => {
         setLoadingExamenStatus(false);
         return;
       }
-      
+
       // Solo proceder si el progreso está completamente cargado
       if (isLoadingProgress) {
         return;
       }
-      
+
       // Solo verificar examen si el progreso es 100%
       if (progressPercentage !== 100) {
         setLoadingExamenStatus(false);
@@ -907,40 +910,40 @@ const CourseDetail = () => {
         setExamenAprobado(false);
         return;
       }
-      
+
       // Evitar ejecuciones simultáneas
       if (isCheckingExamen.current) {
         return;
       }
       isCheckingExamen.current = true;
-      
+
       setLoadingExamenStatus(true);
-      
+
       // Verificar si viene del examen con resultado
-      const examenState = location.state as { 
-        certificadoListo?: boolean; 
-        aprobado?: boolean; 
+      const examenState = location.state as {
+        certificadoListo?: boolean;
+        aprobado?: boolean;
         intento?: number;
         examenYaAprobado?: boolean;
         mostrarCertificado?: boolean;
         examenFallido?: boolean;
         examenCompletado?: boolean;
       } | undefined;
-      
+
       // Si viene con examenYaAprobado desde la página de examen
       if (examenState?.examenYaAprobado && examenState?.mostrarCertificado) {
         setHasExamen(true);
         setExamenAprobado(true);
         setLoadingExamenStatus(false);
         isCheckingExamen.current = false;
-        
+
         console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación ya aprobada → MOSTRANDO CERTIFICADO');
-        
+
         // Limpiar el state
         navigate(location.pathname, { replace: true, state: {} });
         return;
       }
-      
+
       // Si viene del examen aprobado, usar esos datos INMEDIATAMENTE (optimistic)
       if (examenState?.certificadoListo && examenState?.aprobado) {
         setHasExamen(true);
@@ -948,39 +951,39 @@ const CourseDetail = () => {
         setIntento(examenState.intento || 1);
         setLoadingExamenStatus(false);
         isCheckingExamen.current = false;
-        
+
         console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación recién aprobada → MOSTRANDO CERTIFICADO');
-        
+
         // Limpiar el state
         navigate(location.pathname, { replace: true, state: {} });
-        
+
         // NO verificar en segundo plano - confiar en el estado que viene del examen
         return;
       }
-      
+
       // Si viene de un examen fallido, forzar actualización del estado
       if (examenState?.examenFallido || (examenState?.examenCompletado && !examenState?.aprobado)) {
         // Limpiar el state primero
         navigate(location.pathname, { replace: true, state: {} });
         // Continuar con la verificación normal del backend para obtener el estado actualizado
       }
-      
+
       try {
         // Consultar el backend para obtener el estado real
         const examen = await examenService.getExamenByFormacion(courseId);
-        
+
         if (examen) {
           setHasExamen(true);
-          
+
           // Obtener el último intento del usuario
           const ultimoIntento = await examenService.getUltimoIntento(user.uid, courseId);
-          
+
           if (ultimoIntento) {
             // Si hay un intento previo, el siguiente intento es ultimoIntento.intento + 1
             // Si el último intento fue desaprobado, mostrar interfaz de reintento
             setIntento(ultimoIntento.intento + 1);
             setExamenAprobado(ultimoIntento.aprobado);
-            
+
             // Log del estado del estudiante
             if (ultimoIntento.aprobado) {
               console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación aprobada → MOSTRANDO CERTIFICADO');
@@ -1020,7 +1023,7 @@ const CourseDetail = () => {
       return () => clearTimeout(timer);
     }
   }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview]);
-  
+
   if (isLoadingCourse) {
     return <Loader fullScreen size="lg" showText={true} />;
   }
@@ -1155,7 +1158,7 @@ const CourseDetail = () => {
               Evaluación Final
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-4">
-              {intento === 1 
+              {intento === 1
                 ? "Has completado todos los módulos. Ahora debes aprobar la evaluación final (nota mínima 70%) para obtener tu certificado."
                 : `El intento anterior no alcanzó el 70% requerido. No te preocupes, puedes intentarlo nuevamente todas las veces que necesites. Este sería tu intento número ${intento}.`
               }
@@ -1220,9 +1223,9 @@ const CourseDetail = () => {
             const moduleContents = module.contenido
               ? module.contenido.filter(c => c.tipo_contenido !== "contenido_extra")
               : [];
-            
+
             const moduleTotalCount = moduleContents.length;
-            
+
             const moduleCompletedCount = moduleContents
               .map((_, index) => {
                 // Encontrar el índice real en el array original
@@ -1231,7 +1234,7 @@ const CourseDetail = () => {
                 return completedContents.has(contentKey);
               })
               .filter(Boolean).length;
-            
+
             const moduleProgress = moduleTotalCount > 0
               ? Math.round((moduleCompletedCount / moduleTotalCount) * 100)
               : 0;
@@ -1241,29 +1244,26 @@ const CourseDetail = () => {
             return (
               <Card
                 key={module.id}
-                className={`${
-                  isModuleCompleted
-                    ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700"
-                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                } transition-colors`}
+                className={`${isModuleCompleted
+                  ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700"
+                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  } transition-colors`}
               >
                 <Collapsible
                   open={expandedModules.has(module.id)}
                   onOpenChange={() => toggleModule(module.id)}
                 >
                   <CollapsibleTrigger asChild>
-                    <CardHeader className={`cursor-pointer transition-colors p-4 sm:p-6 ${
-                      isModuleCompleted
-                        ? "hover:bg-green-100 dark:hover:bg-green-900/30"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    }`}>
+                    <CardHeader className={`cursor-pointer transition-colors p-4 sm:p-6 ${isModuleCompleted
+                      ? "hover:bg-green-100 dark:hover:bg-green-900/30"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                             <div className="flex items-center gap-2">
-                              <CardTitle className={`text-base sm:text-lg break-words ${
-                                isModuleCompleted ? "text-green-700 dark:text-green-400" : ""
-                              }`}>
+                              <CardTitle className={`text-base sm:text-lg break-words ${isModuleCompleted ? "text-green-700 dark:text-green-400" : ""
+                                }`}>
                                 {module.titulo}
                               </CardTitle>
                               {isModuleCompleted && (
@@ -1273,11 +1273,10 @@ const CourseDetail = () => {
                             {moduleTotalCount > 0 && (
                               <Badge
                                 variant={isModuleCompleted ? "default" : "secondary"}
-                                className={`self-start text-xs sm:text-sm ${
-                                  isModuleCompleted
-                                    ? "bg-green-600 hover:bg-green-700 text-white"
-                                    : ""
-                                }`}
+                                className={`self-start text-xs sm:text-sm ${isModuleCompleted
+                                  ? "bg-green-600 hover:bg-green-700 text-white"
+                                  : ""
+                                  }`}
                               >
                                 {moduleCompletedCount}/{moduleTotalCount}
                               </Badge>
