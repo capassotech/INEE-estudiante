@@ -50,6 +50,10 @@ const CourseDetail = () => {
   const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
   const [downloadingCertificate, setDownloadingCertificate] = useState(false);
   const isCheckingExamen = useRef(false);
+  
+  // Refs para los módulos (para scroll automático)
+  const moduleRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
   // Función para guardar progreso en localStorage como respaldo
   // Usar userId en la clave para que sea específico por usuario
   const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
@@ -155,6 +159,65 @@ const CourseDetail = () => {
 
     }
   }, [courseData, user, courseId]);
+
+  // Efecto para manejar la expansión y scroll cuando viene de búsqueda
+  useEffect(() => {
+    const locationState = location.state as { highlightModuleId?: string; fromSearch?: boolean } | undefined;
+    
+    if (locationState?.highlightModuleId && locationState?.fromSearch && modules.length > 0 && !isLoadingModules && !isLoadingProgress) {
+      const targetModuleId = locationState.highlightModuleId;
+      
+      // Verificar que el módulo existe
+      const moduleExists = modules.some(m => m.id === targetModuleId);
+      
+      if (moduleExists) {
+        // Expandir el módulo automáticamente
+        setExpandedModules((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(targetModuleId);
+          return newSet;
+        });
+        
+        // Limpiar el state inmediatamente para evitar re-ejecuciones
+        navigate(location.pathname, { replace: true, state: {} });
+        
+        // Hacer scroll al módulo con múltiples intentos para asegurar que el DOM esté listo
+        let attempts = 0;
+        const maxAttempts = 10;
+        let hasScrolled = false;
+        
+        const scrollInterval = setInterval(() => {
+          attempts++;
+          const moduleElement = moduleRefs.current[targetModuleId];
+          
+          if (moduleElement && !hasScrolled) {
+            hasScrolled = true;
+            clearInterval(scrollInterval);
+            
+            // Esperar un poco más para que la animación del Collapsible termine
+            setTimeout(() => {
+              moduleElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+              });
+              
+              // Agregar efecto visual temporal después del scroll
+              setTimeout(() => {
+                moduleElement.style.transition = 'all 0.3s ease';
+                moduleElement.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5)';
+                
+                setTimeout(() => {
+                  moduleElement.style.boxShadow = '';
+                }, 2000);
+              }, 100);
+            }, 400);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(scrollInterval);
+          }
+        }, 200);
+      }
+    }
+  }, [modules, isLoadingModules, isLoadingProgress, location.state, navigate]);
 
   /**
    * Cargar progreso desde el backend
@@ -814,30 +877,33 @@ const CourseDetail = () => {
         </Card>
       ) : (
         totalContents > 0 && (
-          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <CardHeader className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
-                    Progreso de la formación
-                  </CardTitle>
-                  <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
-                    {completedCount} de {totalContents} elementos completados
-                  </p>
-                </div>
-                <div className="text-center sm:text-right flex-shrink-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {progressPercentage}%
-                  </div>
-                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mt-2 text-primary" />
-                </div>
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
+                  Progreso de la formación
+                  {isLoadingProgress && (
+                    <Loader2 className="w-4 h-4 inline-block ml-2 animate-spin" />
+                  )}
+                </CardTitle>
+                <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
+                  {completedCount} de {totalContents} elementos completados
+                </p>
               </div>
-              <Progress
-                value={progressPercentage}
-                className={`mt-4 h-2 sm:h-3 ${getProgressColorClass(progressPercentage)}`}
-              />
-            </CardHeader>
-          </Card>
+              <div className="text-center sm:text-right flex-shrink-0">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {progressPercentage}%
+                </div>
+                <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mt-2 text-primary" />
+              </div>
+            </div>
+            <Progress
+              value={progressPercentage}
+              className={`mt-4 h-2 sm:h-3 ${getProgressColorClass(progressPercentage)}`}
+            />
+          </CardHeader>
+        </Card>
         )
       )}
 
@@ -989,6 +1055,7 @@ const CourseDetail = () => {
             return (
               <Card
                 key={module.id}
+                ref={(el) => (moduleRefs.current[module.id] = el)}
                 className={`${
                   isModuleCompleted
                     ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700"
