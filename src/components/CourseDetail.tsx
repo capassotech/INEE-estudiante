@@ -13,6 +13,7 @@ import {
   Award,
 } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible,
   CollapsibleContent,
@@ -795,34 +796,49 @@ const CourseDetail = () => {
       </div>
 
       {/* PANEL DE PROGRESO GENERAL */}
-      {totalContents > 0 && (
+      {isLoadingProgress && !isLoadingModules && modules.length > 0 ? (
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
-                  Progreso de la formación
-                  {isLoadingProgress && (
-                    <Loader2 className="w-4 h-4 inline-block ml-2 animate-spin" />
-                  )}
-                </CardTitle>
-                <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
-                  {completedCount} de {totalContents} elementos completados
-                </p>
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
               </div>
               <div className="text-center sm:text-right flex-shrink-0">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {progressPercentage}%
-                </div>
-                <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mt-2 text-primary" />
+                <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                <Skeleton className="h-8 w-8 mx-auto" />
               </div>
             </div>
-            <Progress
-              value={progressPercentage}
-              className={`mt-4 h-2 sm:h-3 ${getProgressColorClass(progressPercentage)}`}
-            />
+            <Skeleton className="mt-4 h-3 w-full" />
           </CardHeader>
         </Card>
+      ) : (
+        totalContents > 0 && (
+          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg sm:text-xl break-words text-gray-900 dark:text-gray-100">
+                    Progreso de la formación
+                  </CardTitle>
+                  <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
+                    {completedCount} de {totalContents} elementos completados
+                  </p>
+                </div>
+                <div className="text-center sm:text-right flex-shrink-0">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {progressPercentage}%
+                  </div>
+                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mt-2 text-primary" />
+                </div>
+              </div>
+              <Progress
+                value={progressPercentage}
+                className={`mt-4 h-2 sm:h-3 ${getProgressColorClass(progressPercentage)}`}
+              />
+            </CardHeader>
+          </Card>
+        )
       )}
 
       {/* LOADING EXAMEN STATUS */}
@@ -905,6 +921,47 @@ const CourseDetail = () => {
           <div className="flex justify-center items-center h-full mt-40">
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
+        ) : isLoadingProgress && modules.length > 0 ? (
+          // Skeleton de toda la formación mientras carga el progreso
+          modules.map((module) => {
+            const moduleContents = module.contenido
+              ? module.contenido.filter(c => c.tipo_contenido !== "contenido_extra")
+              : [];
+            
+            return (
+              <Card
+                key={module.id}
+                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              >
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-5 w-12" />
+                      </div>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-2 w-full mt-2" />
+                    </div>
+                    <Skeleton className="h-5 w-5 flex-shrink-0 mt-1" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 mt-2 p-4 sm:p-6 sm:pt-0 space-y-2 sm:space-y-3">
+                  {moduleContents.map((_, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                      <Skeleton className="h-5 w-5 flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                      <Skeleton className="h-4 w-16 flex-shrink-0" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
           modules.map((module) => {
             // Filtrar contenidos del módulo excluyendo contenido_extra
