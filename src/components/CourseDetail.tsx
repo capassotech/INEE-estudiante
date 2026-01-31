@@ -1098,7 +1098,7 @@ const CourseDetail = () => {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words">
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line leading-relaxed">
                             {module.descripcion}
                           </p>
                           <Progress
