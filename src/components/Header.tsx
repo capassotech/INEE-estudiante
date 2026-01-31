@@ -129,7 +129,7 @@ export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => v
           }}
         >
           <LayoutDashboard className="w-8 h-8" strokeWidth={1.5} />
-          <span>Mi Panel</span>
+          <span>Mi Campus</span>
         </Button>
 
         <Button
