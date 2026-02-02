@@ -111,6 +111,9 @@ const Search = () => {
         }
         
         // 3. Obtener ebooks (opcional, no crítico)
+        // NOTA: Los ebooks están temporalmente deshabilitados en la búsqueda porque no hay una ruta configurada para verlos
+        // Descomentar cuando se cree la página /ebook/:id
+        /*
         try {
           const idToken = await auth.currentUser?.getIdToken();
           if (idToken) {
@@ -134,8 +137,12 @@ const Search = () => {
         } catch (error) {
           console.warn("⚠️ [Search] Could not load ebooks (non-critical):", error);
         }
+        */
         
         // 4. Obtener eventos (opcional, no crítico)
+        // NOTA: Los eventos están temporalmente deshabilitados en la búsqueda porque no hay una ruta configurada para verlos
+        // Descomentar cuando se cree la página /evento/:id
+        /*
         try {
           const idToken = await auth.currentUser?.getIdToken();
           if (idToken) {
@@ -181,6 +188,7 @@ const Search = () => {
         } catch (error) {
           console.warn("⚠️ [Search] Could not load events (non-critical):", error);
         }
+        */
         
         if (!isMounted) return;
         
@@ -312,10 +320,19 @@ const Search = () => {
   };
 
   const handleItemClick = (item: any) => {
-    if (item.href) {
+    if (item.resourceType === "modulo" && item.courseId) {
+      // Extraer el moduleId del ID único (formato: "modulo-${courseId}-${moduleId}")
+      const moduleId = item.id.split('-').slice(2).join('-'); // Esto maneja IDs de módulos que puedan contener guiones
+      
+      // Navegar al curso pasando el moduleId en el state
+      navigate(`/curso/${item.courseId}`, { 
+        state: { 
+          highlightModuleId: moduleId,
+          fromSearch: true 
+        } 
+      });
+    } else if (item.href) {
       navigate(item.href)
-    } else if (item.resourceType === "modulo" && item.courseId) {
-      navigate(`/curso/${item.courseId}`)
     }
   }
 
