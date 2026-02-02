@@ -90,12 +90,25 @@ export default function RutasAprendizajeModal({
         onClose();
     };
 
-    // Resetear la selección cuando se abre el modal
+    // Seleccionar automáticamente la ruta actual cuando se abre el modal
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && perfilActual) {
+            const currentRoute = rutasAprendizaje.find(r => r.route_name === perfilActual);
+            if (currentRoute) {
+                setSelectedRoute(currentRoute.id);
+            }
+        } else if (!isOpen) {
+            // Resetear la selección cuando se cierra el modal
             setSelectedRoute(null);
         }
-    }, [isOpen]);
+    }, [isOpen, perfilActual]);
+
+    // Verificar si la ruta seleccionada es diferente a la actual
+    const selectedRouteName = selectedRoute 
+        ? rutasAprendizaje.find(r => r.id === selectedRoute)?.route_name || ''
+        : '';
+    const isSameAsCurrent = selectedRouteName && selectedRouteName === perfilActual;
+    const canConfirm = selectedRoute && !isSameAsCurrent;
 
     return (
         <Dialog open={isOpen} onOpenChange={handleCancel}>
@@ -165,10 +178,14 @@ export default function RutasAprendizajeModal({
                     </Button>
                     <Button 
                         onClick={handleConfirmSelection}
-                        disabled={!selectedRoute}
+                        disabled={!canConfirm}
                         className="w-full sm:w-auto"
                     >
-                        {selectedRoute ? 'Confirmar Selección' : 'Selecciona una ruta'}
+                        {!selectedRoute 
+                            ? 'Selecciona una ruta' 
+                            : isSameAsCurrent 
+                                ? 'Selecciona una ruta diferente' 
+                                : 'Confirmar Selección'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

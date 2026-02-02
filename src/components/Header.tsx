@@ -1,8 +1,7 @@
 
-import { Search, Menu, LogOut, User } from "lucide-react";
+import { Search, Menu, LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import ThemeToggle from "./ThemeToggle";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,7 +70,7 @@ const Header = () => {
               <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
-                    <User className="h-5 w-5 text-gray-700 dark:text-white" />
+                    <Menu className="h-5 w-5 text-gray-700 dark:text-white" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
@@ -80,11 +79,9 @@ const Header = () => {
               </Sheet>
             ) : (
               <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/login")}>
-                <User className="h-5 w-5 text-gray-700 dark:text-white" />
+                <Menu className="h-5 w-5 text-gray-700 dark:text-white" />
               </Button>
             )}
-
-            <ThemeToggle />
 
             <Button
               variant="ghost"
@@ -100,7 +97,6 @@ const Header = () => {
     </header>
   );
 };
-
 
 export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => void }) => {
   const { user, logout } = useAuth();
@@ -118,9 +114,24 @@ export const ProfileSheetContent = ({ setOpen }: { setOpen: (open: boolean) => v
         <SheetTitle className="text-[#8B3740] dark:text-[#D8D3CA] font-bold tracking-wide text-xl">
           {user?.nombre} {user?.apellido}
         </SheetTitle>
+        <SheetDescription className="sr-only">
+          Menú de opciones de usuario
+        </SheetDescription>
       </SheetHeader>
 
       <div className="flex flex-col gap-3 mt-6">
+        <Button
+          variant="ghost"
+          className="justify-start gap-4 p-4 rounded-md text-[#4B4B4C] dark:text-[#D8D3CA] hover:bg-[#8B3740] hover:text-white font-medium text-lg transition-colors duration-200"
+          onClick={() => {
+            setOpen(false);
+            navigate("/");
+          }}
+        >
+          <LayoutDashboard className="w-8 h-8" strokeWidth={1.5} />
+          <span>Mi Campus</span>
+        </Button>
+
         <Button
           variant="ghost"
           className="justify-start gap-4 p-4 rounded-md text-[#4B4B4C] dark:text-[#D8D3CA] hover:bg-[#8B3740] hover:text-white font-medium text-lg transition-colors duration-200"

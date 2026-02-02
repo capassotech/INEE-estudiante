@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock, Mail, CreditCard, BookOpen, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock, Mail, CreditCard, BookOpen, Sparkles, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -236,6 +236,20 @@ export default function Profile() {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Botón Ver mis formaciones */}
+          <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+            <CardContent className="p-6">
+              <Button
+                onClick={() => navigate("/")}
+                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-6 text-lg"
+                size="lg"
+              >
+                <GraduationCap className="w-5 h-5 mr-2" />
+                Ver mis formaciones
+              </Button>
             </CardContent>
           </Card>
 

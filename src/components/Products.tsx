@@ -7,8 +7,9 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardHeader } from "@/components/ui/card";
-import { Loader2, Search, BookOpen, Calendar, FileText } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, BookOpen, Calendar, FileText } from "lucide-react";
 import { Course, Ebook, Evento } from "@/types/types";
 import { PaginationComponente } from "@/components/PaginationComponent";
 import { EventsList } from "@/components/EventsList";
@@ -184,9 +185,40 @@ export default function Products({
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                             {isLoadingCourses ? (
-                                <div className="flex justify-center items-center h-32">
-                                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                                </div>
+                                // Skeleton para formaciones
+                                Array.from({ length: pageSizeCourses }).map((_, index) => (
+                                    <Card
+                                        key={index}
+                                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                    >
+                                        <CardContent className="p-0 flex flex-col sm:flex-row">
+                                            <Skeleton className="w-full sm:w-48 md:w-64 lg:w-80 aspect-video flex-shrink-0" />
+                                            <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
+                                                <div className="mb-2 sm:mb-3">
+                                                    <Skeleton className="h-5 w-3/4 mb-2" />
+                                                    <Skeleton className="h-4 w-full mb-1" />
+                                                    <Skeleton className="h-4 w-2/3" />
+                                                </div>
+                                                <div>
+                                                    <div className="mb-2">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <Skeleton className="h-3 w-16" />
+                                                            <Skeleton className="h-3 w-12" />
+                                                        </div>
+                                                        <Skeleton className="h-2 w-full" />
+                                                    </div>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <Skeleton className="h-5 w-20 rounded-full" />
+                                                            <Skeleton className="h-4 w-24" />
+                                                        </div>
+                                                        <Skeleton className="h-4 w-4" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
                             ) : courses.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">
@@ -279,9 +311,33 @@ export default function Products({
 
                         <div className="grid grid-cols-1 gap-4">
                             {isLoadingEbooks ? (
-                                <div className="flex justify-center items-center h-32">
-                                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                                </div>
+                                // Skeleton para ebooks
+                                Array.from({ length: pageSizeEbooks }).map((_, index) => (
+                                    <Card
+                                        key={index}
+                                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                    >
+                                        <CardContent className="p-0 flex flex-col sm:flex-row">
+                                            <Skeleton className="w-full sm:w-20 md:w-24 lg:w-28 aspect-[3/4] flex-shrink-0" />
+                                            <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
+                                                <div className="mb-2 sm:mb-3">
+                                                    <Skeleton className="h-5 w-3/4 mb-2" />
+                                                    <Skeleton className="h-4 w-full mb-1" />
+                                                    <Skeleton className="h-4 w-2/3 mb-1" />
+                                                    <Skeleton className="h-3 w-32" />
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Skeleton className="h-5 w-16 rounded-full" />
+                                                        <Skeleton className="h-5 w-20 rounded-full" />
+                                                        <Skeleton className="h-5 w-18 rounded-full" />
+                                                    </div>
+                                                    <Skeleton className="h-8 w-24" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
                             ) : ebooks.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
@@ -366,9 +422,31 @@ export default function Products({
 
                         <div className="grid grid-cols-1 gap-4">
                             {isLoadingEventos ? (
-                                <div className="flex justify-center items-center h-32">
-                                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                                </div>
+                                // Skeleton para eventos
+                                Array.from({ length: pageSizeEventos }).map((_, index) => (
+                                    <Card
+                                        key={index}
+                                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                    >
+                                        <CardContent className="p-0 flex flex-col sm:flex-row">
+                                            <Skeleton className="w-full sm:w-48 md:w-64 lg:w-80 aspect-video flex-shrink-0" />
+                                            <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
+                                                <div className="mb-2">
+                                                    <Skeleton className="h-5 w-3/4 mb-2" />
+                                                    <Skeleton className="h-4 w-full mb-1" />
+                                                    <Skeleton className="h-4 w-2/3 mb-2" />
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <Skeleton className="h-3 w-32" />
+                                                        <Skeleton className="h-3 w-24" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                    <Skeleton className="h-5 w-24 rounded-full" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
                             ) : eventos.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <Calendar className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
