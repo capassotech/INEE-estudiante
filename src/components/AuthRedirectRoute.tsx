@@ -9,8 +9,15 @@ const AuthRedirectRoute = () => {
     return <Loader fullScreen size="lg" showText={true} />;
   }
 
-  if (isAuthenticated && user.ruta_aprendizaje !== undefined) return <Navigate to="/perfil" replace />;
-  if (isAuthenticated && user.ruta_aprendizaje === undefined) return <Navigate to="/test-vocacional" replace />;
+  // Si el usuario tiene ruta_aprendizaje (no es undefined ni null), redirigir a inicio
+  if (isAuthenticated && user && user.ruta_aprendizaje !== undefined && user.ruta_aprendizaje !== null) {
+    return <Navigate to="/" replace />;
+  }
+  // Si el usuario no tiene ruta_aprendizaje, redirigir a test vocacional
+  // (solo para rutas de login/registro, las rutas protegidas manejan esto en ProtectedRoute)
+  if (isAuthenticated && user && (user.ruta_aprendizaje === undefined || user.ruta_aprendizaje === null)) {
+    return <Navigate to="/test-vocacional" replace />;
+  }
 
   return <Outlet />;
 };
