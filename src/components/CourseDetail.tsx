@@ -13,6 +13,7 @@ import {
   Award,
 } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible,
   CollapsibleContent,
@@ -49,6 +50,10 @@ const CourseDetail = () => {
   const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
   const [downloadingCertificate, setDownloadingCertificate] = useState(false);
   const isCheckingExamen = useRef(false);
+  
+  // Refs para los módulos (para scroll automático)
+  const moduleRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
   // Función para guardar progreso en localStorage como respaldo
   // Usar userId en la clave para que sea específico por usuario
   const saveProgressToLocalStorage = (courseId: string, completed: Set<string>) => {
@@ -154,6 +159,65 @@ const CourseDetail = () => {
 
     }
   }, [courseData, user, courseId]);
+
+  // Efecto para manejar la expansión y scroll cuando viene de búsqueda
+  useEffect(() => {
+    const locationState = location.state as { highlightModuleId?: string; fromSearch?: boolean } | undefined;
+    
+    if (locationState?.highlightModuleId && locationState?.fromSearch && modules.length > 0 && !isLoadingModules && !isLoadingProgress) {
+      const targetModuleId = locationState.highlightModuleId;
+      
+      // Verificar que el módulo existe
+      const moduleExists = modules.some(m => m.id === targetModuleId);
+      
+      if (moduleExists) {
+        // Expandir el módulo automáticamente
+        setExpandedModules((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(targetModuleId);
+          return newSet;
+        });
+        
+        // Limpiar el state inmediatamente para evitar re-ejecuciones
+        navigate(location.pathname, { replace: true, state: {} });
+        
+        // Hacer scroll al módulo con múltiples intentos para asegurar que el DOM esté listo
+        let attempts = 0;
+        const maxAttempts = 10;
+        let hasScrolled = false;
+        
+        const scrollInterval = setInterval(() => {
+          attempts++;
+          const moduleElement = moduleRefs.current[targetModuleId];
+          
+          if (moduleElement && !hasScrolled) {
+            hasScrolled = true;
+            clearInterval(scrollInterval);
+            
+            // Esperar un poco más para que la animación del Collapsible termine
+            setTimeout(() => {
+              moduleElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+              });
+              
+              // Agregar efecto visual temporal después del scroll
+              setTimeout(() => {
+                moduleElement.style.transition = 'all 0.3s ease';
+                moduleElement.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5)';
+                
+                setTimeout(() => {
+                  moduleElement.style.boxShadow = '';
+                }, 2000);
+              }, 100);
+            }, 400);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(scrollInterval);
+          }
+        }, 200);
+      }
+    }
+  }, [modules, isLoadingModules, isLoadingProgress, location.state, navigate]);
 
   /**
    * Cargar progreso desde el backend
@@ -551,9 +615,9 @@ const CourseDetail = () => {
 
   // Actualizar el progreso en localStorage para que el listado lo use
   useEffect(() => {
-    if (courseId && progressPercentage >= 0 && totalContents > 0) {
+    if (courseId && progressPercentage >= 0 && totalContents > 0 && user?.uid) {
       try {
-        const key = `courseProgress_${courseId}`;
+        const key = `courseProgress_${user.uid}_${courseId}`;
         localStorage.setItem(key, JSON.stringify({
           progress: progressPercentage,
           timestamp: Date.now()
@@ -562,7 +626,7 @@ const CourseDetail = () => {
         console.warn("Error al guardar progreso en localStorage:", error);
       }
     }
-  }, [courseId, progressPercentage, totalContents]);
+  }, [courseId, progressPercentage, totalContents, user?.uid]);
 
   // Consideramos el curso completado cuando el progreso llega al 100%
   const isCourseCompleted = progressPercentage === 100;
@@ -795,7 +859,24 @@ const CourseDetail = () => {
       </div>
 
       {/* PANEL DE PROGRESO GENERAL */}
-      {totalContents > 0 && (
+      {isLoadingProgress && !isLoadingModules && modules.length > 0 ? (
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="flex-1 min-w-0">
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <div className="text-center sm:text-right flex-shrink-0">
+                <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                <Skeleton className="h-8 w-8 mx-auto" />
+              </div>
+            </div>
+            <Skeleton className="mt-4 h-3 w-full" />
+          </CardHeader>
+        </Card>
+      ) : (
+        totalContents > 0 && (
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
@@ -823,6 +904,7 @@ const CourseDetail = () => {
             />
           </CardHeader>
         </Card>
+        )
       )}
 
       {/* LOADING EXAMEN STATUS */}
@@ -905,6 +987,47 @@ const CourseDetail = () => {
           <div className="flex justify-center items-center h-full mt-40">
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
+        ) : isLoadingProgress && modules.length > 0 ? (
+          // Skeleton de toda la formación mientras carga el progreso
+          modules.map((module) => {
+            const moduleContents = module.contenido
+              ? module.contenido.filter(c => c.tipo_contenido !== "contenido_extra")
+              : [];
+            
+            return (
+              <Card
+                key={module.id}
+                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              >
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-5 w-12" />
+                      </div>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-2 w-full mt-2" />
+                    </div>
+                    <Skeleton className="h-5 w-5 flex-shrink-0 mt-1" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 mt-2 p-4 sm:p-6 sm:pt-0 space-y-2 sm:space-y-3">
+                  {moduleContents.map((_, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                      <Skeleton className="h-5 w-5 flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                      <Skeleton className="h-4 w-16 flex-shrink-0" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
           modules.map((module) => {
             // Filtrar contenidos del módulo excluyendo contenido_extra
@@ -932,6 +1055,7 @@ const CourseDetail = () => {
             return (
               <Card
                 key={module.id}
+                ref={(el) => (moduleRefs.current[module.id] = el)}
                 className={`${
                   isModuleCompleted
                     ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700"
@@ -974,7 +1098,7 @@ const CourseDetail = () => {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words">
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line leading-relaxed">
                             {module.descripcion}
                           </p>
                           <Progress

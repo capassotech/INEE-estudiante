@@ -358,6 +358,21 @@ class AuthService {
     try {
       await signOut(auth);
       localStorage.removeItem("studentData");
+      
+      // Limpiar todas las claves de progreso de cursos del localStorage
+      // Esto previene que se muestre el progreso de la cuenta anterior
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("courseProgress_")) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      } catch (error) {
+        console.warn("Error al limpiar progreso de cursos del localStorage:", error);
+      }
     } catch (error) {
       console.error("Error during logout:", error);
     }
