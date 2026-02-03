@@ -769,12 +769,18 @@ const CourseDetail = () => {
 
   useEffect(() => {
     if (progressPercentage === 100 && courseData && !hasUserReview) {
-      const timer = setTimeout(() => {
-        navigate(`/course/${courseId}/review`, { state: { course: courseData } });
-      }, 1000);
-      return () => clearTimeout(timer);
+      // Verificar si el usuario omitió la reseña en esta sesión
+      const reviewSkippedKey = `review_skipped_${user?.uid}_${courseId}`;
+      const hasSkippedInSession = sessionStorage.getItem(reviewSkippedKey);
+      
+      if (!hasSkippedInSession) {
+        const timer = setTimeout(() => {
+          navigate(`/course/${courseId}/review`, { state: { course: courseData } });
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview]);
+  }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview, user?.uid]);
   
   if (isLoadingCourse) {
     return <Loader fullScreen size="lg" showText={true} />;

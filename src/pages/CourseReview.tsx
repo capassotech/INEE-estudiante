@@ -43,6 +43,10 @@ const CourseReview = () => {
         try {
           const key = `review_sent_${user.uid}_${course.id}`;
           localStorage.setItem(key, "true");
+          
+          // Limpiar el flag de sessionStorage si existía
+          const skipKey = `review_skipped_${user.uid}_${course.id}`;
+          sessionStorage.removeItem(skipKey);
         } catch (error) {
           console.warn("Error al guardar flag de reseña enviada:", error);
         }
@@ -68,9 +72,22 @@ const CourseReview = () => {
   };
 
   const skipReview = async () => {
+    // Guardar en sessionStorage que el usuario omitió la reseña en esta sesión
+    // Lo hacemos primero para asegurar que se guarde antes de la navegación
+    if (user?.uid && course?.id) {
+      try {
+        const key = `review_skipped_${user.uid}_${course.id}`;
+        sessionStorage.setItem(key, "true");
+        console.log("Review skipped flag guardado en sessionStorage:", key);
+      } catch (error) {
+        console.warn("Error al guardar flag de reseña omitida:", error);
+      }
+    }
+
     try {
       setLoadingSkip(true);
       await reviewService.skipReview(user?.uid, course?.id);
+      
       toast({
         title: "Reseña omitida",
         description: "Muchas gracias por tu tiempo.",
