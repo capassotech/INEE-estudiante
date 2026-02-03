@@ -48,7 +48,6 @@ const CourseDetail = () => {
   const [examenAprobado, setExamenAprobado] = useState(false);
   const [intento, setIntento] = useState(1);
   const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
-  const [downloadingCertificate, setDownloadingCertificate] = useState(false);
   const isCheckingExamen = useRef(false);
   
   // Refs para los módulos (para scroll automático)
@@ -563,7 +562,6 @@ const CourseDetail = () => {
     if (!courseId) return;
     
     try {
-      setDownloadingCertificate(true);
       toast.loading('Generando certificado...', { id: 'certificate-download' });
       
       await certificateService.generarCertificado(courseId);
@@ -583,8 +581,6 @@ const CourseDetail = () => {
       } else {
         toast.error(error.message || 'Error al descargar el certificado', { id: 'certificate-download' });
       }
-    } finally {
-      setDownloadingCertificate(false);
     }
   };
 
@@ -968,19 +964,11 @@ const CourseDetail = () => {
               size="lg"
               className="w-full sm:w-auto text-sm sm:text-base bg-green-600 hover:bg-green-700 font-semibold"
               onClick={handleDownloadCertificate}
-              disabled={downloadingCertificate}
             >
-              {downloadingCertificate ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generando Certificado...
-                </>
-              ) : (
-                <>
-                  <Award className="w-4 h-4 mr-2" />
-                  Descargar Certificado
-                </>
-              )}
+              <>
+                <Award className="w-4 h-4 mr-2" />
+                Descargar Certificado
+              </>
             </Button>
           </CardContent>
         </Card>
