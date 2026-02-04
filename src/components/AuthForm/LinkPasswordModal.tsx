@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ interface LinkPasswordModalProps {
   onSubmit: (password: string) => Promise<void>;
   email: string;
   isSubmitting: boolean;
+  mode?: 'link-google' | 'add-password'; // link-google: tiene password, quiere vincular Google | add-password: tiene Google, quiere agregar password
 }
 
 export default function LinkPasswordModal({
@@ -25,19 +26,11 @@ export default function LinkPasswordModal({
   onSubmit,
   email,
   isSubmitting,
+  mode = 'link-google',
 }: LinkPasswordModalProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-
-  // ✅ Limpiar cuando el modal se cierra
-  useEffect(() => {
-    if (!isOpen) {
-      setPassword("");
-      setError("");
-      setShowPassword(false);
-    }
-  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,36 +47,37 @@ export default function LinkPasswordModal({
     }
   };
 
-  const handleClose = () => {
-    setPassword("");
-    setError("");
-    setShowPassword(false);
-    onClose();
+  const getTitle = () => {
+    return mode === 'link-google' 
+      ? 'Vincular cuenta de Google' 
+      : 'Agregar contraseña a tu cuenta';
   };
 
-  console.log("🎭 LinkPasswordModal render - isOpen:", isOpen);
+  const getDescription = () => {
+    return mode === 'link-google'
+      ? `Ya tenés una cuenta con ${email} usando contraseña. Ingresá tu contraseña para vincular tu cuenta de Google.`
+      : `Ya tenés una cuenta con Google (${email}). Para continuar, agregá una contraseña a tu cuenta.`;
+  };
 
-  // ✅ Usar isOpen directamente, sin estado interno
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Vincular cuenta de Google</DialogTitle>
+          <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
-            Ya tenés una cuenta con <strong>{email}</strong> usando Google.
-            Agregá una contraseña para poder iniciar sesión también con email y contraseña.
+            {getDescription()}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="link-password">Nueva Contraseña</Label>
+            <Label htmlFor="link-password">Contraseña</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="link-password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Ingresá tu contraseña"
+                placeholder="Tu contraseña"
                 className="pl-10 pr-10"
                 value={password}
                 onChange={(e) => {
@@ -91,13 +85,11 @@ export default function LinkPasswordModal({
                   setError("");
                 }}
                 disabled={isSubmitting}
-                autoFocus
               />
               <button
                 type="button"
                 className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -109,7 +101,7 @@ export default function LinkPasswordModal({
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
+              onClick={onClose}
               disabled={isSubmitting}
             >
               Cancelar
