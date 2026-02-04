@@ -33,10 +33,12 @@ export default function AuthFormView({
     isSubmitting,
     showPassword,
     setShowPassword,
+    isModal = false,
     passwordRequirements,
 }: {
     isLogin?: boolean;
     currentStep?: number;
+    isModal?: boolean;
     showEmailForm?: boolean;
     onSubmit: (e: React.FormEvent) => void;
     onGoogleAuth: () => void;
@@ -162,7 +164,7 @@ export default function AuthFormView({
             </div>
 
             <div className="space-y-2">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
                     <Checkbox
                         id="terms"
                         checked={formData.acceptTerms as boolean}
@@ -170,7 +172,7 @@ export default function AuthFormView({
                             onInputChange("acceptTerms", checked === true)
                         }
                         disabled={isSubmitting}
-                        className="border border-zinc-500 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <Label htmlFor="terms" className="text-sm text-foreground">
                         Acepto los{" "}
@@ -263,7 +265,6 @@ export default function AuthFormView({
                                 id="email"
                                 type="email"
                                 placeholder="tu@email.com"
-                                autoComplete="email"
                                 className={`pl-10 form-input ${errors.email ? "border-destructive ring-destructive" : ""
                                     }`}
                                 value={formData.email as string}
@@ -284,7 +285,6 @@ export default function AuthFormView({
                                 id="password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Crea una contraseña segura"
-                                autoComplete="new-password"
                                 className={`pl-10 pr-10 form-input ${errors.password
                                     ? "border-destructive ring-destructive"
                                     : ""
@@ -448,7 +448,6 @@ export default function AuthFormView({
                             id="email"
                             type="email"
                             placeholder="tu@email.com"
-                            autoComplete="email"
                             className={`pl-10 form-input ${errors.email ? "border-destructive ring-destructive" : ""
                                 }`}
                             value={formData.email as string}
@@ -469,7 +468,6 @@ export default function AuthFormView({
                             id="password"
                             type={showPassword ? "text" : "password"}
                             placeholder="Tu contraseña"
-                            autoComplete="current-password"
                             className={`pl-10 pr-10 form-input ${errors.password
                                 ? "border-destructive ring-destructive"
                                 : ""
@@ -518,31 +516,30 @@ export default function AuthFormView({
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#8B3740] via-[#a3676c] to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <div className="text-center">
-                    <Link to="/" className="inline-flex items-center space-x-2 mb-6">
-                        <div className="flex items-center space-x-2">
-                            <div className="h-10 rounded-lg flex items-center justify-center">
-                                <img src="/logo-blanco.png" alt="INEE Logo" className="h-20" />
+        <div className={`${!isModal ? 'min-h-screen bg-gradient-to-b from-[#8B3740] via-[#a3676c] to-white' : ''} flex items-center justify-center ${!isModal ? 'py-12 px-4 sm:px-6 lg:px-8' : ''}`}>
+            <div className={`max-w-md w-full ${!isModal ? 'space-y-8' : 'space-y-4'}`}>
+                {!isModal && (
+                    <div className="text-center">
+                        <Link to="/" className="inline-flex items-center space-x-2 mb-8">
+                            <div className="flex items-center space-x-2">
+                                <div className="h-10 rounded-lg flex items-center justify-center">
+                                    <img src="/logo-blanco.png" alt="INEE® Logo" className="h-20" />
+                                </div>
                             </div>
-                        </div>
-                    </Link>
-                    {isLogin && (
-                        <h1 className="text-4xl font-bold text-white mb-8 tracking-tight drop-shadow-lg">
-                            Panel de alumno
-                        </h1>
-                    )}
-                </div>
+                        </Link>
+                    </div>
+                )}
 
-                <Card className="shadow-2xl border-0 card-gradient">
-                    <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-center text-foreground">
+                <Card className={`${!isModal ? 'shadow-2xl border-0 card-gradient' : 'border shadow-sm'}`}>
+                    <CardHeader className={`space-y-1 ${isModal ? 'pb-4' : ''}`}>
+                        <CardTitle className={`${isModal ? 'text-xl' : 'text-2xl'} font-bold text-center text-foreground`}>
                             {getStepTitle()}
                         </CardTitle>
-                        <p className="text-center text-muted-foreground">
-                            {getStepDescription()}
-                        </p>
+                        {!isModal && (
+                            <p className="text-center text-muted-foreground">
+                                {getStepDescription()}
+                            </p>
+                        )}
                         {!isLogin && currentStep > 1 && (
                             <div className="flex justify-center mt-2">
                                 <div className="flex space-x-2">
@@ -560,24 +557,26 @@ export default function AuthFormView({
                         )}
                     </CardHeader>
 
-                    <CardContent className="space-y-6">
+                    <CardContent className={isModal ? "space-y-4 pt-0" : "space-y-6"}>
                         {isLogin ? renderLogin() :
                             currentStep === 1 ? renderStep1() :
                                 currentStep === 2 ? renderStep2() :
                                     renderStep1()
                         }
 
-                        <div className="text-center">
-                            <p className="text-sm text-muted-foreground">
-                                {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}{" "}
-                                <Link
-                                    to={isLogin ? "/registro" : "/login"}
-                                    className="text-primary hover:underline font-medium transition-colors"
-                                >
-                                    {isLogin ? "Regístrate" : "Inicia sesión"}
-                                </Link>
-                            </p>
-                        </div>
+                        {!isModal && (
+                            <div className="text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}{" "}
+                                    <Link
+                                        to={isLogin ? "/registro" : "/login"}
+                                        className="text-primary hover:underline font-medium transition-colors"
+                                    >
+                                        {isLogin ? "Regístrate" : "Inicia sesión"}
+                                    </Link>
+                                </p>
+                            </div>
+                        )}
 
                         {isLogin && (
                             <div className="text-center">

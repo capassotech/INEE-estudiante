@@ -1,19 +1,28 @@
-
 import type React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import authService from "../../services/authService";
+import authService from "@/services/authService";
 import AuthFormView from "./AuthFormView";
+import LinkPasswordModal from "./LinkPasswordModal";
+import LinkGoogleModal from "./LinkGoogleModal";
+import CompleteDniModal from "./CompleteDniModal";
 
 interface AuthFormProps {
   isLogin?: boolean;
+  isModal?: boolean;
+  onSuccess?: () => void;
 }
 
-const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
+const AuthFormController: React.FC<AuthFormProps> = ({ 
+  isLogin = false, 
+  isModal = false, 
+  onSuccess 
+}) => {
   const navigate = useNavigate();
-  const { login, register, googleRegister, googleLogin } = useAuth();
+  const { login, register, googleAuth, linkGoogleToPassword, linkPasswordToGoogle } = useAuth();
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,6 +37,12 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     acceptTerms: false,
   });
 
+  // Estados para modales
+  const [showLinkPasswordModal, setShowLinkPasswordModal] = useState(false);
+  const [showLinkGoogleModal, setShowLinkGoogleModal] = useState(false);
+  const [showCompleteDniModal, setShowCompleteDniModal] = useState(false);
+  const [pendingGoogleData, setPendingGoogleData] = useState<any>(null);
+  const [linkPasswordMode, setLinkPasswordMode] = useState<'link-google' | 'add-password'>('link-google');
 
   const getPasswordRequirements = (password: string) => {
     return {
@@ -93,10 +108,32 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleSuccessRedirect = (userName: string, isNewUser: boolean = false) => {
+    const message = isNewUser 
+      ? `¡Bienvenido a INEE®, ${userName}!`
+      : `¡Bienvenido de vuelta, ${userName}!`;
+    
+    const description = isNewUser
+      ? "Tu cuenta ha sido creada exitosamente"
+      : "Has iniciado sesión exitosamente";
+
+    toast.success(message, {
+      description,
+      duration: 4000,
+    });
+
+    if (isModal && onSuccess) {
+      onSuccess();
+    } else if (!isModal) {
+      navigate("/");
+    } else {
+      navigate("/checkout");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
 
     if (!isLogin && !validateForm()) {
       toast.error("Por favor, corrige los errores en el formulario");
@@ -108,78 +145,163 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
-
-        // Esperar un momento para que el perfil se actualice en el contexto
-        // El perfil real se obtiene del backend en el useEffect de AuthContext
-        toast.success("¡Bienvenido de vuelta!", {
-          description: "Has iniciado sesión exitosamente",
-          duration: 4000,
-        });
-
-        // setTimeout(() => {
-        //   navigate("/test-vocacional");
-        // }, 1000);
+        const studentData = authService.getStudentDataFromStorage();
+        const userName = studentData?.nombre || "Usuario";
+        handleSuccessRedirect(userName, false);
       } else {
         await register(formData);
-
-        // Esperar un momento para que el perfil se actualice en el contexto
-        // El perfil real se obtiene del backend en el useEffect de AuthContext
-        toast.success("¡Bienvenido a INEE!", {
-          description: "Tu cuenta ha sido creada exitosamente",
-          duration: 4000,
-        });
-
-        // setTimeout(() => {
-        //   navigate("/test-vocacional");
-        // }, 1000);
+        const studentData = authService.getStudentDataFromStorage();
+        const userName = studentData?.nombre || "Usuario";
+        handleSuccessRedirect(userName, true);
       }
-    } catch (error: any) {     
-      toast.error(error.error || error.message || "Error al autenticarse");
+    } catch (error: any) {
+      // Caso 1 (Registro): Usuario existe con Google, ofrecer vincular password
+      if (error.code === "USER_EXISTS_WITH_GOOGLE") {
+        setPendingGoogleData({
+          email: error.email,
+          existingUid: error.existingUid,
+        });
+        setShowLinkGoogleModal(true);
+      } 
+      // Caso 2 (Login): Usuario no tiene password pero tiene Google, ofrecer agregar password
+      else if (error.code === "USER_HAS_GOOGLE_ONLY") {
+        setPendingGoogleData({
+          email: formData.email, // Usar el email del formulario
+          existingUid: error.existingUid,
+        });
+        setLinkPasswordMode('add-password'); // Modo: agregar password a cuenta con Google
+        setShowLinkPasswordModal(true);
+      } 
+      else {
+        toast.error(error instanceof Error ? error.message : "Error en el proceso");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleAuth = async () => {
-    if (isLogin) {
-      try {
-        await googleLogin();
-
-        toast.success("¡Bienvenido de vuelta!", {
-          description: "Has iniciado sesión exitosamente",
-          duration: 4000,
-        });
-
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
-        return;
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Error en el login con Google";
-        toast.error(errorMessage);
-        return;
-      }
-    }
-
-    if (!validateForm(true)) {
-      toast.error("Por favor, corrige los errores en el formulario");
-      return;
-    }
-
     try {
-      await googleRegister(formData.firstName, formData.lastName, formData.dni, formData.acceptTerms);
+      setIsSubmitting(true);
 
-      toast.success("¡Bienvenido a INEE!", {
-        description: "Tu cuenta ha sido creada exitosamente",
-        duration: 4000,
-      });
+      if (isLogin) {
+        // Login con Google (sin DNI requerido)
+        const response = await googleAuth();
+        const userName = response.user.nombre || "Usuario";
+        handleSuccessRedirect(userName, false);
+      } else {
+        // Registro con Google (con DNI requerido)
+        if (!validateForm(true)) {
+          toast.error("Por favor, corrige los errores en el formulario");
+          setIsSubmitting(false);
+          return;
+        }
 
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Error en el registro con Google";
-      toast.error(errorMessage);
+        const response = await googleAuth(formData.dni, formData.acceptTerms);
+        const userName = response.user.nombre || "Usuario";
+        handleSuccessRedirect(userName, true);
+      }
+    } catch (error: any) {
+      // Caso 1: Necesita completar DNI
+      if (error.code === "NEEDS_REGISTRATION_DATA") {
+        setPendingGoogleData(error.userData);
+        setShowCompleteDniModal(true);
+      } 
+      // Caso 2: Necesita vincular con password
+      else if (error.code === "NEEDS_PASSWORD_TO_LINK") {
+        setPendingGoogleData({
+          email: error.email,
+          existingUid: error.existingUid,
+        });
+        setShowLinkPasswordModal(true);
+      } 
+      else {
+        toast.error(error.message || "Error con Google");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler para vincular Google con contraseña O agregar contraseña a cuenta de Google
+  const handleLinkGoogleSubmit = async (password: string) => {
+    try {
+      setIsSubmitting(true);
+      
+      if (linkPasswordMode === 'add-password') {
+        // Caso: Usuario tiene Google, quiere agregar password (viene del login)
+        // Usamos linkPasswordToGoogle pero sin los datos de registro (ya existen en Firestore)
+        await linkPasswordToGoogle(
+          pendingGoogleData.email,
+          password,
+          "", // nombre vacío, no se actualiza
+          "", // apellido vacío, no se actualiza
+          "", // dni vacío, no se actualiza
+          false // aceptaTerminos false, no se actualiza
+        );
+      } else {
+        // Caso: Usuario intenta login con Google pero tiene password (viene de Google auth)
+        await linkGoogleToPassword(pendingGoogleData.email, password);
+      }
+      
+      const studentData = authService.getStudentDataFromStorage();
+      const userName = studentData?.nombre || "Usuario";
+      handleSuccessRedirect(userName, false);
+      
+      setShowLinkPasswordModal(false);
+      setPendingGoogleData(null);
+      setLinkPasswordMode('link-google'); // Reset
+    } catch (error: any) {
+      toast.error(error.message || "Error vinculando cuenta");
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler para vincular password a Google
+  const handleLinkPasswordSubmit = async (password: string) => {
+    try {
+      setIsSubmitting(true);
+      await linkPasswordToGoogle(
+        formData.email,
+        password,
+        formData.firstName,
+        formData.lastName,
+        formData.dni,
+        formData.acceptTerms
+      );
+      
+      const studentData = authService.getStudentDataFromStorage();
+      const userName = studentData?.nombre || "Usuario";
+      handleSuccessRedirect(userName, true);
+      
+      setShowLinkGoogleModal(false);
+      setPendingGoogleData(null);
+    } catch (error: any) {
+      toast.error(error.message || "Error vinculando cuenta");
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler para completar DNI
+  const handleCompleteDniSubmit = async (dni: string, acceptTerms: boolean) => {
+    try {
+      setIsSubmitting(true);
+      const response = await googleAuth(dni, acceptTerms);
+      
+      const userName = response.user.nombre || "Usuario";
+      handleSuccessRedirect(userName, true);
+      
+      setShowCompleteDniModal(false);
+      setPendingGoogleData(null);
+    } catch (error: any) {
+      toast.error(error.message || "Error completando registro");
+      throw error;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -203,22 +325,63 @@ const AuthFormController: React.FC<AuthFormProps> = ({ isLogin = false }) => {
   };
 
   return (
-    <AuthFormView
-      isLogin={isLogin}
-      currentStep={currentStep}
-      showEmailForm={showEmailForm}
-      onSubmit={handleSubmit}
-      onGoogleAuth={handleGoogleAuth}
-      onInputChange={handleInputChange}
-      onStepChange={handleStepChange}
-      onEmailMethodSelect={handleEmailMethodSelect}
-      errors={errors}
-      formData={formData}
-      isSubmitting={isSubmitting}
-      showPassword={showPassword}
-      setShowPassword={setShowPassword}
-      passwordRequirements={getPasswordRequirements(formData.password as string || '')}
-    />
+    <>
+      <AuthFormView
+        isLogin={isLogin}
+        currentStep={currentStep}
+        showEmailForm={showEmailForm}
+        onSubmit={handleSubmit}
+        onGoogleAuth={handleGoogleAuth}
+        onInputChange={handleInputChange}
+        onStepChange={handleStepChange}
+        onEmailMethodSelect={handleEmailMethodSelect}
+        errors={errors}
+        formData={formData}
+        isSubmitting={isSubmitting}
+        showPassword={showPassword}
+        setShowPassword={setShowPassword}
+        passwordRequirements={getPasswordRequirements(formData.password as string || '')}
+        isModal={isModal}
+      />
+
+      {/* Modal: Vincular Google con contraseña O agregar contraseña a Google */}
+      <LinkPasswordModal
+        isOpen={showLinkPasswordModal}
+        onClose={() => {
+          setShowLinkPasswordModal(false);
+          setPendingGoogleData(null);
+          setLinkPasswordMode('link-google'); // Reset
+        }}
+        onSubmit={handleLinkGoogleSubmit}
+        email={pendingGoogleData?.email || ""}
+        isSubmitting={isSubmitting}
+        mode={linkPasswordMode}
+      />
+
+      {/* Modal: Vincular password a Google */}
+      <LinkGoogleModal
+        isOpen={showLinkGoogleModal}
+        onClose={() => {
+          setShowLinkGoogleModal(false);
+          setPendingGoogleData(null);
+        }}
+        onSubmit={handleLinkPasswordSubmit}
+        email={formData.email}
+        isSubmitting={isSubmitting}
+      />
+
+      {/* Modal: Completar DNI */}
+      <CompleteDniModal
+        isOpen={showCompleteDniModal}
+        onClose={() => {
+          setShowCompleteDniModal(false);
+          setPendingGoogleData(null);
+        }}
+        onSubmit={handleCompleteDniSubmit}
+        userData={pendingGoogleData}
+        isSubmitting={isSubmitting}
+      />
+    </>
   );
 };
 
