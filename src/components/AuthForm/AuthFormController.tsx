@@ -42,6 +42,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({
   const [showLinkGoogleModal, setShowLinkGoogleModal] = useState(false);
   const [showCompleteDniModal, setShowCompleteDniModal] = useState(false);
   const [pendingGoogleData, setPendingGoogleData] = useState<any>(null);
+  const [linkPasswordMode, setLinkPasswordMode] = useState<'link-google' | 'add-password'>('link-google');
 
   const getPasswordRequirements = (password: string) => {
     return {
@@ -148,29 +149,30 @@ const AuthFormController: React.FC<AuthFormProps> = ({
         const userName = studentData?.nombre || "Usuario";
         handleSuccessRedirect(userName, false);
       } else {
-        // Llamar directamente a authService en lugar del contexto
-        // para evitar que setIsLoading(true) del contexto cause re-renders
-        await authService.register({
-          email: formData.email,
-          password: formData.password,
-          nombre: formData.firstName,
-          apellido: formData.lastName,
-          dni: formData.dni,
-          aceptaTerminos: formData.acceptTerms,
-        });
+        await register(formData);
         const studentData = authService.getStudentDataFromStorage();
         const userName = studentData?.nombre || "Usuario";
         handleSuccessRedirect(userName, true);
       }
     } catch (error: any) {
-      // Caso: Usuario existe con Google, ofrecer vincular password
+      // Caso 1 (Registro): Usuario existe con Google, ofrecer vincular password
       if (error.code === "USER_EXISTS_WITH_GOOGLE") {
         setPendingGoogleData({
           email: error.email,
           existingUid: error.existingUid,
         });
         setShowLinkGoogleModal(true);
-      } else {
+      } 
+      // Caso 2 (Login): Usuario no tiene password pero tiene Google, ofrecer agregar password
+      else if (error.code === "USER_HAS_GOOGLE_ONLY") {
+        setPendingGoogleData({
+          email: formData.email, // Usar el email del formulario
+          existingUid: error.existingUid,
+        });
+        setLinkPasswordMode('add-password'); // Modo: agregar password a cuenta con Google
+        setShowLinkPasswordModal(true);
+      } 
+      else {
         toast.error(error instanceof Error ? error.message : "Error en el proceso");
       }
     } finally {
@@ -221,11 +223,26 @@ const AuthFormController: React.FC<AuthFormProps> = ({
     }
   };
 
-  // Handler para vincular Google con contraseña
+  // Handler para vincular Google con contraseña O agregar contraseña a cuenta de Google
   const handleLinkGoogleSubmit = async (password: string) => {
     try {
       setIsSubmitting(true);
-      await linkGoogleToPassword(pendingGoogleData.email, password);
+      
+      if (linkPasswordMode === 'add-password') {
+        // Caso: Usuario tiene Google, quiere agregar password (viene del login)
+        // Usamos linkPasswordToGoogle pero sin los datos de registro (ya existen en Firestore)
+        await linkPasswordToGoogle(
+          pendingGoogleData.email,
+          password,
+          "", // nombre vacío, no se actualiza
+          "", // apellido vacío, no se actualiza
+          "", // dni vacío, no se actualiza
+          false // aceptaTerminos false, no se actualiza
+        );
+      } else {
+        // Caso: Usuario intenta login con Google pero tiene password (viene de Google auth)
+        await linkGoogleToPassword(pendingGoogleData.email, password);
+      }
       
       const studentData = authService.getStudentDataFromStorage();
       const userName = studentData?.nombre || "Usuario";
@@ -233,6 +250,7 @@ const AuthFormController: React.FC<AuthFormProps> = ({
       
       setShowLinkPasswordModal(false);
       setPendingGoogleData(null);
+      setLinkPasswordMode('link-google'); // Reset
     } catch (error: any) {
       toast.error(error.message || "Error vinculando cuenta");
       throw error;
@@ -326,16 +344,18 @@ const AuthFormController: React.FC<AuthFormProps> = ({
         isModal={isModal}
       />
 
-      {/* Modal: Vincular Google con contraseña */}
+      {/* Modal: Vincular Google con contraseña O agregar contraseña a Google */}
       <LinkPasswordModal
         isOpen={showLinkPasswordModal}
         onClose={() => {
           setShowLinkPasswordModal(false);
           setPendingGoogleData(null);
+          setLinkPasswordMode('link-google'); // Reset
         }}
         onSubmit={handleLinkGoogleSubmit}
         email={pendingGoogleData?.email || ""}
         isSubmitting={isSubmitting}
+        mode={linkPasswordMode}
       />
 
       {/* Modal: Vincular password a Google */}

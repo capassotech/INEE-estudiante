@@ -76,86 +76,49 @@ class AuthService {
 
       return response.data;
     } catch (error: any) {
-      console.log("Error al registrar usuario:", error);
       localStorage.removeItem("studentData");
       
-      // Si el backend devuelve un error estructurado
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        // Verificar si tiene el código de error especial
-        if (errorData.code === "USER_EXISTS_WITH_GOOGLE") {
-          // Lanzar el error con todas las propiedades
-          throw errorData;
-        }
-        
-        // Para otros errores, lanzar como Error normal
-        if (errorData.error) {
-          throw new Error(errorData.error);
-        }
-        
-        // Si no tiene ni code ni error, lanzar el objeto completo
-        throw errorData;
+      // Caso especial: Usuario existe con Google
+      if (error.response?.data?.code === "USER_EXISTS_WITH_GOOGLE") {
+        throw {
+          code: "USER_EXISTS_WITH_GOOGLE",
+          message: error.response.data.message,
+          email: error.response.data.email,
+          existingUid: error.response.data.existingUid,
+        };
       }
-      
-      throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
+
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error en el registro");
+      }
+      throw new Error("Error de conexión. Verifica tu conexión a internet.");
     }
   }
 
   async login(credentials: LoginData): Promise<AuthResponse> {
     try {
-      localStorage.removeItem("studentData");
-      
       const response = await api.post("/auth/login", credentials);
 
       if (response.data.customToken) {
         await signInWithCustomToken(auth, response.data.customToken);
-        
-        let retries = 0;
-        while (!auth.currentUser && retries < 10) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          retries++;
-        }
-        
-        if (auth.currentUser) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      if (auth.currentUser) {
-        try {
-          const currentUid = auth.currentUser.uid;
-          const profile = await this.getProfile(currentUid);
-          
-          if (profile.uid !== currentUid) {
-            console.error("Error: El perfil obtenido no corresponde al usuario actual");
-            await this.logout();
-            throw new Error("Error de autenticación: perfil no coincide");
-          }
-          
-          const studentData = {
-            uid: profile.uid,
-            email: profile.email,
-            nombre: profile.nombre,
-            apellido: profile.apellido,
-            role: profile.role || "student",
-            loginTime: new Date().toISOString(),
-          };
-          localStorage.setItem("studentData", JSON.stringify(studentData));
-        } catch (profileError) {
-          console.error("Error al obtener perfil después del login:", profileError);
-          await this.logout();
-          throw profileError;
-        }
       }
 
       return response.data;
     } catch (error: any) {
-      localStorage.removeItem("studentData");
-      if (error.response?.data) {
-        throw error.response.data;
+      // Caso especial: Usuario existe solo con Google
+      if (error.response?.data?.code === "USER_HAS_GOOGLE_ONLY") {
+        throw {
+          code: "USER_HAS_GOOGLE_ONLY",
+          message: error.response.data.message,
+          email: error.response.data.email,
+          existingUid: error.response.data.existingUid,
+        };
       }
-      throw new Error(error.message || "Error de conexión. Verifica tu conexión a internet.");
+
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || "Error en el login");
+      }
+      throw new Error("Error de conexión. Verifica tu conexión a internet.");
     }
   }
 
@@ -164,29 +127,41 @@ class AuthService {
       const googleProvider = new GoogleAuthProvider();
       const authInstance = getAuth();
 
-      // Abrir popup de Google
+      // CRÍTICO: Prevenir vinculación automática
+      // Firebase puede vincular automáticamente Google a una cuenta existente con password
+      // Necesitamos prevenirlo para mantener control del flujo
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
       const result = await signInWithPopup(authInstance, googleProvider);
       const user = result.user;
+      
+      // 🔍 DEBUG: Ver qué proveedores tiene el usuario DESPUÉS del popup
+      console.log("==================== DEBUG FRONTEND AUTH ====================");
+      console.log("Usuario después del popup de Google:");
+      console.log("- UID:", user.uid);
+      console.log("- Email:", user.email);
+      console.log("- Provider Data:", user.providerData);
+      console.log("- Proveedores:", user.providerData.map(p => p.providerId));
+      console.log("============================================================");
+      
       const idToken = await user.getIdToken();
 
-      // Llamar al backend con el idToken (y opcionalmente DNI)
       const response = await api.post("/auth/google", {
         idToken,
         dni,
         aceptaTerminos,
       });
 
-      // Si todo salió bien, hacer login con el custom token
       if (response.data.token) {
         await signInWithCustomToken(auth, response.data.token);
       }
 
       return response.data;
     } catch (error: any) {
-      // Hacer logout si hay error
       await this.logout();
 
-      // Caso 1: Necesita completar registro con DNI
       if (error.response?.data?.code === "NEEDS_REGISTRATION_DATA") {
         throw {
           code: "NEEDS_REGISTRATION_DATA",
@@ -195,7 +170,6 @@ class AuthService {
         };
       }
 
-      // Caso 2: Necesita vincular con password
       if (error.response?.data?.code === "NEEDS_PASSWORD_TO_LINK") {
         throw {
           code: "NEEDS_PASSWORD_TO_LINK",
