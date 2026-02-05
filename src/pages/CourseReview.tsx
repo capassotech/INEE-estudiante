@@ -61,7 +61,7 @@ const CourseReview = () => {
 
       toast({
         title: "¡Reseña enviada!",
-        description: "Gracias por tu opinión. Serás redirigido al inicio.",
+        description: "Gracias por tu opinión. Serás redirigido a la formación.",
       });
 
       setTimeout(() => navigate(`/curso/${course.id}`), 2000);
