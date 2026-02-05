@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import reviewService from "@/services/reviewService";
 import { toast } from "@/hooks/use-toast"; 
+import examenService from "@/services/examenService";
 
 const CourseReview = () => {
   const navigate = useNavigate();
@@ -22,6 +23,15 @@ const CourseReview = () => {
   const [loading, setLoading] = useState(false);
   const [loadingSkip, setLoadingSkip] = useState(false);
   const [error, setError] = useState("");
+  const [hasExamen, setHasExamen] = useState(false);
+
+  useEffect(() => {
+    const checkExam = async () => {
+      const examen = await examenService.getExamenByFormacion(course.id);
+      if (examen) setHasExamen(true);
+    }
+    checkExam();
+  }, [course.id])
 
   const handleSubmit = async () => {
     if (!user) {
@@ -44,9 +54,6 @@ const CourseReview = () => {
           const key = `review_sent_${user.uid}_${course.id}`;
           localStorage.setItem(key, "true");
           
-          // Limpiar el flag de sessionStorage si existía
-          const skipKey = `review_skipped_${user.uid}_${course.id}`;
-          sessionStorage.removeItem(skipKey);
         } catch (error) {
           console.warn("Error al guardar flag de reseña enviada:", error);
         }
@@ -54,10 +61,10 @@ const CourseReview = () => {
 
       toast({
         title: "¡Reseña enviada!",
-        description: "Gracias por tu opinión. Serás redirigido al inicio.",
+        description: "Gracias por tu opinión. Serás redirigido a la formación.",
       });
 
-      setTimeout(() => navigate("/"), 2000);
+      setTimeout(() => navigate(`/curso/${course.id}`), 2000);
     } catch (err: any) {
       console.error(err);
       toast({
@@ -72,36 +79,18 @@ const CourseReview = () => {
   };
 
   const skipReview = async () => {
-    // Guardar en sessionStorage que el usuario omitió la reseña en esta sesión
-    // Lo hacemos primero para asegurar que se guarde antes de la navegación
-    if (user?.uid && course?.id) {
-      try {
-        const key = `review_skipped_${user.uid}_${course.id}`;
-        sessionStorage.setItem(key, "true");
-        console.log("Review skipped flag guardado en sessionStorage:", key);
-      } catch (error) {
-        console.warn("Error al guardar flag de reseña omitida:", error);
-      }
-    }
-
     try {
       setLoadingSkip(true);
       await reviewService.skipReview(user?.uid, course?.id);
       
       toast({
         title: "Reseña omitida",
-        description: "Muchas gracias por tu tiempo.",
+        description: "Serás redirigido al inicio.",
         variant: "default",
       });
-      // Volver al detalle del curso con todos los contenidos completados
-      // y evitar que se vuelva a disparar inmediatamente el flujo de reseña
-      if (course?.id) {
-        navigate(`/curso/${course.id}`, {
-          state: { fromReview: true },
-        });
-      } else {
-        navigate("/");
-      }
+      
+      // Redirigir al inicio cuando se omite la review
+      setTimeout(() => navigate("/"), 1500);
     } catch (err: any) {
       console.error(err);
       toast({
@@ -109,13 +98,9 @@ const CourseReview = () => {
         description: err.response?.data?.error,
         variant: "default",
       });
-      if (course?.id) {
-        navigate(`/curso/${course.id}`, {
-          state: { fromReview: true },
-        });
-      } else {
-        navigate("/");
-      }
+      
+      // Redirigir al inicio incluso si hay error
+      setTimeout(() => navigate("/"), 1500);
     } finally {
       setLoadingSkip(false);
     }
@@ -129,7 +114,7 @@ const CourseReview = () => {
             🎉 ¡Felicitaciones por completar tu formación!🎉
           </CardTitle>
           <p className="text-center text-gray-600 mt-2">
-            Tu opinión nos ayuda a seguir mejorando. ¿Nos dejas una reseña?
+            Debes dejar una reseña para poder {hasExamen ? "realizar el examen!" : "descargar tu certificado!"}
           </p>
         </CardHeader>
 
