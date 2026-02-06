@@ -37,11 +37,46 @@ export interface CertificadoValidationResponse {
     fechaEmision: string;
     qrCodeUrl: string;
     validationUrl: string;
+    tipo: 'APROBACION' | 'PARTICIPACION';
   };
   mensaje: string;
 }
 
 class CertificateService {
+  /**
+   * Obtener PDF del certificado por ID (para visualización)
+   */
+  async obtenerPdfCertificado(certificadoId: string): Promise<string> {
+    try {
+      // Crear una instancia de axios sin interceptor para llamadas públicas
+      const publicApi = axios.create({
+        baseURL: `${API_BASE_URL}/api`,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const response = await publicApi.get(
+        `/certificados/pdf/${certificadoId}`,
+        {
+          responseType: "blob",
+        }
+      );
+
+      // Crear un blob del PDF
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      
+      return url;
+    } catch (error: any) {
+      console.error("Error al obtener PDF del certificado:", error);
+      throw new Error(
+        error.response?.data?.error ||
+        "Error al obtener el PDF del certificado"
+      );
+    }
+  }
+
   /**
    * Generar y descargar certificado PDF
    */
