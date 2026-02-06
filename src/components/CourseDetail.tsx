@@ -31,6 +31,33 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 import reviewService from "@/services/reviewService";
+import DOMPurify from 'dompurify';
+
+// Función helper para sanitizar HTML de forma segura
+const sanitizeHTML = (html: string): string => {
+  if (!html) return '';
+  
+  // Verificar si el contenido ya es HTML (contiene tags HTML)
+  const isHTML = /<[a-z][\s\S]*>/i.test(html);
+  
+  let processedHtml = html;
+  
+  // Solo convertir saltos de línea a <br> si NO es HTML (texto plano)
+  if (!isHTML) {
+    processedHtml = html
+      .replace(/\r\n/g, '\n') // Normalizar saltos de línea Windows
+      .replace(/\r/g, '\n')   // Normalizar saltos de línea Mac
+      .replace(/\n/g, '<br>'); // Convertir saltos de línea a <br>
+  }
+  
+  if (typeof window !== 'undefined') {
+    return DOMPurify.sanitize(processedHtml, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'span', 'div', 'b', 'i'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style']
+    });
+  }
+  return processedHtml;
+};
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -42,13 +69,13 @@ const CourseDetail = () => {
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
   const [hasUserReview, setHasUserReview] = useState(false);
   const [hasExamen, setHasExamen] = useState(false);
   const [examenAprobado, setExamenAprobado] = useState(false);
   const [intento, setIntento] = useState(1);
   const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
-  const [downloadingCertificate, setDownloadingCertificate] = useState(false);
   const isCheckingExamen = useRef(false);
   
   // Refs para los módulos (para scroll automático)
@@ -563,7 +590,6 @@ const CourseDetail = () => {
     if (!courseId) return;
     
     try {
-      setDownloadingCertificate(true);
       toast.loading('Generando certificado...', { id: 'certificate-download' });
       
       await certificateService.generarCertificado(courseId);
@@ -583,8 +609,6 @@ const CourseDetail = () => {
       } else {
         toast.error(error.message || 'Error al descargar el certificado', { id: 'certificate-download' });
       }
-    } finally {
-      setDownloadingCertificate(false);
     }
   };
 
@@ -774,7 +798,7 @@ const CourseDetail = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [progressPercentage, courseData, courseId, navigate, location.state, hasUserReview]);
+  }, [progressPercentage, courseData, courseId, navigate, hasUserReview]);
   
   if (isLoadingCourse) {
     return <Loader fullScreen size="lg" showText={true} />;
@@ -815,9 +839,12 @@ const CourseDetail = () => {
           <div className="mt-1">
             {showFullDescription ? (
               <div className="space-y-2">
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line">
-                  {courseData.descripcion}
-                </p>
+                <p 
+                  className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words"
+                  dangerouslySetInnerHTML={{ 
+                    __html: sanitizeHTML(courseData.descripcion || '') 
+                  }}
+                />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -829,11 +856,14 @@ const CourseDetail = () => {
               </div>
             ) : (
               <div>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words">
-                  {courseData.descripcion && courseData.descripcion.length > 200
-                    ? `${courseData.descripcion.substring(0, 200)}...`
-                    : courseData.descripcion}
-                </p>
+                <p 
+                  className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words"
+                  dangerouslySetInnerHTML={{ 
+                    __html: courseData.descripcion && courseData.descripcion.length > 200
+                      ? sanitizeHTML(courseData.descripcion.substring(0, 200) + '...')
+                      : sanitizeHTML(courseData.descripcion || '')
+                  }}
+                />
                 {courseData.descripcion && courseData.descripcion.length > 200 && (
                   <Button
                     variant="ghost"
@@ -962,19 +992,11 @@ const CourseDetail = () => {
               size="lg"
               className="w-full sm:w-auto text-sm sm:text-base bg-green-600 hover:bg-green-700 font-semibold"
               onClick={handleDownloadCertificate}
-              disabled={downloadingCertificate}
             >
-              {downloadingCertificate ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generando Certificado...
-                </>
-              ) : (
-                <>
-                  <Award className="w-4 h-4 mr-2" />
-                  Descargar Certificado
-                </>
-              )}
+              <>
+                <Award className="w-4 h-4 mr-2" />
+                Descargar Certificado
+              </>
             </Button>
           </CardContent>
         </Card>
@@ -1098,9 +1120,63 @@ const CourseDetail = () => {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line leading-relaxed">
-                            {module.descripcion}
-                          </p>
+                          <div className="space-y-2">
+                            {expandedDescriptions.has(module.id) ? (
+                              <div className="space-y-2">
+                                <p 
+                                  className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line leading-relaxed"
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: sanitizeHTML(module.descripcion || '') 
+                                  }}
+                                />
+                                {module.descripcion && module.descripcion.length > 200 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs sm:text-sm text-primary hover:text-primary/80 p-0 h-auto"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedDescriptions((prev) => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(module.id);
+                                        return newSet;
+                                      });
+                                    }}
+                                  >
+                                    Ver menos
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <div>
+                                <p 
+                                  className="text-sm sm:text-base text-gray-600 dark:text-gray-300 break-words whitespace-pre-line leading-relaxed"
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: module.descripcion && module.descripcion.length > 200
+                                      ? sanitizeHTML(module.descripcion.substring(0, 200) + '...')
+                                      : sanitizeHTML(module.descripcion || '')
+                                  }}
+                                />
+                                {module.descripcion && module.descripcion.length > 200 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs sm:text-sm text-primary hover:text-primary/80 p-0 h-auto mt-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedDescriptions((prev) => {
+                                        const newSet = new Set(prev);
+                                        newSet.add(module.id);
+                                        return newSet;
+                                      });
+                                    }}
+                                  >
+                                    Ver más
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <Progress
                             value={moduleProgress}
                             className={`h-2 mt-2 ${getProgressColorClass(moduleProgress)}`}

@@ -5,6 +5,33 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Award, ChevronDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
+import DOMPurify from 'dompurify';
+
+// Función helper para sanitizar HTML de forma segura
+const sanitizeHTML = (html: string): string => {
+  if (!html) return '';
+  
+  // Verificar si el contenido ya es HTML (contiene tags HTML)
+  const isHTML = /<[a-z][\s\S]*>/i.test(html);
+  
+  let processedHtml = html;
+  
+  // Solo convertir saltos de línea a <br> si NO es HTML (texto plano)
+  if (!isHTML) {
+    processedHtml = html
+      .replace(/\r\n/g, '\n') // Normalizar saltos de línea Windows
+      .replace(/\r/g, '\n')   // Normalizar saltos de línea Mac
+      .replace(/\n/g, '<br>'); // Convertir saltos de línea a <br>
+  }
+  
+  if (typeof window !== 'undefined') {
+    return DOMPurify.sanitize(processedHtml, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'span', 'div', 'b', 'i'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style']
+    });
+  }
+  return processedHtml;
+};
 
 interface CourseCardProps {
     course: Course;
@@ -62,9 +89,12 @@ export default function CourseCard({ course, progress }: CourseCardProps) {
                                 <Award className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                             )}
                         </div>
-                        <p className={`text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug ${!isExpanded ? 'line-clamp-2' : ''}`}>
-                            {course.descripcion}
-                        </p>
+                        <p 
+                            className={`text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug ${!isExpanded ? 'line-clamp-2' : ''}`}
+                            dangerouslySetInnerHTML={{ 
+                                __html: sanitizeHTML(course.descripcion || '') 
+                            }}
+                        />
                         {course.descripcion && course.descripcion.length > 100 && (
                             <div className="flex items-center gap-1 mb-3">
                                 <button
