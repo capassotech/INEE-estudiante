@@ -216,7 +216,7 @@ const ValidateCertificate = () => {
 
                   {/* Texto de estudios */}
                   <p className="text-xs sm:text-sm text-[#6B6B6B] mb-2 sm:mb-3">
-                    Los estudios correspondientes a la formación ejecutiva
+                    Los estudios correspondientes a la formación profesional
                   </p>
 
                   {/* Nombre del curso (formación) */}
@@ -229,78 +229,33 @@ const ValidateCertificate = () => {
                     Habiendo completado de manera satisfactoria las actividades teóricas y prácticas del programa.
                   </p>
 
-                  {/* Footer: Firmas y Botón de descarga */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-end">
-                    {/* Firma izquierda */}
-                    <div className="hidden md:block">
-                      <div className="w-28 lg:w-32 h-[1px] bg-[#8B7355] mb-2"></div>
-                      <p className="text-xs sm:text-sm text-[#4A4A4A]">Saenz Beatriz</p>
-                      <p className="text-[10px] sm:text-xs text-[#8B3740] leading-tight">
-                        Directora de Negocios y Estrategia.
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-[#8B3740] leading-tight">
-                        Especialista en Liderazgo corporativo.
-                      </p>
-                    </div>
-
-                    {/* Botón de descarga central (reemplaza al QR) */}
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      {loadingPdf ? (
-                        <div className="flex flex-col items-center py-4">
-                          <Loader size="md" showText={false} />
-                          <span className="text-xs text-[#6B6B6B] mt-2">Preparando...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={handleDownloadCertificate}
-                            disabled={!pdfUrl}
-                            size="lg"
-                            className="bg-[#8B3740] hover:bg-[#5C2C2C] text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 px-6 sm:px-8 py-4 sm:py-5 text-sm sm:text-base rounded"
-                          >
-                            <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                            Descargar
-                          </Button>
-                          <p className="text-xs sm:text-sm text-[#6B6B6B]">
-                            Fecha {new Date(certificado.fechaEmision).toLocaleDateString("es-AR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric"
-                            })}
-                          </p>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Firma derecha */}
-                    <div className="hidden md:block text-right">
-                      <div className="w-28 lg:w-32 h-[1px] bg-[#8B7355] mb-2 ml-auto"></div>
-                      <p className="text-xs sm:text-sm text-[#4A4A4A]">Krämer. Rocio Ailen.</p>
-                      <p className="text-[10px] sm:text-xs text-[#8B3740] leading-tight">
-                        Directora Creativa.
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-[#8B3740] leading-tight">
-                        Especialista en Liderazgo Transformacional.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Firmas en móvil */}
-                  <div className="grid grid-cols-2 gap-4 mt-6 md:hidden">
-                    <div>
-                      <div className="w-20 h-[1px] bg-[#8B7355] mb-2"></div>
-                      <p className="text-xs text-[#4A4A4A]">Saenz Beatriz</p>
-                      <p className="text-[10px] text-[#8B3740] leading-tight">
-                        Directora de Negocios y Estrategia.
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="w-20 h-[1px] bg-[#8B7355] mb-2 ml-auto"></div>
-                      <p className="text-xs text-[#4A4A4A]">Krämer. Rocio Ailen.</p>
-                      <p className="text-[10px] text-[#8B3740] leading-tight">
-                        Directora Creativa.
-                      </p>
-                    </div>
+                  {/* Footer: Botón de descarga */}
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    {loadingPdf ? (
+                      <div className="flex flex-col items-center py-4">
+                        <Loader size="md" showText={false} />
+                        <span className="text-xs text-[#6B6B6B] mt-2">Preparando...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={handleDownloadCertificate}
+                          disabled={!pdfUrl}
+                          size="lg"
+                          className="bg-[#8B3740] hover:bg-[#5C2C2C] text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 px-6 sm:px-8 py-4 sm:py-5 text-sm sm:text-base rounded"
+                        >
+                          <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                          Descargar
+                        </Button>
+                        <p className="text-xs sm:text-sm text-[#6B6B6B]">
+                          Fecha {new Date(certificado.fechaEmision).toLocaleDateString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric"
+                          })}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
