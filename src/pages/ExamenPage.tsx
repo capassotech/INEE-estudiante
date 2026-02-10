@@ -33,6 +33,7 @@ export default function ExamenPage() {
   const [intento, setIntento] = useState(1);
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [notaFallida, setNotaFallida] = useState<number | null>(null);
+  const [notaAprobado, setNotaAprobado] = useState<number | null>(null);
 
   useEffect(() => {
     if (courseId && user?.uid) {
@@ -215,6 +216,7 @@ export default function ExamenPage() {
       setSubmitting(false);
 
       if (aprobadoCalculado) {
+        setNotaAprobado(notaCalculada);
         // Mostrar loader profesional mientras procesa
         setProcessingResult(true);
         toast.success(`¡Felicitaciones! Has aprobado el examen con ${notaCalculada}%`);
@@ -222,13 +224,14 @@ export default function ExamenPage() {
         // Esperar que se vea el loader antes de navegar
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Navegar con datos locales después de aprobar
+        // Navegar con datos locales después de aprobar (incluye nota para mostrarla en el curso)
         navigate(`/curso/${courseId}`, { 
           state: { 
             examenCompletado: true,
             aprobado: true,
             intento: intento,
             certificadoListo: true,
+            nota: notaCalculada,
             timestamp: Date.now() // Para forzar re-render
           },
           replace: false
@@ -266,6 +269,11 @@ export default function ExamenPage() {
             <h2 className="text-2xl font-bold mb-2 text-green-600 dark:text-green-400">
               ¡Examen Aprobado!
             </h2>
+            {notaAprobado != null && (
+              <p className="text-xl font-semibold text-green-700 dark:text-green-300 mb-2">
+                Nota: {notaAprobado.toFixed(1)}%
+              </p>
+            )}
             <p className="text-gray-600 dark:text-gray-300 mb-4">
               Generando tu certificado...
             </p>

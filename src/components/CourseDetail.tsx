@@ -74,6 +74,7 @@ const CourseDetail = () => {
   const [hasUserReview, setHasUserReview] = useState(false);
   const [hasExamen, setHasExamen] = useState(false);
   const [examenAprobado, setExamenAprobado] = useState(false);
+  const [notaExamenAprobado, setNotaExamenAprobado] = useState<number | null>(null);
   const [intento, setIntento] = useState(1);
   const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
   const isCheckingExamen = useRef(false);
@@ -700,6 +701,7 @@ const CourseDetail = () => {
         certificadoListo?: boolean; 
         aprobado?: boolean; 
         intento?: number;
+        nota?: number;
         examenYaAprobado?: boolean;
         mostrarCertificado?: boolean;
         examenFallido?: boolean;
@@ -712,6 +714,8 @@ const CourseDetail = () => {
         setExamenAprobado(true);
         setLoadingExamenStatus(false);
         isCheckingExamen.current = false;
+        // Si no viene la nota en state, se cargará en el efecto que rellena nota cuando falta
+        setNotaExamenAprobado(examenState.nota ?? null);
         
         console.log('🎓 ESTADO DEL ESTUDIANTE: Evaluación ya aprobada → MOSTRANDO CERTIFICADO');
         
@@ -725,6 +729,7 @@ const CourseDetail = () => {
         setHasExamen(true);
         setExamenAprobado(true);
         setIntento(examenState.intento || 1);
+        setNotaExamenAprobado(examenState.nota ?? null);
         setLoadingExamenStatus(false);
         isCheckingExamen.current = false;
         
@@ -759,6 +764,11 @@ const CourseDetail = () => {
             // Si el último intento fue desaprobado, mostrar interfaz de reintento
             setIntento(ultimoIntento.intento + 1);
             setExamenAprobado(ultimoIntento.aprobado);
+            if (ultimoIntento.aprobado) {
+              setNotaExamenAprobado(ultimoIntento.nota);
+            } else {
+              setNotaExamenAprobado(null);
+            }
             
             // Log del estado del estudiante
             if (ultimoIntento.aprobado) {
@@ -769,11 +779,13 @@ const CourseDetail = () => {
           } else {
             setIntento(1);
             setExamenAprobado(false);
+            setNotaExamenAprobado(null);
             console.log('📝 ESTADO DEL ESTUDIANTE: Curso completado → MOSTRANDO EVALUACIÓN (Primer intento)');
           }
         } else {
           setHasExamen(false);
           setExamenAprobado(false);
+          setNotaExamenAprobado(null);
           setIntento(1);
           console.log('✅ ESTADO DEL ESTUDIANTE: Curso completado → MOSTRANDO CERTIFICADO (Sin examen)');
         }
@@ -781,6 +793,7 @@ const CourseDetail = () => {
         console.error('❌ Error checking examen:', error);
         setHasExamen(false);
         setExamenAprobado(false);
+        setNotaExamenAprobado(null);
         setIntento(1);
       } finally {
         setLoadingExamenStatus(false);
@@ -790,6 +803,20 @@ const CourseDetail = () => {
 
     checkExamen();
   }, [progressPercentage, courseId, user?.uid, isLoadingProgress, location.key]);
+
+  // Cargar la nota del examen aprobado cuando falta (ej: usuario entró con "ya aprobado")
+  useEffect(() => {
+    if (!courseId || !user?.uid || !examenAprobado || !hasExamen || notaExamenAprobado != null || loadingExamenStatus) return;
+    const loadNota = async () => {
+      try {
+        const ultimo = await examenService.getUltimoIntento(user.uid, courseId);
+        if (ultimo?.aprobado && ultimo.nota != null) setNotaExamenAprobado(ultimo.nota);
+      } catch {
+        // ignorar
+      }
+    };
+    loadNota();
+  }, [courseId, user?.uid, examenAprobado, hasExamen, notaExamenAprobado, loadingExamenStatus]);
 
   useEffect(() => {
     if (progressPercentage === 100 && courseData && !hasUserReview) {
@@ -982,6 +1009,11 @@ const CourseDetail = () => {
             <h3 className="font-bold text-lg sm:text-xl mb-2 text-green-800 dark:text-green-300">
               🎉 Certificado de Finalización Disponible
             </h3>
+            {hasExamen && examenAprobado && (
+              <p className="text-sm sm:text-base font-semibold text-green-700 dark:text-green-400 mb-2">
+                Examen final aprobado — Nota: {notaExamenAprobado != null ? `${notaExamenAprobado.toFixed(1)}%` : '—'}
+              </p>
+            )}
             <p className="text-sm sm:text-base text-gray-700 dark:text-gray-200 mb-4 font-medium">
               {hasExamen && examenAprobado
                 ? "¡Excelente! Has completado el curso y aprobado la evaluación final. Tu certificado está listo."
