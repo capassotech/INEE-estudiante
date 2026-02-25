@@ -180,6 +180,8 @@ class UserService {
           'Pragma': 'no-cache'
         }
       });
+
+      console.log(response)
       
       if (Array.isArray(response.data.events)) {
         return {
