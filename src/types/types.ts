@@ -119,3 +119,9 @@ export interface Evento {
     estado: string;
     precio: number;
 }
+
+export interface Recomendacion {
+    id: string;
+    titulo: string;
+    descripcion: string;
+}
