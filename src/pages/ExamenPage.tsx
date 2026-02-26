@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -117,6 +118,7 @@ export default function ExamenPage() {
     const respuestasIniciales: RespuestaUsuario[] = examenData.preguntas.map((pregunta) => ({
       preguntaId: pregunta.id,
       respuestaIds: [],
+      fundamentacion: '',
     }));
     setRespuestas(respuestasIniciales);
   };
@@ -153,6 +155,16 @@ export default function ExamenPage() {
         }
         return respuesta;
       })
+    );
+  };
+
+  const updateFundamentacion = (preguntaId: string, fundamentacion: string) => {
+    setRespuestas((prev) =>
+      prev.map((respuesta) =>
+        respuesta.preguntaId === preguntaId
+          ? { ...respuesta, fundamentacion }
+          : respuesta
+      )
     );
   };
 
@@ -378,6 +390,7 @@ export default function ExamenPage() {
           {examenAleatorio.preguntas.map((pregunta, index) => {
             const respuestaUsuario = respuestas.find((r) => r.preguntaId === pregunta.id);
             const respuestasSeleccionadas = respuestaUsuario?.respuestaIds || [];
+            const fundamentacion = respuestaUsuario?.fundamentacion || '';
             const esMultiple = esMultipleRespuesta(pregunta.id);
 
             return (
@@ -387,45 +400,11 @@ export default function ExamenPage() {
                     Pregunta {index + 1}: {pregunta.texto}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {esMultiple ? (
-                    // Checkboxes para múltiples respuestas
-                    pregunta.respuestas.map((respuesta) => {
-                      const isChecked = respuestasSeleccionadas.includes(respuesta.id);
-
-                      return (
-                        <div
-                          key={respuesta.id}
-                          className={`flex items-start space-x-3 p-3 rounded-lg border-2 transition-colors ${
-                            isChecked
-                              ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
-                              : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700'
-                          }`}
-                        >
-                          <Checkbox
-                            id={`${pregunta.id}-${respuesta.id}`}
-                            checked={isChecked}
-                            onCheckedChange={() => toggleRespuesta(pregunta.id, respuesta.id, esMultiple)}
-                            disabled={submitting}
-                            className="mt-1"
-                          />
-                          <Label
-                            htmlFor={`${pregunta.id}-${respuesta.id}`}
-                            className="flex-1 cursor-pointer"
-                          >
-                            {respuesta.texto}
-                          </Label>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    // Radio buttons para una sola respuesta
-                    <RadioGroup
-                      value={respuestasSeleccionadas[0] || ''}
-                      onValueChange={(value) => toggleRespuesta(pregunta.id, value, esMultiple)}
-                      disabled={submitting}
-                    >
-                      {pregunta.respuestas.map((respuesta) => {
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {esMultiple ? (
+                      // Checkboxes para múltiples respuestas
+                      pregunta.respuestas.map((respuesta) => {
                         const isChecked = respuestasSeleccionadas.includes(respuesta.id);
 
                         return (
@@ -437,9 +416,10 @@ export default function ExamenPage() {
                                 : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700'
                             }`}
                           >
-                            <RadioGroupItem
+                            <Checkbox
                               id={`${pregunta.id}-${respuesta.id}`}
-                              value={respuesta.id}
+                              checked={isChecked}
+                              onCheckedChange={() => toggleRespuesta(pregunta.id, respuesta.id, esMultiple)}
                               disabled={submitting}
                               className="mt-1"
                             />
@@ -451,9 +431,60 @@ export default function ExamenPage() {
                             </Label>
                           </div>
                         );
-                      })}
-                    </RadioGroup>
-                  )}
+                      })
+                    ) : (
+                      // Radio buttons para una sola respuesta
+                      <RadioGroup
+                        value={respuestasSeleccionadas[0] || ''}
+                        onValueChange={(value) => toggleRespuesta(pregunta.id, value, esMultiple)}
+                        disabled={submitting}
+                      >
+                        {pregunta.respuestas.map((respuesta) => {
+                          const isChecked = respuestasSeleccionadas.includes(respuesta.id);
+
+                          return (
+                            <div
+                              key={respuesta.id}
+                              className={`flex items-start space-x-3 p-3 rounded-lg border-2 transition-colors ${
+                                isChecked
+                                  ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
+                                  : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700'
+                              }`}
+                            >
+                              <RadioGroupItem
+                                id={`${pregunta.id}-${respuesta.id}`}
+                                value={respuesta.id}
+                                disabled={submitting}
+                                className="mt-1"
+                              />
+                              <Label
+                                htmlFor={`${pregunta.id}-${respuesta.id}`}
+                                className="flex-1 cursor-pointer"
+                              >
+                                {respuesta.texto}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </RadioGroup>
+                    )}
+                  </div>
+
+                  {/* Campo de fundamentación */}
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <Label htmlFor={`fundamentacion-${pregunta.id}`} className="text-sm font-medium mb-2 block">
+                      Fundamenta tu respuesta:
+                    </Label>
+                    <Textarea
+                      id={`fundamentacion-${pregunta.id}`}
+                      placeholder="Explica por qué elegiste esta respuesta..."
+                      value={fundamentacion}
+                      onChange={(e) => updateFundamentacion(pregunta.id, e.target.value)}
+                      disabled={submitting}
+                      rows={3}
+                      className="resize-none"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             );
