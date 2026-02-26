@@ -215,6 +215,25 @@ class UserService {
       };
     }
   }
+
+  async updateUserProfile(uid: string, data: { 
+    nombre: string; 
+    apellido: string; 
+    dni: string;
+  }) {
+    try {
+      console.log(data)
+      const response = await api.put(`/users/${uid}`, data);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Perfil actualizado correctamente'
+      };
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      throw error;
+    }
+  }
 }
 
 const userService = new UserService();
