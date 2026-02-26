@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Loader2, LogOut, Crown, CheckCircle, Clock, Mail, CreditCard, BookOpen, Sparkles, GraduationCap } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, CreditCard, BookOpen, Sparkles, GraduationCap, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -8,17 +8,26 @@ import RutasAprendizajeModal from "@/components/RutasAprendizajeModal";
 import { toast } from "sonner";
 import { Membership } from "@/types/types";
 import membershipService from "@/services/membershipService";
+import userService from "@/services/userService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function Profile() {
   const { user, isLoading, refreshUser, updateRouteUser } = useAuth();
   const navigate = useNavigate();
   const [rutaAprendizaje, setRutaAprendizaje] = useState<string | null>(null);
   const [isLoadingRuta, setIsLoadingRuta] = useState(true);
-  // const [membresia, setMembresia] = useState<Membership | null>(null);
-  // const [isLoadingMembresia, setIsLoadingMembresia] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Estados para el formulario de edición
+  const [editFormData, setEditFormData] = useState({
+    nombre: "",
+    apellido: "",
+    dni: ""
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -89,6 +98,50 @@ export default function Profile() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [rutaAprendizaje, user, refreshUser]);
 
+  const handleOpenEditProfileModal = () => {
+    if (user) {
+      setEditFormData({
+        nombre: user.nombre,
+        apellido: user.apellido,
+        dni: user.dni
+      });
+    }
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    if (user) {
+      setEditFormData({
+        nombre: user.nombre,
+        apellido: user.apellido,
+        dni: user.dni
+      });
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    try {
+      setIsSavingProfile(true);
+      
+      await userService.updateUserProfile(user.uid, editFormData);
+      
+      if (refreshUser) {
+        await refreshUser();
+      }
+      
+      toast.success("Perfil actualizado correctamente");
+      setEditModalOpen(false);
+    } catch (error) {
+      console.error("Error al actualizar perfil:", error);
+      toast.error("Error al actualizar el perfil");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
 
   const onSelectRoute = async (routeName: string) => {
     setRutaAprendizaje(routeName);
@@ -143,7 +196,7 @@ export default function Profile() {
         <div className="space-y-6">
           {/* Tarjeta de información personal */}
           <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-6 flex justify-between">
               <div className="flex items-start gap-6">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
                   {user.nombre.charAt(0)}
@@ -164,6 +217,10 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div onClick={() => handleOpenEditProfileModal()} className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 h-fit p-2 rounded-full transition-colors">
+                <Pencil size={20} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"/>
               </div>
             </CardContent>
           </Card>
@@ -334,14 +391,133 @@ export default function Profile() {
         </div> */}
         </div>
         </div>
-        
         <RutasAprendizajeModal 
           isOpen={isOpen} 
           onClose={() => setIsOpen(false)} 
           perfilActual={rutaAprendizaje || user.ruta_aprendizaje || ''} 
           onSelectRoute={onSelectRoute} 
         />
+
+        <EditProfileModal 
+          isOpen={editModalOpen}
+          onClose={handleCloseEditModal}
+          formData={editFormData}
+          setFormData={setEditFormData}
+          onSave={handleSaveProfile}
+          isSaving={isSavingProfile}
+        />
       </div>
     </React.Fragment>
+  );
+}
+
+
+const EditProfileModal = ({ 
+  isOpen, 
+  onClose, 
+  formData, 
+  setFormData, 
+  onSave, 
+  isSaving 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  formData: {
+    nombre: string;
+    apellido: string;
+    dni: string;
+  };
+  setFormData: React.Dispatch<React.SetStateAction<{
+    nombre: string;
+    apellido: string;
+    dni: string;
+  }>>;
+  onSave: () => void;
+  isSaving: boolean;
+}) => {
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Editar Perfil</DialogTitle>
+          <DialogDescription>
+            Actualiza tu información personal. Los cambios se guardarán en tu cuenta.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Nombre
+            </label>
+            <input
+              type="text"
+              value={formData.nombre}
+              onChange={(e) => handleInputChange('nombre', e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+              placeholder="Tu nombre"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Apellido
+            </label>
+            <input
+              type="text"
+              value={formData.apellido}
+              onChange={(e) => handleInputChange('apellido', e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+              placeholder="Tu apellido"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              DNI
+            </label>
+            <input
+              type="text"
+              value={formData.dni}
+              onChange={(e) => handleInputChange('dni', e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+              placeholder="Tu DNI"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-end pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving}
+            className="min-w-[100px]"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={onSave}
+            disabled={isSaving}
+            className="min-w-[100px] bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              "Guardar cambios"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
