@@ -26,89 +26,98 @@ export function Loader({
   };
 
   const containerClasses = fullScreen
-    ? "min-h-screen flex items-center justify-center bg-background"
+    ? "fixed inset-0 flex items-center justify-center bg-background z-50"
     : "flex items-center justify-center";
 
   return (
     <div className={cn(containerClasses, className)}>
       <div className="relative flex flex-col items-center justify-center">
-        {/* Anillo exterior giratorio */}
+        {/* Contenedor principal para todos los elementos animados */}
         <div 
-          className="absolute flex items-center justify-center"
+          className="relative"
           style={{
             width: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
             height: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
           }}
         >
+          {/* Anillo exterior giratorio */}
           <div 
-            className={cn(
-              "absolute rounded-full border-4 border-transparent",
-              "border-t-primary/30 border-r-primary/20",
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+            style={{
+              width: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
+              height: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
+            }}
+          >
+            <div 
+              className={cn(
+                "absolute rounded-full border-4 border-transparent",
+                "border-t-primary/30 border-r-primary/20",
+                "animate-spin-slow",
+                size === "sm" ? "w-20 h-20" : size === "md" ? "w-32 h-32" : "w-40 h-40"
+              )}
+              style={{ animationDuration: "2s" }}
+            />
+          </div>
+
+          {/* Anillo medio con efecto de pulso */}
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+            style={{
+              width: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
+              height: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
+            }}
+          >
+            <div 
+              className={cn(
+                "absolute rounded-full border-2 border-primary/40",
+                "animate-pulse",
+                size === "sm" ? "w-[72px] h-[72px]" : size === "md" ? "w-[112px] h-[112px]" : "w-[144px] h-[144px]"
+              )}
+              style={{ animationDuration: "1.5s" }}
+            />
+          </div>
+
+          {/* Logo principal con rotación suave y efecto de rebote */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+            {/* Círculo de fondo con efecto de pulso */}
+            <div 
+              className={cn(
+                "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10",
+                "animate-ping",
+                sizeClasses[size]
+              )}
+              style={{ animationDuration: "2s" }}
+            />
+            
+            {/* Contenedor del logo con rotación */}
+            <div className={cn(
+              "relative rounded-full bg-background/80 backdrop-blur-sm",
+              "p-3 shadow-2xl border-2 border-primary/20",
               "animate-spin-slow",
-              size === "sm" ? "w-20 h-20" : size === "md" ? "w-32 h-32" : "w-40 h-40"
-            )}
-            style={{ animationDuration: "2s" }}
-          />
-        </div>
-
-        {/* Anillo medio con efecto de pulso */}
-        <div 
-          className="absolute flex items-center justify-center"
-          style={{
-            width: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
-            height: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
-          }}
-        >
-          <div 
-            className={cn(
-              "absolute rounded-full border-2 border-primary/40",
-              "animate-pulse",
-              size === "sm" ? "w-[72px] h-[72px]" : size === "md" ? "w-[112px] h-[112px]" : "w-[144px] h-[144px]"
-            )}
-            style={{ animationDuration: "1.5s" }}
-          />
-        </div>
-
-        {/* Logo principal con rotación suave y efecto de rebote */}
-        <div className="relative">
-          {/* Círculo de fondo con efecto de pulso */}
-          <div 
-            className={cn(
-              "absolute inset-0 rounded-full bg-primary/10",
-              "animate-ping"
-            )}
-            style={{ animationDuration: "2s" }}
-          />
-          
-          {/* Contenedor del logo con rotación */}
-          <div className={cn(
-            "relative rounded-full bg-background/80 backdrop-blur-sm",
-            "p-3 shadow-2xl border-2 border-primary/20",
-            "animate-spin-slow",
-            sizeClasses[size]
-          )}>
-            <div className="w-full h-full flex items-center justify-center">
-              <img
-                src="/favicon.ico"
-                alt="INEE Logo"
-                className="w-full h-full object-contain drop-shadow-lg"
-                style={{ 
-                  animation: "none",
-                  transform: "scale(0.9)",
-                }}
-              />
+              sizeClasses[size]
+            )}>
+              <div className="w-full h-full flex items-center justify-center">
+                <img
+                  src="/favicon.ico"
+                  alt="INEE Logo"
+                  className="w-full h-full object-contain drop-shadow-lg"
+                  style={{ 
+                    animation: "none",
+                    transform: "scale(0.9)",
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Partículas decorativas orbitando alrededor del logo */}
-        <div 
-          className="absolute pointer-events-none flex items-center justify-center"
-          style={{
-            width: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
-            height: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
-          }}
-        >
+          {/* Partículas decorativas orbitando alrededor del logo */}
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            style={{
+              width: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
+              height: size === "sm" ? "160px" : size === "md" ? "240px" : "320px",
+            }}
+          >
           {[...Array(12)].map((_, i) => {
             const angle = (i * 30) * (Math.PI / 180);
             const distance = size === "sm" ? 48 : size === "md" ? 72 : 96;
@@ -130,15 +139,13 @@ export function Loader({
               />
             );
           })}
+          </div>
         </div>
 
         {/* Texto de carga con animación */}
         {showText && (
           <div 
-            className="flex flex-col items-center gap-3"
-            style={{
-              marginTop: size === "sm" ? "120px" : size === "md" ? "160px" : "200px",
-            }}
+            className="flex flex-col items-center gap-3 mt-8 w-full"
           >
             <div className="flex items-center gap-2">
               <span className="text-base font-semibold text-foreground/80">
