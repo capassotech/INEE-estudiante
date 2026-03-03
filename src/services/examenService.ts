@@ -49,6 +49,7 @@ export interface Examen {
 export interface RespuestaUsuario {
   preguntaId: string;
   respuestaIds: string[];
+  fundamentacion?: string;
 }
 
 export interface ExamenRealizado {
