@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -155,16 +154,6 @@ export default function ExamenPage() {
         }
         return respuesta;
       })
-    );
-  };
-
-  const updateFundamentacion = (preguntaId: string, fundamentacion: string) => {
-    setRespuestas((prev) =>
-      prev.map((respuesta) =>
-        respuesta.preguntaId === preguntaId
-          ? { ...respuesta, fundamentacion }
-          : respuesta
-      )
     );
   };
 
@@ -468,22 +457,6 @@ export default function ExamenPage() {
                         })}
                       </RadioGroup>
                     )}
-                  </div>
-
-                  {/* Campo de fundamentación */}
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <Label htmlFor={`fundamentacion-${pregunta.id}`} className="text-sm font-medium mb-2 block">
-                      Fundamenta tu respuesta:
-                    </Label>
-                    <Textarea
-                      id={`fundamentacion-${pregunta.id}`}
-                      placeholder="Explica por qué elegiste esta respuesta..."
-                      value={fundamentacion}
-                      onChange={(e) => updateFundamentacion(pregunta.id, e.target.value)}
-                      disabled={submitting}
-                      rows={3}
-                      className="resize-none"
-                    />
                   </div>
                 </CardContent>
               </Card>
