@@ -680,7 +680,7 @@ const InfoGeneralTab = ({
                                         <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                                             {recomendacion.titulo}
                                         </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
                                             {recomendacion.descripcion}
                                         </p>
                                     </div>
