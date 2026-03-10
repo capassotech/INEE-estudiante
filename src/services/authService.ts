@@ -97,10 +97,45 @@ class AuthService {
 
   async login(credentials: LoginData): Promise<AuthResponse> {
     try {
+      localStorage.removeItem("studentData");
+
       const response = await api.post("/auth/login", credentials);
 
       if (response.data.customToken) {
         await signInWithCustomToken(auth, response.data.customToken);
+
+        let retries = 0;
+        while (!auth.currentUser && retries < 10) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+
+        if (auth.currentUser) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          try {
+            const currentUid = auth.currentUser.uid;
+            const profile = await this.getProfile(currentUid);
+
+            if (profile.uid !== currentUid) {
+              console.error("Error: El perfil obtenido no corresponde al usuario actual");
+              await this.logout();
+              throw new Error("Error de autenticación: perfil no coincide");
+            }
+
+            const studentData = {
+              uid: profile.uid,
+              email: profile.email,
+              nombre: profile.nombre,
+              apellido: profile.apellido,
+              role: profile.role || "student",
+              lastProfileUpdate: new Date().toISOString(),
+            };
+            localStorage.setItem("studentData", JSON.stringify(studentData));
+          } catch (profileError) {
+            console.error("Error al obtener perfil después del login:", profileError);
+            // No hacer logout: el perfil se cargará por onAuthStateChanged
+          }
+        }
       }
 
       return response.data;
