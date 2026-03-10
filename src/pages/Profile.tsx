@@ -1,109 +1,134 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Loader2, Mail, CreditCard, BookOpen, Sparkles, GraduationCap, Pencil } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import RutasAprendizajeModal from "@/components/RutasAprendizajeModal";
+import { Loader2, Circle, Pencil } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Membership } from "@/types/types";
-import membershipService from "@/services/membershipService";
 import userService from "@/services/userService";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader } from "@/components/ui/loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-export default function Profile() {
-  const { user, isLoading, refreshUser, updateRouteUser } = useAuth();
+const rutasAprendizajeData = [
+  {
+    id: 1,
+    nombre: "CONSULTORÍA",
+    route_name: "consultoria",
+    descripcion:
+      "Desarrolla habilidades analíticas y estratégicas para resolver problemas complejos en organizaciones. Aprende a diagnosticar situaciones, proponer soluciones y generar valor como un asesor experto.",
+    color: "bg-white",
+    textColor: "text-gray-700",
+  },
+  {
+    id: 2,
+    nombre: "EMPRENDIMIENTO",
+    route_name: "emprendimiento",
+    descripcion:
+      "Convierte ideas en negocios reales. Aprende a identificar oportunidades, validar modelos de negocio, gestionar recursos y construir proyectos innovadores desde cero.",
+    color: "bg-white",
+    textColor: "text-gray-700",
+  },
+  {
+    id: 3,
+    nombre: "LIDERAZGO",
+    route_name: "liderazgo",
+    descripcion:
+      "Fortalece tu capacidad para inspirar, motivar y guiar equipos hacia el éxito. Domina la gestión de personas, la toma de decisiones y la creación de ambientes de alto rendimiento.",
+    color: "bg-white",
+    textColor: "text-gray-700",
+  },
+  {
+    id: 4,
+    nombre: "LÍDER-EMPRENDEDOR",
+    route_name: "lider-emprendedor",
+    descripcion:
+      "Aprende a construir y escalar equipos mientras desarrollas tu propia visión empresarial. Ideal para quienes quieren liderar su propio proyecto con una mentalidad innovadora y orientada al crecimiento.",
+    color: "bg-white",
+    textColor: "text-gray-700",
+  },
+  {
+    id: 5,
+    nombre: "CONSULTOR-LÍDER",
+    route_name: "consultor-lider",
+    descripcion:
+      "Combina expertise técnico con habilidades de gestión. Lidera proyectos de consultoría mientras diriges equipos multidisciplinarios y generas impacto estratégico en las organizaciones.",
+    color: "bg-white",
+    textColor: "text-gray-700",
+  },
+  {
+    id: 6,
+    nombre: "EMPRENDEDOR-CONSULTOR",
+    route_name: "emprendedor-consultor",
+    descripcion:
+      "Desarrolla negocios propios mientras ofreces tu expertise como asesor independiente. Combina la autonomía del emprendimiento con la versatilidad de la consultoría freelance o corporativa.",
+    color: "bg-white",
+    textColor: "text-gray-700",
+  },
+];
+
+const getPerfilNombre = (routeName: string | null | undefined): string => {
+  if (!routeName) return "Sin definir";
+  const ruta = rutasAprendizajeData.find((r) => r.route_name === routeName);
+  return ruta ? ruta.nombre : routeName;
+};
+
+const Profile = () => {
+  const { user, firebaseUser, isLoading, refreshUser, updateRouteUser } = useAuth();
   const navigate = useNavigate();
-  const [rutaAprendizaje, setRutaAprendizaje] = useState<string | null>(null);
-  const [isLoadingRuta, setIsLoadingRuta] = useState(true);
+  const [selectedRoute, setSelectedRoute] = useState<number | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Estados para el modal de edición de perfil
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Estados para el formulario de edición
   const [editFormData, setEditFormData] = useState({
     nombre: "",
     apellido: "",
-    dni: ""
+    dni: "",
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      if (user.ruta_aprendizaje) {
-        setRutaAprendizaje(user.ruta_aprendizaje);
-        setIsLoadingRuta(false);
-      } else {
-        const timeout = setTimeout(() => {
-          setIsLoadingRuta(false);
-        }, 1000);
+    if (!isLoading && !user) {
+      navigate("/login");
+    }
+  }, [user, isLoading, navigate]);
 
-        return () => clearTimeout(timeout);
+  // Preseleccionar la ruta actual del usuario
+  useEffect(() => {
+    if (user?.ruta_aprendizaje) {
+      const currentRoute = rutasAprendizajeData.find((r) => r.route_name === user.ruta_aprendizaje);
+      if (currentRoute) {
+        setSelectedRoute(currentRoute.id);
       }
     }
-  }, [user?.ruta_aprendizaje, user]);
+  }, [user?.ruta_aprendizaje]);
 
-  // Funcionalidad de membresías deshabilitada temporalmente
-  // useEffect(() => {
-  //   if (user) {
-  //     // Extraer el ID de membresía (puede ser string o objeto con id)
-  //     let membresiaId: string | null = null;
-  //     if (user.membresia) {
-  //       if (typeof user.membresia === 'string') {
-  //         membresiaId = user.membresia;
-  //       } else if (typeof user.membresia === 'object' && user.membresia !== null && 'id' in user.membresia) {
-  //         membresiaId = (user.membresia as any).id;
-  //       }
-  //     }
+  const handleSelectRoute = async (routeId: number) => {
+    if (routeId === selectedRoute) return;
 
-  //     if (membresiaId) {
-  //       setIsLoadingMembresia(true);
-  //       const fetchMembresia = async () => {
-  //         try {
-  //           const membresiaResult = await membershipService.getMembresia(membresiaId!);
-  //           if (membresiaResult && membresiaResult.data) {
-  //             setMembresia(membresiaResult.data);
-  //           } else if (membresiaResult) {
-  //             // Si la respuesta no tiene .data, usar directamente
-  //             setMembresia(membresiaResult);
-  //           }
-  //         } catch (error) {
-  //           console.error("Error al obtener membresía:", error);
-  //           setMembresia(null);
-  //         } finally {
-  //           setIsLoadingMembresia(false);
-  //         }
-  //       };
-  //       fetchMembresia();
-  //     } else {
-  //       setMembresia(null);
-  //       setIsLoadingMembresia(false);
-  //     }
-  //   }
-  // }, [user?.membresia, user]);
+    const route = rutasAprendizajeData.find((r) => r.id === routeId);
+    if (!route || !user?.uid) return;
 
-  useEffect(() => {
-    const handleFocus = async () => {
-      if (!rutaAprendizaje && user && refreshUser) {
-        try {
-          await refreshUser();
-        } catch (error) {
-          console.error('Error al refrescar usuario:', error);
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [rutaAprendizaje, user, refreshUser]);
+    setIsUpdating(true);
+    try {
+      await updateRouteUser(route.route_name);
+      await refreshUser();
+      setSelectedRoute(routeId);
+      toast.success(`Ruta de aprendizaje actualizada a ${route.nombre}`);
+    } catch (error) {
+      console.error("Error al actualizar la ruta:", error);
+      toast.error("Error al actualizar la ruta de aprendizaje");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleOpenEditProfileModal = () => {
     if (user) {
       setEditFormData({
         nombre: user.nombre,
         apellido: user.apellido,
-        dni: user.dni
+        dni: user.dni,
       });
     }
     setEditModalOpen(true);
@@ -115,23 +140,20 @@ export default function Profile() {
       setEditFormData({
         nombre: user.nombre,
         apellido: user.apellido,
-        dni: user.dni
+        dni: user.dni,
       });
     }
   };
 
   const handleSaveProfile = async () => {
     if (!user) return;
-    
+
     try {
       setIsSavingProfile(true);
-      
       await userService.updateUserProfile(user.uid, editFormData);
-      
       if (refreshUser) {
         await refreshUser();
       }
-      
       toast.success("Perfil actualizado correctamente");
       setEditModalOpen(false);
     } catch (error) {
@@ -142,284 +164,204 @@ export default function Profile() {
     }
   };
 
-
-  const onSelectRoute = async (routeName: string) => {
-    setRutaAprendizaje(routeName);
-    toast.success("Ruta de aprendizaje actualizada correctamente");
-    await updateRouteUser(routeName);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#9B4C5C]" />
+      </div>
+    );
   }
 
-  if (isLoading || !user) {
-    return <Loader fullScreen size="lg" showText={true} />;
+  if (!user) {
+    return null;
   }
 
-  const getPerfilNombre = (ruta: string | null): string => {
-    if (!ruta) return "No determinado";
-    const rutas: { [key: string]: string } = {
-      "consultoria": "Consultoría",
-      "liderazgo": "Liderazgo",
-      "emprendimiento": "Emprendimiento",
-      "consultor-lider": "Consultor-Líder",
-      "lider-emprendedor": "Líder-Emprendedor",
-      "emprendedor-consultor": "Emprendedor-Consultor"
-    };
-    return rutas[ruta] || ruta;
+  const perfilNombre = getPerfilNombre(user.ruta_aprendizaje);
+
+  const getInitials = () => {
+    const firstInitial = user.nombre?.charAt(0) || "";
+    const lastInitial = user.apellido?.charAt(0) || "";
+    return `${firstInitial}${lastInitial}`.toUpperCase();
   };
 
   return (
-    <React.Fragment>
-      <div className="fixed inset-0 bg-[#f4f2f0] -z-10" style={{ top: 0 }}></div>
-      <div className="font-sans min-h-screen relative" style={{ backgroundColor: '#f4f2f0' }}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/")}
-          className="hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Mi Perfil
-          </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Gestiona tu información personal y preferencias
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        {/* Columna izquierda - Información principal */}
-        <div className="space-y-6">
-          {/* Tarjeta de información personal */}
-          <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
-            <CardContent className="p-6 flex justify-between">
-              <div className="flex items-start gap-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
-                  {user.nombre.charAt(0)}
-                  {user.apellido.charAt(0)}
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="max-w-7xl mx-auto">
+        {/* Header con foto de perfil, nombre y perfil predominante */}
+        <div className="bg-[#f4f2f0] rounded-t-[4rem] shadow-2xl overflow-hidden mb-8">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col md:flex-row items-center md:items-start">
+              {/* Foto de perfil */}
+              <div className="relative">
+                <div className="w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden border-8 border-[#9B4C5C] bg-gradient-to-br from-blue-100 to-purple-100">
+                  {firebaseUser?.photoURL ? (
+                    <img
+                      src={firebaseUser.photoURL}
+                      alt={`${user.nombre} ${user.apellido}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-gray-600">
+                      {getInitials()}
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
-                    {user.nombre} {user.apellido}
-                  </h2>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <Mail className="w-4 h-4" />
-                      <span>{user.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <CreditCard className="w-4 h-4" />
-                      <span>DNI: {user.dni}</span>
-                    </div>
+              </div>
+
+              {/* Información del usuario */}
+              <div className="flex-1 text-center md:text-left space-y-4">
+                <div className="ml-7 flex flex-col md:flex-row md:items-center md:gap-4">
+                  <div>
+                    <h1 className="text-4xl md:text-5xl font-semibold text-gray-700">
+                      {user.nombre} {user.apellido}
+                    </h1>
+                    <p className="text-xl text-gray-700 font-semibold">{user.email}</p>
                   </div>
-                </div>
-              </div>
-
-              <div onClick={() => handleOpenEditProfileModal()} className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 h-fit p-2 rounded-full transition-colors">
-                <Pencil size={20} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"/>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tarjeta de ruta de aprendizaje */}
-          <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                    Ruta de Aprendizaje
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Tu perfil predominante de desarrollo profesional
-                  </p>
-                </div>
-              </div>
-
-              {isLoadingRuta ? (
-                <div className="flex items-center justify-center gap-3 py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Cargando ruta de aprendizaje...
-                  </p>
-                </div>
-              ) : rutaAprendizaje ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                          Perfil predominante
-                        </p>
-                        <p className="text-lg font-semibold text-purple-700 dark:text-purple-300">
-                          {getPerfilNombre(rutaAprendizaje)}
-                        </p>
-                      </div>
-                      <BookOpen className="w-8 h-8 text-purple-500 dark:text-purple-400" />
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={() => setIsOpen(true)} 
-                    variant="outline"
-                    className="w-full border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                  <button
+                    onClick={handleOpenEditProfileModal}
+                    className="cursor-pointer mt-2 md:mt-0 p-2 rounded-full hover:bg-gray-200 hover:bg-opacity-50 transition-colors self-start md:self-center"
+                    aria-label="Editar perfil"
                   >
-                    Cambiar mi ruta de aprendizaje
-                  </Button>
+                    <Pencil size={32} className="text-[#9B4C5C]" />
+                  </button>
                 </div>
-              ) : (
-                <div className="text-center py-8 space-y-4">
-                  <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 w-16 h-16 mx-auto flex items-center justify-center">
-                    <Sparkles className="w-8 h-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
-                      Aún no tienes una ruta asignada
+
+                <div className="space-y-2 bg-white py-5 pr-5 rounded-lg ml-[-50px]">
+                  <p className="text-sm text-gray-600 px-20">
+                    <span className="font-semibold">Ruta de aprendizaje:</span> Tu perfil predominante de desarrollo personal
+                  </p>
+
+                  {/* Banner del perfil predominante */}
+                  <div className="bg-[#9B4C5C] text-white py-2 px-6 rounded-lg shadow-lg">
+                    <p className="text-base md:text-lg font-bold uppercase tracking-wide px-14">
+                      PERFIL PREDOMINANTE {perfilNombre.toUpperCase()}
                     </p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                      Completa el test vocacional para conocer tu perfil predominante
-                    </p>
-                    <Button
-                      onClick={() => navigate("/test-vocacional")}
-                      className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
-                    >
-                      Realizar test vocacional
-                    </Button>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Botón Ver mis formaciones */}
-          <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
-            <CardContent className="p-6">
-              <Button
-                onClick={() => navigate("/")}
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-6 text-lg"
-                size="lg"
-              >
-                <GraduationCap className="w-5 h-5 mr-2" />
-                Ver mis formaciones
-              </Button>
-            </CardContent>
-          </Card>
-
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Funcionalidad de membresías deshabilitada temporalmente */}
-        {/* Columna derecha - Membresía */}
-        {/* <div className="lg:col-span-1">
-          <Card className="border-slate-200 dark:border-slate-700 shadow-sm sticky top-6">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500">
-                  <Crown className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Mi Membresía
-                </h3>
-              </div>
-              
-              {isLoadingMembresia ? ( 
-                <div className="flex items-center justify-center gap-2 py-8">
-                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Cargando...
-                  </p>
-                </div>
-              ) : membresia !== null ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800">
-                    <div className="flex items-start justify-between mb-3">
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                        {membresia.nombre}
-                      </h4>
-                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                        membresia.estado === 'activo' 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {membresia.estado === 'activo' ? (
-                          <CheckCircle className="w-3 h-3" />
-                        ) : (
-                          <Clock className="w-3 h-3" />
+        <div className="text-center mb-8">
+          <button
+            onClick={() => navigate("/test-vocacional")}
+            className="text-[#9B4C5C] hover:text-[#7C3D4C] text-lg transition-all duration-150 border-y-2 border-y-[#edeae6] py-2 w-full hover:bg-white/60"
+          >
+            Consultar mi ruta de aprendizaje
+          </button>
+        </div>
+
+        <Link
+          to="/"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <button
+            type="button"
+            className="bg-[#f4f2f0] w-full text-center hover:scale-105 transition-all duration-150 rounded-lg shadow-md py-3 px-8"
+          >
+            <h2 className="text-2xl font-bold text-center uppercase tracking-wide text-[#9B4C5C]">
+              VER MIS FORMACIONES
+            </h2>
+          </button>
+        </Link>
+
+        {/* Sección de Rutas de Aprendizaje */}
+        <div className="mt-12 bg-[#f4f2f0] w-[70%] mx-auto rounded-xl shadow-xl overflow-hidden p-8">
+          <div className="text-center mb-6 flex flex-col items-center">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-700">
+              RUTAS DE APRENDIZAJE
+            </h2>
+            <p className="text-lg text-gray-600 mb-1">
+              Selecciona tu nueva ruta predominante
+            </p>
+            <p className="text-sm text-[#9B4C5C] font-semibold bg-white py-1 px-2 rounded-full w-fit">
+              Perfil actual: {perfilNombre.toUpperCase()}
+            </p>
+          </div>
+
+          {isUpdating && (
+            <div className="flex justify-center items-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-[#9B4C5C]" />
+              <span className="ml-2 text-gray-600">Actualizando ruta...</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {rutasAprendizajeData.map((ruta) => {
+              const isActual = user?.ruta_aprendizaje === ruta.route_name;
+              const isSelected = selectedRoute === ruta.id;
+
+              return (
+                <Card
+                  key={ruta.id}
+                  className={`cursor-pointer transition-all duration-200 border-2 ${
+                    ruta.color
+                  } ${
+                    isSelected
+                      ? "bg-[#9B4C5C] shadow-2xl scale-[1.02]"
+                      : "border-gray-300 hover:border-[#9B4C5C] hover:shadow-lg"
+                  } ${isUpdating ? "opacity-50 pointer-events-none" : ""}`}
+                  onClick={() => handleSelectRoute(ruta.id)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <CardTitle
+                        className={`text-base md:text-lg font-bold ${ruta.textColor} ${isSelected ? "text-zinc-100" : ""}`}
+                      >
+                        {ruta.nombre}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        {isActual && (
+                          <Badge className="text-yellow-300/70 text-sm bg-transparent font-thin">
+                            Actual
+                          </Badge>
                         )}
-                        {membresia.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                        <Circle
+                          className={`h-6 w-6 flex-shrink-0 ${
+                            isSelected
+                              ? "fill-yellow-300/70 text-yellow-400"
+                              : ruta.color === "bg-white"
+                              ? "text-gray-400"
+                              : "text-white/50"
+                          }`}
+                        />
                       </div>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-                      {membresia.descripcion}
-                    </p>
-                    <div className="text-xs text-slate-500 dark:text-slate-500 pt-3 border-t border-amber-200 dark:border-amber-800">
-                      Fecha de alta: {new Date(membresia.fecha_alta).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 space-y-4">
-                  <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 w-16 h-16 mx-auto flex items-center justify-center">
-                    <Crown className="w-8 h-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">
-                      Sin membresía activa
-                    </p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                      Explora nuestros planes y beneficios
-                    </p>
-                    <Button 
-                      onClick={() => navigate("/membresias")} 
-                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-sm"
-                    >
-                      Explorar Membresías
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div> */}
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className={`text-sm leading-relaxed ${isSelected ? "text-zinc-100" : ""}`}>
+                      {ruta.descripcion}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
-        </div>
-        <RutasAprendizajeModal 
-          isOpen={isOpen} 
-          onClose={() => setIsOpen(false)} 
-          perfilActual={rutaAprendizaje || user.ruta_aprendizaje || ''} 
-          onSelectRoute={onSelectRoute} 
-        />
-
-        <EditProfileModal 
-          isOpen={editModalOpen}
-          onClose={handleCloseEditModal}
-          formData={editFormData}
-          setFormData={setEditFormData}
-          onSave={handleSaveProfile}
-          isSaving={isSavingProfile}
-        />
       </div>
-    </React.Fragment>
+
+      <EditProfileModal
+        isOpen={editModalOpen}
+        onClose={handleCloseEditModal}
+        formData={editFormData}
+        setFormData={setEditFormData}
+        onSave={handleSaveProfile}
+        isSaving={isSavingProfile}
+      />
+    </div>
   );
-}
+};
 
-
-const EditProfileModal = ({ 
-  isOpen, 
-  onClose, 
-  formData, 
-  setFormData, 
-  onSave, 
-  isSaving 
-}: {
+const EditProfileModal = ({
+  isOpen,
+  onClose,
+  formData,
+  setFormData,
+  onSave,
+  isSaving,
+} : {
   isOpen: boolean;
   onClose: () => void;
   formData: {
@@ -427,18 +369,21 @@ const EditProfileModal = ({
     apellido: string;
     dni: string;
   };
-  setFormData: React.Dispatch<React.SetStateAction<{
-    nombre: string;
-    apellido: string;
-    dni: string;
-  }>>;
+  setFormData: React.Dispatch<
+    React.SetStateAction<{
+      nombre: string;
+      apellido: string;
+      email: string;
+      dni: string;
+    }>
+  >;
   onSave: () => void;
   isSaving: boolean;
 }) => {
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -451,7 +396,7 @@ const EditProfileModal = ({
             Actualiza tu información personal. Los cambios se guardarán en tu cuenta.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -460,8 +405,8 @@ const EditProfileModal = ({
             <input
               type="text"
               value={formData.nombre}
-              onChange={(e) => handleInputChange('nombre', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+              onChange={(e) => handleInputChange("nombre", e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9B4C5C] dark:bg-slate-800 dark:text-white"
               placeholder="Tu nombre"
             />
           </div>
@@ -473,8 +418,8 @@ const EditProfileModal = ({
             <input
               type="text"
               value={formData.apellido}
-              onChange={(e) => handleInputChange('apellido', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+              onChange={(e) => handleInputChange("apellido", e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9B4C5C] dark:bg-slate-800 dark:text-white"
               placeholder="Tu apellido"
             />
           </div>
@@ -486,8 +431,8 @@ const EditProfileModal = ({
             <input
               type="text"
               value={formData.dni}
-              onChange={(e) => handleInputChange('dni', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+              onChange={(e) => handleInputChange("dni", e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9B4C5C] dark:bg-slate-800 dark:text-white"
               placeholder="Tu DNI"
             />
           </div>
@@ -505,7 +450,7 @@ const EditProfileModal = ({
           <Button
             onClick={onSave}
             disabled={isSaving}
-            className="min-w-[100px] bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+            className="min-w-[100px] bg-[#9B4C5C] hover:bg-[#7C3D4C]"
           >
             {isSaving ? (
               <>
@@ -520,4 +465,6 @@ const EditProfileModal = ({
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default Profile;
