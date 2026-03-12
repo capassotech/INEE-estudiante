@@ -28,6 +28,7 @@ export interface RespuestaExamen {
   id: string;
   texto: string;
   esCorrecta: boolean;
+  fundamentacion?: string;
 }
 
 export interface PreguntaExamen {
