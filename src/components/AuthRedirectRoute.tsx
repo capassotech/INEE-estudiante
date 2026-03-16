@@ -20,6 +20,6 @@ const AuthRedirectRoute = () => {
   }
 
   return <Outlet />;
-};
+}; 
 
 export default AuthRedirectRoute;
