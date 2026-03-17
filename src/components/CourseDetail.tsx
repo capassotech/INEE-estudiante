@@ -626,9 +626,10 @@ const CourseDetail = () => {
     setExamenParaModal(null);
     setExamenRealizadoParaModal(null);
     try {
+      // Cargar ambos: examen por formación (enunciados, opciones, fundamentaciones) y examen realizado (qué eligió el usuario, nota).
       const [examen, ultimoIntento] = await Promise.all([
-        examenService.getExamenByFormacion(courseId),
-        examenService.getUltimoIntento(user.uid, courseId),
+        examenService.getExamenByFormacion(courseId), // GET /api/examenes/formacion/:idFormacion → preguntas[].respuestas[].fundamentacion
+        examenService.getUltimoIntento(user.uid, courseId), // GET exámenes-realizados/... → solo respuestaIds, nota, aprobado
       ]);
       setExamenParaModal(examen || null);
       setExamenRealizadoParaModal(ultimoIntento && ultimoIntento.aprobado ? ultimoIntento : null);
