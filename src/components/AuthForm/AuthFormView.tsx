@@ -172,23 +172,25 @@ export default function AuthFormView({
                             onInputChange("acceptTerms", checked === true)
                         }
                         disabled={isSubmitting}
-                        className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        className="border border-zinc-400  data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <Label htmlFor="terms" className="text-sm text-foreground">
                         Acepto los{" "}
-                        <Link
-                            to="/terms"
+                        <a
+                            href="https://ineeoficial.com/terms"
+                            target="_blank"
                             className="text-primary hover:underline transition-colors"
                         >
                             términos y condiciones
-                        </Link>{" "}
+                        </a>{" "}
                         y la{" "}
-                        <Link
-                            to="/privacy"
+                        <a
+                            href="https://ineeoficial.com/terms"
+                            target="_blank"
                             className="text-primary hover:underline transition-colors"
                         >
                             política de privacidad
-                        </Link>
+                        </a>
                     </Label>
                 </div>
                 {errors.acceptTerms && (
