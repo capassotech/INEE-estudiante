@@ -28,12 +28,19 @@ export interface RespuestaExamen {
   id: string;
   texto: string;
   esCorrecta: boolean;
+  fundamentacion?: string;
+  fundamentación?: string;
+  justificacion?: string;
+  fundamento?: string;
 }
 
 export interface PreguntaExamen {
   id: string;
   texto: string;
   respuestas: RespuestaExamen[];
+  fundamentacion?: string;
+  fundamentación?: string;
+  fundamento?: string;
 }
 
 export interface Examen {
