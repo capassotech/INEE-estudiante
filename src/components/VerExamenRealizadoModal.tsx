@@ -9,6 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, X, FileText } from "lucide-react";
 import type { Examen, ExamenRealizado } from "@/services/examenService";
 
+/**
+ * Modal "Ver examen realizado":
+ * - examen: viene de GET /api/examenes/formacion/:idFormacion → se usa para enunciados, opciones y respuesta.fundamentacion.
+ * - examenRealizado: viene de GET exámenes-realizados/... → solo para qué opción eligió el usuario en cada pregunta (respuestaIds), nota e intento.
+ * Las fundamentaciones viven en la definición del examen (formación), no en el examen realizado.
+ */
 interface VerExamenRealizadoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -55,12 +61,18 @@ export default function VerExamenRealizadoModal({
               <span>Intento {examenRealizado.intento}</span>
             </div>
 
+            {/* Recorrer preguntas del examen por formación (enunciados y opciones con fundamentacion). */}
             {examen.preguntas.map((pregunta, index) => {
               const respuestaUsuario = examenRealizado.respuestas.find(
                 (r) => r.preguntaId === pregunta.id
               );
               const respuestasSeleccionadas = respuestaUsuario?.respuestaIds || [];
-              const fundamentacionPregunta = respuestaUsuario?.fundamentacion;
+              const fundamentacionPregunta =
+                pregunta.fundamentacion ??
+                pregunta.fundamentación ??
+                pregunta.fundamento ??
+                respuestaUsuario?.fundamentacion ??
+                "";
 
               const respuestasCorrectasIds = pregunta.respuestas
                 .filter((r) => r.esCorrecta)
@@ -103,8 +115,15 @@ export default function VerExamenRealizadoModal({
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Opciones
                       </p>
+                      {/* Opciones y fundamentacion vienen del examen por formación (pregunta.respuestas[]). */}
                       {pregunta.respuestas.map((respuesta) => {
                         const seleccionada = respuestasSeleccionadas.includes(respuesta.id);
+                        const fundamentacionRespuesta =
+                          respuesta.fundamentacion ??
+                          respuesta.fundamentación ??
+                          respuesta.justificacion ??
+                          respuesta.fundamento ??
+                          "";
                         return (
                           <div
                             key={respuesta.id}
@@ -126,36 +145,43 @@ export default function VerExamenRealizadoModal({
                                   <span className="w-4 h-4 block" />
                                 )}
                               </span>
-                              <div className="flex-1 min-w-0">
-                                <span
-                                  className={
-                                    respuesta.esCorrecta
-                                      ? "font-medium text-green-800 dark:text-green-200"
-                                      : seleccionada
-                                      ? "font-medium text-red-800 dark:text-red-200"
-                                      : "text-gray-700 dark:text-gray-300"
-                                  }
-                                >
-                                  {respuesta.texto}
-                                </span>
-                                {respuesta.esCorrecta && (
-                                  <span className="ml-2 text-xs text-green-600 dark:text-green-400">
-                                    (Respuesta correcta)
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <div>
+                                  <span
+                                    className={
+                                      respuesta.esCorrecta
+                                        ? "font-medium text-green-800 dark:text-green-200"
+                                        : seleccionada
+                                        ? "font-medium text-red-800 dark:text-red-200"
+                                        : "text-gray-700 dark:text-gray-300"
+                                    }
+                                  >
+                                    {respuesta.texto}
                                   </span>
-                                )}
-                                {seleccionada && !respuesta.esCorrecta && (
-                                  <span className="ml-2 text-xs text-red-600 dark:text-red-400">
-                                    (Tu elección)
-                                  </span>
-                                )}
-                                {seleccionada && respuesta.esCorrecta && (
-                                  <span className="ml-2 text-xs text-green-600 dark:text-green-400">
-                                    (Tu elección)
-                                  </span>
-                                )}
-                                {respuesta.fundamentacion && (
-                                  <div className="mt-2 p-2 rounded bg-white/50 dark:bg-black/20 text-xs text-gray-600 dark:text-gray-400 italic">
-                                    {respuesta.fundamentacion}
+                                  {respuesta.esCorrecta && (
+                                    <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+                                      (Respuesta correcta)
+                                    </span>
+                                  )}
+                                  {seleccionada && !respuesta.esCorrecta && (
+                                    <span className="ml-2 text-xs text-red-600 dark:text-red-400">
+                                      (Tu elección)
+                                    </span>
+                                  )}
+                                  {seleccionada && respuesta.esCorrecta && (
+                                    <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+                                      (Tu elección)
+                                    </span>
+                                  )}
+                                </div>
+                                {(fundamentacionRespuesta && fundamentacionRespuesta.trim() !== "") && (
+                                  <div className="mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 uppercase tracking-wide mb-1">
+                                      Fundamentación
+                                    </p>
+                                    <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed">
+                                      {fundamentacionRespuesta.trim()}
+                                    </p>
                                   </div>
                                 )}
                               </div>
@@ -165,12 +191,12 @@ export default function VerExamenRealizadoModal({
                       })}
                     </div>
 
-                    {fundamentacionPregunta && (
+                    {(fundamentacionPregunta && fundamentacionPregunta.trim() !== "") && (
                       <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                        <p className="text-xs font-medium text-blue-800 dark:text-blue-200 uppercase tracking-wide mb-1">
+                        <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wide mb-1">
                           Fundamentación
                         </p>
-                        <p className="text-sm text-blue-900 dark:text-blue-100">
+                        <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
                           {fundamentacionPregunta}
                         </p>
                       </div>
