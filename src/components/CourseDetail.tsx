@@ -11,6 +11,7 @@ import {
   Loader2,
   Trophy,
   Award,
+  FileText,
 } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,12 +26,13 @@ import VideoModal from "@/components/video-modal";
 import { Course, Module, ContentItem as ContentItemType } from "@/types/types";
 import courseService from "@/services/courseService";
 import progressService from "@/services/progressService";
-import examenService from "@/services/examenService";
+import examenService, { type Examen, type ExamenRealizado } from "@/services/examenService";
 import certificateService from "@/services/certificateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 import reviewService from "@/services/reviewService";
+import VerExamenRealizadoModal from "@/components/VerExamenRealizadoModal";
 import DOMPurify from 'dompurify';
 
 // Función helper para sanitizar HTML de forma segura
@@ -78,6 +80,10 @@ const CourseDetail = () => {
   const [intento, setIntento] = useState(1);
   const [loadingExamenStatus, setLoadingExamenStatus] = useState(true);
   const isCheckingExamen = useRef(false);
+  const [showVerExamenModal, setShowVerExamenModal] = useState(false);
+  const [examenParaModal, setExamenParaModal] = useState<Examen | null>(null);
+  const [examenRealizadoParaModal, setExamenRealizadoParaModal] = useState<ExamenRealizado | null>(null);
+  const [loadingVerExamen, setLoadingVerExamen] = useState(false);
   
   // Refs para los módulos (para scroll automático)
   const moduleRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -613,6 +619,28 @@ const CourseDetail = () => {
     }
   };
 
+  const handleVerExamenRealizado = async () => {
+    if (!courseId || !user?.uid) return;
+    setShowVerExamenModal(true);
+    setLoadingVerExamen(true);
+    setExamenParaModal(null);
+    setExamenRealizadoParaModal(null);
+    try {
+      // Cargar ambos: examen por formación (enunciados, opciones, fundamentaciones) y examen realizado (qué eligió el usuario, nota).
+      const [examen, ultimoIntento] = await Promise.all([
+        examenService.getExamenByFormacion(courseId), // GET /api/examenes/formacion/:idFormacion → preguntas[].respuestas[].fundamentacion
+        examenService.getUltimoIntento(user.uid, courseId), // GET exámenes-realizados/... → solo respuestaIds, nota, aprobado
+      ]);
+      setExamenParaModal(examen || null);
+      setExamenRealizadoParaModal(ultimoIntento && ultimoIntento.aprobado ? ultimoIntento : null);
+    } catch (error) {
+      console.error("Error al cargar examen realizado:", error);
+      toast.error("Error al cargar el examen realizado");
+    } finally {
+      setLoadingVerExamen(false);
+    }
+  };
+
   const closePdfModal = () => {
     setPdfModalOpen(false);
     setSelectedContent(null);
@@ -1019,17 +1047,28 @@ const CourseDetail = () => {
                 ? "¡Excelente! Has completado el curso y aprobado la evaluación final. Tu certificado está listo."
                 : "¡Excelente! Has completado el curso. Tu certificado está listo."}
             </p>
-            <Button
-              variant="default"
-              size="lg"
-              className="w-full sm:w-auto text-sm sm:text-base bg-green-600 hover:bg-green-700 font-semibold"
-              onClick={handleDownloadCertificate}
-            >
-              <>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full sm:w-auto text-sm sm:text-base bg-green-600 hover:bg-green-700 font-semibold"
+                onClick={handleDownloadCertificate}
+              >
                 <Award className="w-4 h-4 mr-2" />
                 Descargar Certificado
-              </>
-            </Button>
+              </Button>
+              {hasExamen && examenAprobado && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto text-sm sm:text-base border-green-600 text-green-700 hover:bg-green-50 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-900/20"
+                  onClick={handleVerExamenRealizado}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Ver examen realizado
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -1299,6 +1338,15 @@ const CourseDetail = () => {
           }}
         />
       )}
+
+      <VerExamenRealizadoModal
+        open={showVerExamenModal}
+        onOpenChange={setShowVerExamenModal}
+        cursoId={courseId || ""}
+        examen={examenParaModal}
+        examenRealizado={examenRealizadoParaModal}
+        loading={loadingVerExamen}
+      />
     </div>
   );
 };
