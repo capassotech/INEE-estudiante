@@ -4,6 +4,10 @@ import { auth } from "../../config/firebase-client";
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "https://inee-backend.onrender.com";
 
+/** Debe coincidir con el campo de multer / FileInterceptor en el backend (p. ej. .single('file')). */
+const PROFILE_PHOTO_FORM_FIELD =
+  import.meta.env.VITE_USER_PROFILE_PHOTO_FIELD ?? "file";
+
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   headers: {
@@ -20,6 +24,9 @@ api.interceptors.request.use(async (config) => {
     }
   } catch (error) {
     console.error("Error getting ID token:", error);
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
   }
   return config;
 });
@@ -235,6 +242,13 @@ class UserService {
       console.error("Error updating user profile:", error);
       throw error;
     }
+  }
+
+  async uploadProfilePhoto(uid: string, file: File) {
+    const formData = new FormData();
+    formData.append(PROFILE_PHOTO_FORM_FIELD, file);
+    const response = await api.put(`/users/${uid}/profile-photo`, formData);
+    return response.data as { foto_perfil?: string };
   }
 }
 
