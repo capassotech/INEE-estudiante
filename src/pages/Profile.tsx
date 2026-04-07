@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -87,13 +87,28 @@ const Profile = () => {
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const localPhotoPreviewUrlRef = useRef<string | null>(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [localPhotoPreviewUrl, setLocalPhotoPreviewUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  useEffect(() => { localPhotoPreviewUrlRef.current = localPhotoPreviewUrl }, [localPhotoPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (localPhotoPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPhotoPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/login");
     }
   }, [user, isLoading, navigate]);
 
-  // Preseleccionar la ruta actual del usuario
   useEffect(() => {
     if (user?.ruta_aprendizaje) {
       const currentRoute = rutasAprendizajeData.find((r) => r.route_name === user.ruta_aprendizaje);
@@ -145,6 +160,53 @@ const Profile = () => {
     }
   };
 
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona un archivo de imagen");
+      e.target.value = "";
+      return;
+    }
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error("La imagen no debe superar 5 MB");
+      e.target.value = "";
+      return;
+    }
+    setPendingPhotoFile(file);
+    setLocalPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const cancelPendingPhoto = () => {
+    setPendingPhotoFile(null);
+    setLocalPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = "";
+  };
+
+  const handleSaveProfilePhoto = async () => {
+    if (!user?.uid || !pendingPhotoFile) return;
+    setIsUploadingPhoto(true);
+    try {
+      await userService.uploadProfilePhoto(user.uid, pendingPhotoFile);
+      setPendingPhotoFile(null);
+      if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = "";
+      await refreshUser();
+      toast.success("Foto de perfil guardada");
+    } catch (error) {
+      console.error("Error al subir la foto de perfil:", error);
+      toast.error("No se pudo guardar la foto. Intenta de nuevo.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!user) return;
 
@@ -176,6 +238,8 @@ const Profile = () => {
     return null;
   }
 
+  const profilePhotoDisplayUrl = localPhotoPreviewUrl ?? user?.photoURL ?? null;
+
   const perfilNombre = getPerfilNombre(user.ruta_aprendizaje);
 
   const getInitials = () => {
@@ -192,18 +256,78 @@ const Profile = () => {
           <div className="p-8 md:p-12">
             <div className="flex flex-col md:flex-row items-center md:items-start">
               {/* Foto de perfil */}
-              <div className="relative">
-                <div className="w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden border-8 border-[#9B4C5C] bg-gradient-to-br from-blue-100 to-purple-100">
-                  {firebaseUser?.photoURL ? (
-                    <img
-                      src={firebaseUser.photoURL}
-                      alt={`${user.nombre} ${user.apellido}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-gray-600">
-                      {getInitials()}
+              <div className="relative flex flex-col items-center md:items-start">
+                <input
+                  ref={profilePhotoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="sr-only"
+                  aria-label="Seleccionar foto de perfil"
+                  onChange={handleProfilePhotoChange}
+                />
+                <div className="relative">
+                  <div className="w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden border-8 border-[#9B4C5C] bg-gradient-to-br from-blue-100 to-purple-100">
+                    {profilePhotoDisplayUrl ? (
+                      <img
+                        src={profilePhotoDisplayUrl}
+                        alt={`${user.nombre} ${user.apellido}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-gray-600">
+                        {getInitials()}
+                      </div>
+                    )}
+                  </div>
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center border-8 border-transparent">
+                      <Loader2 className="w-10 h-10 text-white animate-spin" aria-hidden />
                     </div>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
+                  {pendingPhotoFile ? (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-[#9B4C5C]"
+                        onClick={handleSaveProfilePhoto}
+                        disabled={isUploadingPhoto}
+                      >
+                        {isUploadingPhoto ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Guardando…
+                          </>
+                        ) : (
+                          "Guardar foto"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={cancelPendingPhoto}
+                        disabled={isUploadingPhoto}
+                      >
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-[#9B4C5C] text-[#9B4C5C]"
+                        onClick={() => profilePhotoInputRef.current?.click()}
+                        disabled={isUploadingPhoto}
+                      >
+                        {profilePhotoDisplayUrl ? "Editar foto" : "Agregar foto"}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -373,7 +497,6 @@ const EditProfileModal = ({
     React.SetStateAction<{
       nombre: string;
       apellido: string;
-      email: string;
       dni: string;
     }>
   >;
