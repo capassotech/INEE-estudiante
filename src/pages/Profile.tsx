@@ -179,15 +179,13 @@ const Profile = () => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
+    e.target.value = "";
   };
 
-  const cancelPendingPhoto = () => {
-    setPendingPhotoFile(null);
-    setLocalPhotoPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-    if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = "";
+  const openPhotoPicker = () => {
+    const input = profilePhotoInputRef.current;
+    if (input) input.value = "";
+    input?.click();
   };
 
   const handleSaveProfilePhoto = async () => {
@@ -239,6 +237,7 @@ const Profile = () => {
   }
 
   const profilePhotoDisplayUrl = localPhotoPreviewUrl ?? user?.photoURL ?? null;
+  const hasAvatarImage = !!profilePhotoDisplayUrl;
 
   const perfilNombre = getPerfilNombre(user.ruta_aprendizaje);
 
@@ -256,7 +255,7 @@ const Profile = () => {
           <div className="p-8 md:p-12">
             <div className="flex flex-col md:flex-row items-center md:items-start">
               {/* Foto de perfil */}
-              <div className="relative flex flex-col items-center md:items-start">
+              <div className="relative flex flex-col items-center gap-4 shrink-0">
                 <input
                   ref={profilePhotoInputRef}
                   type="file"
@@ -267,9 +266,9 @@ const Profile = () => {
                 />
                 <div className="relative">
                   <div className="w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden border-8 border-[#9B4C5C] bg-gradient-to-br from-blue-100 to-purple-100">
-                    {profilePhotoDisplayUrl ? (
+                    {hasAvatarImage ? (
                       <img
-                        src={profilePhotoDisplayUrl}
+                        src={profilePhotoDisplayUrl!}
                         alt={`${user.nombre} ${user.apellido}`}
                         className="w-full h-full object-cover"
                       />
@@ -286,49 +285,45 @@ const Profile = () => {
                   )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
-                  {pendingPhotoFile ? (
-                    <>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="bg-[#9B4C5C]"
-                        onClick={handleSaveProfilePhoto}
-                        disabled={isUploadingPhoto}
-                      >
-                        {isUploadingPhoto ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Guardando…
-                          </>
-                        ) : (
-                          "Guardar foto"
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={cancelPendingPhoto}
-                        disabled={isUploadingPhoto}
-                      >
-                        Cancelar
-                      </Button>
-                    </>
+                <div className="flex flex-col items-center gap-2 w-full max-w-[220px]">
+                  {hasAvatarImage ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-[#9B4C5C] text-[#9B4C5C] hover:bg-[#9B4C5C]"
+                      onClick={openPhotoPicker}
+                      disabled={isUploadingPhoto}
+                    >
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Editar foto
+                    </Button>
                   ) : (
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="border-[#9B4C5C] text-[#9B4C5C]"
-                        onClick={() => profilePhotoInputRef.current?.click()}
-                        disabled={isUploadingPhoto}
-                      >
-                        {profilePhotoDisplayUrl ? "Editar foto" : "Agregar foto"}
-                      </Button>
-                    </>
+                    <Button
+                      type="button"
+                      className="w-full bg-[#9B4C5C] hover:bg-[#7C3D4C] text-white"
+                      onClick={openPhotoPicker}
+                      disabled={isUploadingPhoto}
+                    >
+                      Agregar foto
+                    </Button>
                   )}
+                  {pendingPhotoFile ? (
+                    <Button
+                      type="button"
+                      className="w-full bg-[#6B7AA1] hover:bg-[#555f7a] text-white"
+                      onClick={handleSaveProfilePhoto}
+                      disabled={isUploadingPhoto}
+                    >
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Guardando…
+                        </>
+                      ) : (
+                        "Guardar foto"
+                      )}
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 
