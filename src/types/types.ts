@@ -37,6 +37,7 @@ export interface UserProfile {
     aceptaTerminos: boolean;
     membresia: string | null;
     ruta_aprendizaje: string | null;
+    photoURL?: string | null;
     respuestas_test_vocacional?: Array<{
         id_pregunta: string;
         id_respuesta: string;
