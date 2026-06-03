@@ -5,12 +5,14 @@ import {
   useState,
   useEffect,
   useRef,
+  useCallback,
   type ReactNode,
 } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
 import authService from "../services/authService";
 import { UserProfile } from "../types/types";
+import SessionExpiryHandler from "@/components/SessionExpiryHandler";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -54,6 +56,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isProcessingTokenRef = useRef(false);
 
   const isAuthenticated = !!firebaseUser && !!user;
+
+  const clearAuthState = useCallback(() => {
+    setUser(null);
+    setFirebaseUser(null);
+  }, []);
 
   // Detectar token en URL y autenticar automáticamente
   useEffect(() => {
@@ -402,5 +409,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateRouteUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      <SessionExpiryHandler onSessionExpired={clearAuthState} />
+      {children}
+    </AuthContext.Provider>
+  );
 };
