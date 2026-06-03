@@ -1,33 +1,9 @@
-import axios from "axios";
-import { auth } from "../../config/firebase-client";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL;
-
-const api = axios.create({
-  baseURL: `${API_BASE_URL}`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-api.interceptors.request.use(async (config) => {
-  try {
-    const user = auth.currentUser;
-    if (user) {
-      const idToken = await user.getIdToken();
-      config.headers.Authorization = `Bearer ${idToken}`;
-    }
-  } catch (error) {
-    console.error("Error getting ID token:", error);
-  }
-  return config;
-});
+import { api } from "@/lib/apiClient";
 
 class ReviewService {
   async createReview(courseId: string, rating: number, comment?: string) {
     try {
-      const response = await api.post(`/api/reviews`, {
+      const response = await api.post(`/reviews`, {
         courseId,
         rating,
         comment,
@@ -41,7 +17,7 @@ class ReviewService {
 
   async getReviewsByCourse(courseId: string) {
     try {
-      const response = await api.get(`/api/reviews/course/${courseId}`, {
+      const response = await api.get(`/reviews/course/${courseId}`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -60,7 +36,7 @@ class ReviewService {
 
   async skipReview(userId: string, courseId: string) {
     try {
-      const response = await api.post(`/api/reviews/reminder`, {
+      const response = await api.post(`/reviews/reminder`, {
         userId,
         courseId,
       });
