@@ -25,6 +25,6 @@ dist-ssr
 
 # Archivos de entorno
 .env
-env.local
-env.qa
-env.production
+.env.local
+.env.qa
+.env.production
