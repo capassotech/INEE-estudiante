@@ -22,9 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
 # Archivos de entorno
 .env
-# Permitir archivos de ejemplo que sí se suben al repo
-!env.qa
-!env.local
-!env.production
+env.local
+env.qa
+env.production
