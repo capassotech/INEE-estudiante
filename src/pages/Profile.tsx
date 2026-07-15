@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import userService from "@/services/userService";
+import { validateImageFile } from "@/utils/imageFileValidator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const rutasAprendizajeData = [
@@ -160,20 +161,17 @@ const Profile = () => {
     }
   };
 
-  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecciona un archivo de imagen");
+
+    const validation = await validateImageFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
       e.target.value = "";
       return;
     }
-    const maxBytes = 5 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      toast.error("La imagen no debe superar 5 MB");
-      e.target.value = "";
-      return;
-    }
+
     setPendingPhotoFile(file);
     setLocalPhotoPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -190,6 +188,13 @@ const Profile = () => {
 
   const handleSaveProfilePhoto = async () => {
     if (!user?.uid || !pendingPhotoFile) return;
+
+    const validation = await validateImageFile(pendingPhotoFile);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
     setIsUploadingPhoto(true);
     try {
       await userService.uploadProfilePhoto(user.uid, pendingPhotoFile);
