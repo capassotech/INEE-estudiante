@@ -18,6 +18,7 @@ const AUTH_FLOW_PATHS = [
   "/auth/link-password",
   "/auth/validate-token",
   "/auth/check-email",
+  "/auth/forgot-password",
 ];
 
 const PUBLIC_APP_PATHS = ["/login", "/registro", "/recuperar-contrasena"];
