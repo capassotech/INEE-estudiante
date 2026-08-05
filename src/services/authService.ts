@@ -1,9 +1,7 @@
-import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithCustomToken, signOut, signInWithPopup, confirmPasswordReset } from "firebase/auth";
 import { auth } from "../../config/firebase-client";
 import { api } from "@/lib/apiClient";
 import { RegisterData, LoginData, AuthResponse, UserProfile } from "../types/types";
-
-const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || "http://localhost:5173";
 
 class AuthService {
   async register(userData: RegisterData): Promise<AuthResponse> {
@@ -310,12 +308,14 @@ class AuthService {
 
   async forgotPassword(email: string): Promise<void> {
     try {
-      await api.get(`/auth/check-email/${email}`);
-      await sendPasswordResetEmail(auth, email, {
-        url: `${FRONTEND_URL}/recuperar-contrasena`,
+      await api.post("/auth/forgot-password", {
+        email: email.trim().toLowerCase(),
+        platform: "estudiante",
       });
     } catch (error: any) {
-      const customError = new Error(error.response?.data?.error || "Error al enviar email de recuperación");
+      const customError = new Error(
+        error.response?.data?.error || "Error al enviar email de recuperación"
+      );
       (customError as any).exists = error.response?.data?.exists || false;
       throw customError;
     }
