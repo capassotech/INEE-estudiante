@@ -9,7 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Eye, EyeOff, Loader2, Check, X } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
+import {
+  arePasswordRequirementsMet,
+  getPasswordRequirements,
+} from "@/utils/passwordRequirements";
 
 interface LinkGoogleModalProps {
   isOpen: boolean;
@@ -30,18 +35,8 @@ export default function LinkGoogleModal({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const getPasswordRequirements = (password: string) => {
-    return {
-      minLength: password.length >= 8,
-      hasUppercase: /[A-Z]/.test(password),
-      hasSpecialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
-      hasNumber: /[0-9]/.test(password),
-    };
-  };
-
   const requirements = getPasswordRequirements(password);
-  const isPasswordValid = requirements.minLength && requirements.hasUppercase && 
-                         requirements.hasSpecialChar && requirements.hasNumber;
+  const isPasswordValid = arePasswordRequirementsMet(requirements);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,55 +97,7 @@ export default function LinkGoogleModal({
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             {password.length > 0 && (
-              <div className={`mt-3 p-3 bg-muted/50 rounded-lg border ${
-                isPasswordValid ? 'border-green-500' : 'border-border'
-              }`}>
-                <p className="text-xs font-medium text-muted-foreground mb-2">
-                  Requisitos de la contraseña:
-                </p>
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    {requirements.minLength ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <X className="h-3 w-3 text-red-500" />
-                    )}
-                    <span className={`text-xs ${requirements.minLength ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
-                      Al menos 8 caracteres
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {requirements.hasUppercase ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <X className="h-3 w-3 text-red-500" />
-                    )}
-                    <span className={`text-xs ${requirements.hasUppercase ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
-                      Una letra mayúscula
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {requirements.hasNumber ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <X className="h-3 w-3 text-red-500" />
-                    )}
-                    <span className={`text-xs ${requirements.hasNumber ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
-                      Al menos un número
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {requirements.hasSpecialChar ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <X className="h-3 w-3 text-red-500" />
-                    )}
-                    <span className={`text-xs ${requirements.hasSpecialChar ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
-                      Un carácter especial (!@#$%^&*)
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <PasswordRequirements passwordRequirements={requirements} />
             )}
           </div>
 
