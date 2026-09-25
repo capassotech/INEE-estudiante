@@ -8,6 +8,10 @@ import { Mail, Loader2, ArrowLeft, CheckCircle, Lock, EyeOff, Eye } from "lucide
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { PasswordRequirements } from "./PasswordRequirements";
+import {
+  arePasswordRequirementsMet,
+  getPasswordRequirements,
+} from "@/utils/passwordRequirements";
 
 export default function ForgotPasswordComponent() {
   const [email, setEmail] = useState("");
@@ -22,19 +26,17 @@ export default function ForgotPasswordComponent() {
   const params = new URLSearchParams(window.location.search);
   const oobCode = params.get("oobCode");
 
-  const getPasswordRequirements = (password: string) => {
-    return {
-      minLength: password.length >= 8,
-      hasUppercase: /[A-Z]/.test(password),
-      hasSpecialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
-      hasNumber: /[0-9]/.test(password),
-    };
-  };
-
   const passwordRequirements = getPasswordRequirements(password);
+  const isPasswordValid = arePasswordRequirementsMet(passwordRequirements);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (oobCode && !isPasswordValid) {
+      toast.error("La contraseña no cumple con todos los requisitos");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -189,7 +191,7 @@ export default function ForgotPasswordComponent() {
               <Button
                 type="submit"
                 className="w-full btn-gradient dark:btn-gradient-dark hover:opacity-90 transition-all duration-200 font-medium"
-                disabled={isSubmitting || (oobCode ? !password.trim() : !email.trim())}
+                disabled={isSubmitting || (oobCode ? !isPasswordValid : !email.trim())}
               >
                 {isSubmitting ? (
                   <>

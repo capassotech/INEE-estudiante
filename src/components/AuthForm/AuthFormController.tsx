@@ -8,6 +8,10 @@ import AuthFormView from "./AuthFormView";
 import LinkPasswordModal from "./LinkPasswordModal";
 import LinkGoogleModal from "./LinkGoogleModal";
 import CompleteDniModal from "./CompleteDniModal";
+import {
+  arePasswordRequirementsMet,
+  getPasswordRequirements,
+} from "@/utils/passwordRequirements";
 
 interface AuthFormProps {
   isLogin?: boolean;
@@ -44,15 +48,6 @@ const AuthFormController: React.FC<AuthFormProps> = ({
   const [pendingGoogleData, setPendingGoogleData] = useState<any>(null);
   const [linkPasswordMode, setLinkPasswordMode] = useState<'link-google' | 'add-password'>('link-google');
 
-  const getPasswordRequirements = (password: string) => {
-    return {
-      minLength: password.length >= 8,
-      hasUppercase: /[A-Z]/.test(password),
-      hasSpecialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
-      hasNumber: /[0-9]/.test(password),
-    };
-  };
-
   const validateForm = (googleAuth: boolean = false) => {
     const newErrors: Record<string, string> = {};
     
@@ -65,14 +60,9 @@ const AuthFormController: React.FC<AuthFormProps> = ({
   
       if (!formData.password) {
         newErrors.password = "La contraseña es requerida";
-      } else {
+      } else if (!isLogin) {
         const requirements = getPasswordRequirements(formData.password);
-        const allRequirementsMet = requirements.minLength && 
-                                  requirements.hasUppercase && 
-                                  requirements.hasSpecialChar && 
-                                  requirements.hasNumber;
-        
-        if (!allRequirementsMet) {
+        if (!arePasswordRequirementsMet(requirements)) {
           newErrors.password = "La contraseña no cumple con todos los requisitos";
         }
       } 
