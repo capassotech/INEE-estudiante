@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Loader2, ArrowLeft, CheckCircle, Lock, EyeOff, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, KeyRound, Lock, LockKeyhole, Mail, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { PasswordRequirements } from "./PasswordRequirements";
-import {
-  arePasswordRequirementsMet,
-  getPasswordRequirements,
-} from "@/utils/passwordRequirements";
+import { arePasswordRequirementsMet, getPasswordRequirements } from "@/utils/passwordRequirements";
+import { AuthField, AuthOutlineButton, AuthShell, AuthSubmit, PasswordToggle, type AuthBrandCopy } from "./AuthForm/AuthShell";
+
+const BRAND_COPY: AuthBrandCopy = {
+  badge: "Campus virtual",
+  footnote: "Campus virtual",
+};
 
 export default function ForgotPasswordComponent() {
   const [email, setEmail] = useState("");
@@ -45,7 +44,7 @@ export default function ForgotPasswordComponent() {
         await changePassword(oobCode, password);
 
         toast.success("¡Contraseña cambiada!", {
-          description: "Tu contraseña ha sido cambiada correctamente."
+          description: "Tu contraseña ha sido cambiada correctamente.",
         });
 
         navigate("/login");
@@ -54,7 +53,7 @@ export default function ForgotPasswordComponent() {
 
         setEmailSent(true);
         toast.success("¡Email enviado!", {
-          description: "Revisa tu bandeja de entrada para las instrucciones de recuperación."
+          description: "Revisa tu bandeja de entrada para las instrucciones de recuperación.",
         });
       }
     } catch (error: any) {
@@ -63,161 +62,115 @@ export default function ForgotPasswordComponent() {
       toast.error("Error al enviar el email", {
         description: userExists
           ? "Hubo un problema técnico. Intenta nuevamente en unos minutos."
-          : "El email no está registrado en nuestro sistema."
+          : "El email no está registrado en nuestro sistema.",
       });
-
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const backToLogin = (
+    <button
+      type="button"
+      onClick={() => navigate("/login")}
+      disabled={isSubmitting}
+      className="inline-flex items-center gap-1.5 font-medium text-gray-500 transition-colors hover:text-gray-900"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Volver al inicio de sesión
+    </button>
+  );
+
   if (emailSent) {
     return (
-      <div className="min-h-screen bg-gradient-hero dark:bg-gradient-hero-dark flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <Link to="/" className="inline-flex items-center space-x-2 mb-8">
-              <div className="flex items-center space-x-2">
-                <div className="h-10 rounded-lg flex items-center justify-center">
-                  <img src="/logo-blanco.png" alt="INEE Logo" className="h-20" />
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          <Card className="shadow-2xl border-0 card-gradient">
-            <CardHeader className="space-y-1 text-center">
-              <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-foreground">
-                Email Enviado
-              </CardTitle>
-              <p className="text-muted-foreground">
-                Te hemos enviado las instrucciones de recuperación a <strong>{email}</strong>
-              </p>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>• Revisa tu bandeja de entrada</p>
-                  <p>• No olvides revisar la carpeta de spam</p>
-                  <p>• El enlace expira en 24 horas</p>
-                </div>
-
-                <Button
-                  onClick={() => {
-                    setEmailSent(false);
-                    setEmail("");
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Enviar a otro email
-                </Button>
-
-                <Button
-                  onClick={() => navigate("/login")}
-                  className="w-full btn-gradient dark:btn-gradient-dark hover:opacity-90 transition-all duration-200 font-medium"
-                >
-                  Volver al Login
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <AuthShell
+        copy={BRAND_COPY}
+        icon={MailCheck}
+        title="Revisa tu email"
+        description={
+          <>
+            Enviamos las instrucciones de recuperación a <span className="font-medium text-gray-900 break-all">{email}</span>
+          </>
+        }
+        footer={backToLogin}
+      >
+        <ol className="space-y-2.5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
+          {["Abre el email y haz clic en el enlace.", "Si no lo ves, revisa la carpeta de spam.", "El enlace vence en 24 horas."].map(
+            (step, i) => (
+              <li key={step} className="flex gap-3">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#8b3740]/10 text-[11px] font-semibold text-[#8b3740]">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            )
+          )}
+        </ol>
+        <AuthOutlineButton
+          className="mt-4"
+          onClick={() => {
+            setEmailSent(false);
+            setEmail("");
+          }}
+        >
+          Enviar a otro email
+        </AuthOutlineButton>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero dark:bg-gradient-hero-dark flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-8">
-            <div className="flex items-center space-x-2">
-              <div className="h-10 rounded-lg flex items-center justify-center">
-                <img src="/logo-blanco.png" alt="INEE Logo" className="h-20" />
-              </div>
-            </div>
-          </Link>
-        </div>
+    <AuthShell
+      copy={BRAND_COPY}
+      icon={oobCode ? LockKeyhole : KeyRound}
+      title={oobCode ? "Nueva contraseña" : "¿Olvidaste tu contraseña?"}
+      description={
+        oobCode ? "Elige una contraseña segura para tu cuenta." : "Ingresa tu email y te enviamos las instrucciones para recuperarla."
+      }
+      footer={backToLogin}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {oobCode ? (
+          <div className="space-y-3">
+            <AuthField
+              id="password"
+              type={showPassword ? "text" : "password"}
+              label="Nueva contraseña"
+              icon={Lock}
+              placeholder="Crea una contraseña segura"
+              autoComplete="new-password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isSubmitting}
+              trailing={<PasswordToggle visible={showPassword} onToggle={() => setShowPassword(!showPassword)} />}
+            />
+            {password.length > 0 && <PasswordRequirements passwordRequirements={passwordRequirements} />}
+          </div>
+        ) : (
+          <AuthField
+            id="email"
+            type="email"
+            label="Email"
+            icon={Mail}
+            placeholder="tu@email.com"
+            autoComplete="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isSubmitting}
+          />
+        )}
 
-        <Card className="shadow-2xl border-0 card-gradient">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center text-foreground">
-              {oobCode ? "Cambiar Contraseña" : "Recuperar Contraseña"}
-            </CardTitle>
-            <p className="text-center text-muted-foreground">
-              {oobCode ? "Ingresa tu nueva contraseña" : "Ingresa tu email para recibir las instrucciones de recuperación"}
-            </p>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="form-label">
-                  {oobCode ? "Nueva Contraseña" : "Email"}
-                </Label>
-                <div className="relative">
-                  {!oobCode ? <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /> : <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />}
-                  <Input
-                    id={oobCode ? "password" : "email"}
-                    type={oobCode ? (showPassword ? "text" : "password") : "email"}
-                    placeholder={oobCode ? "Nueva Contraseña" : "tu@email.com"}
-                    className="pl-10 form-input"
-                    value={oobCode ? password : email}
-                    onChange={(e) => oobCode ? setPassword(e.target.value) : setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    autoComplete={oobCode ? "new-password" : "email"}
-                    autoFocus
-                  />
-                  {oobCode && (
-                    <button
-                      type="button"
-                      className="absolute right-3 top-3 h-4 w-4 text-muted-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  )}
-                </div>
-                {(password as string)?.length > 0 && (
-                  <PasswordRequirements passwordRequirements={passwordRequirements} />
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full btn-gradient dark:btn-gradient-dark hover:opacity-90 transition-all duration-200 font-medium"
-                disabled={isSubmitting || (oobCode ? !isPasswordValid : !email.trim())}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {oobCode ? "Cambiando Contraseña..." : "Enviando Instrucciones..."}
-                  </>
-                ) : (
-                  oobCode ? "Cambiar Contraseña" : "Enviar Instrucciones"
-                )}
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/login")}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-                disabled={isSubmitting}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al Login
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <AuthSubmit
+          type="submit"
+          loading={isSubmitting}
+          loadingText={oobCode ? "Guardando..." : "Enviando..."}
+          disabled={oobCode ? !isPasswordValid : !email.trim()}
+        >
+          {oobCode ? "Guardar contraseña" : "Enviar instrucciones"}
+        </AuthSubmit>
+      </form>
+    </AuthShell>
   );
 }
