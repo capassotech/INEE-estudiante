@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
 import reviewService from "@/services/reviewService";
 import VerExamenRealizadoModal from "@/components/VerExamenRealizadoModal";
+import CertificateDataModal from "@/components/CertificateDataModal";
 import DOMPurify from 'dompurify';
 
 // Función helper para sanitizar HTML de forma segura
@@ -63,7 +64,9 @@ const sanitizeHTML = (html: string): string => {
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const { user } = useAuth();
+  const { user, updateDni } = useAuth();
+  // El documento se pide al emitir el primer certificado (ya no al registrarse)
+  const [showCertificateData, setShowCertificateData] = useState(false);
   const location = useLocation();
   const [courseData, setCourseData] = useState<Course | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
@@ -595,7 +598,16 @@ const CourseDetail = () => {
 
   const handleDownloadCertificate = async () => {
     if (!courseId) return;
-    
+    // Sin documento cargado: pedirlo antes de generar el certificado
+    if (!(user as { dni?: string | null } | null)?.dni) {
+      setShowCertificateData(true);
+      return;
+    }
+    await downloadCertificate();
+  };
+
+  const downloadCertificate = async () => {
+    if (!courseId) return;
     try {
       toast.loading('Generando certificado...', { id: 'certificate-download' });
       
@@ -1338,6 +1350,17 @@ const CourseDetail = () => {
           }}
         />
       )}
+
+      <CertificateDataModal
+        open={showCertificateData}
+        fullName={[user?.nombre, user?.apellido].filter(Boolean).join(" ")}
+        onClose={() => setShowCertificateData(false)}
+        onSubmit={async (documento) => {
+          await updateDni(documento);
+          setShowCertificateData(false);
+          await downloadCertificate();
+        }}
+      />
 
       <VerExamenRealizadoModal
         open={showVerExamenModal}

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -258,5 +259,88 @@
   /* Clase adicional para usar directamente el gradiente exacto que pediste */
   .bg-custom-gradient {
     background: linear-gradient(to bottom, #40171f, #8b3740);
+  }
+}
+
+/* Loader (mismo que el panel de administración): velo difuminado, logo con brillo, halo bordó/dorado y barra */
+.loader-overlay {
+  animation: loader-fade-in 300ms ease-out 120ms both;
+}
+
+.loader-card {
+  animation: loader-card-in 400ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+.loader-halo {
+  background: radial-gradient(closest-side, rgb(138 46 58 / 0.4), rgb(214 168 67 / 0.15) 60%, transparent);
+  filter: blur(24px);
+  animation: loader-breathe 3s ease-in-out infinite;
+}
+
+.loader-logo {
+  animation: loader-float 3s ease-in-out infinite;
+}
+
+/* Brillo recortado con la forma del logo */
+.loader-logo-shine {
+  -webkit-mask: url("/logo.png") center / 100% 100% no-repeat;
+  mask: url("/logo.png") center / 100% 100% no-repeat;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.75) 50%, transparent 65%);
+  background-size: 300% 100%;
+  animation: loader-shine 2.4s ease-in-out infinite;
+}
+
+.loader-bar {
+  background: linear-gradient(90deg, #8a2e3a, #d6a843);
+  animation: loader-slide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.loader-delayed {
+  animation: loader-fade-in 400ms ease-out both;
+}
+
+@keyframes loader-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes loader-card-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes loader-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes loader-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes loader-shine {
+  0% { background-position: 100% 0; }
+  60%, 100% { background-position: 0% 0; }
+}
+
+@keyframes loader-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-overlay,
+  .loader-card,
+  .loader-delayed {
+    animation-duration: 1ms;
+  }
+  .loader-halo,
+  .loader-logo,
+  .loader-logo-shine {
+    animation: none;
+  }
+  .loader-bar {
+    animation-duration: 3s;
   }
 }
