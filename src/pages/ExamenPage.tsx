@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Loader } from "@/components/ui/loader";
 
 export default function ExamenPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -253,9 +254,7 @@ export default function ExamenPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
+      <Loader fullScreen message="Cargando examen" />
     );
   }
 

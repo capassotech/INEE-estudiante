@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import userService from "@/services/userService";
 import { validateImageFile } from "@/utils/imageFileValidator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Loader } from "@/components/ui/loader";
 
 const rutasAprendizajeData = [
   {
@@ -231,9 +232,7 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#9B4C5C]" />
-      </div>
+      <Loader fullScreen message="Cargando tu perfil" />
     );
   }
 
